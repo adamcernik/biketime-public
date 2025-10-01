@@ -1,6 +1,19 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
+
+interface RawBike {
+  id: string;
+  marke?: string;
+  modell?: string;
+  nrLf?: string;
+  lfSn?: string;
+  bild1?: string;
+  farbe?: string;
+  specifications?: Record<string, unknown>;
+  [key: string]: unknown;
+}
 
 // Simple in-memory cache to speed up repeated requests
 type AggregatedCache = {
@@ -76,13 +89,13 @@ export async function GET(req: NextRequest) {
     };
 
     // Compute or reuse aggregated list (with sizes), categories, and size options
-    let aggregated: any[];
+    let aggregated: RawBike[];
     let categories: string[];
     let sizeOptions: string[];
 
     const now = Date.now();
     // Year handling
-    const getModelYear = (b: any): number | null => {
+    const getModelYear = (b: RawBike): number | null => {
       const y = b.modelljahr ?? b.specifications?.Modelljahr ?? b.specifications?.modelljahr;
       const n = parseInt((y ?? '').toString(), 10);
       return Number.isFinite(n) ? n : null;
@@ -93,7 +106,7 @@ export async function GET(req: NextRequest) {
       const bikesRef = collection(db, 'bikes');
       const q = query(bikesRef, where('isActive', '==', true));
       const snap = await getDocs(q);
-      let items = snap.docs.map(d => ({ id: d.id, ...(d.data() as any) }));
+      let items: RawBike[] = snap.docs.map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) })) as RawBike[];
       const yearOptions = Array.from(new Set(items.map(getModelYear).filter((n): n is number => !!n))).sort((a,b)=>b-a);
       items = items.filter((b: any) => getModelYear(b) === yearParam);
 
@@ -121,7 +134,7 @@ export async function GET(req: NextRequest) {
     }
 
       // Primary sort by category (Category/Categorie (PRGR)), then by brand and model
-      items.sort((a: any, b: any) => {
+      items.sort((a: RawBike, b: RawBike) => {
         const aCat = getCategory(a);
         const bCat = getCategory(b);
         const catCmp = aCat.localeCompare(bCat, 'cs', { sensitivity: 'base' });
@@ -136,7 +149,7 @@ export async function GET(req: NextRequest) {
       });
 
     // Merge sizes: group by NRLF base (NRLF without last two digits); collect sizes from last two digits
-    const getNrLf = (b: any): string => (b.nrLf ?? b.lfSn ?? b.nrlf ?? b.NRLF ?? '').toString().trim();
+    const getNrLf = (b: RawBike): string => (b.nrLf ?? b.lfSn ?? (b as any).nrlf ?? (b as any).NRLF ?? '').toString().trim();
     const getBaseAndSize = (nr: string): { base: string; size?: string } => {
       const m = nr.match(/^(.*?)(\d{2})$/);
       if (!m) return { base: nr || '', size: undefined };
@@ -145,12 +158,12 @@ export async function GET(req: NextRequest) {
 
     // Battery capacity helpers
     const capacityCodeToWh: Record<string, number> = { '9': 900, '8': 800, '7': 750, '6': 600, '5': 500, '4': 400 };
-    const parseCapacityFromText = (text?: string): number | null => {
+    const parseCapacityFromText = (text?: unknown): number | null => {
       const s = (text ?? '').toString();
       const m = s.match(/(\d{3,4})\s*wh/i);
       return m ? parseInt(m[1], 10) : null;
     };
-    const getCapacityWh = (b: any): number | null => {
+    const getCapacityWh = (b: RawBike): number | null => {
       // try from known fields
       const fromFields =
         parseCapacityFromText(b.akku) ||
@@ -173,7 +186,7 @@ export async function GET(req: NextRequest) {
       return m ? m[1] : nr;
     };
 
-    const familyToGroup: Record<string, { representative: any; sizes: string[]; capacitiesWh: number[]; items: any[] }> = {};
+    const familyToGroup: Record<string, { representative: RawBike; sizes: string[]; capacitiesWh: number[]; items: RawBike[] }> = {};
     for (const it of items) {
       const nr = getNrLf(it);
       const { size } = getBaseAndSize(nr);
@@ -200,7 +213,7 @@ export async function GET(req: NextRequest) {
 
       // Build aggregated list preserving previous sort order by mapping to group order
       const seen = new Set<string>();
-      const aggregatedComputed: any[] = [];
+      const aggregatedComputed: RawBike[] = [];
       for (const it of items) {
         const nr = getNrLf(it);
         const family = getFamilyKey(nr);
@@ -208,7 +221,7 @@ export async function GET(req: NextRequest) {
         if (seen.has(key)) continue;
         seen.add(key);
         const group = familyToGroup[key];
-      const rep = { ...group.representative } as any;
+      const rep: RawBike & { sizes?: string[]; capacitiesWh?: number[] } = { ...(group.representative as RawBike) } as RawBike & { sizes?: string[]; capacitiesWh?: number[] };
         rep.sizes = group.sizes.sort((a: string, b: string) => a.localeCompare(b, 'cs', { numeric: true }));
         rep.capacitiesWh = group.capacitiesWh.sort((a: number, b: number) => a - b);
         if (!isEbike(rep)) {

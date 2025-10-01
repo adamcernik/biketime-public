@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Home() {
   return (
@@ -6,7 +7,7 @@ export default function Home() {
       <header className="bg-white border-b">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center">
-            <img src="/biketime-logo.png" alt="BikeTime" className="h-7 w-auto" />
+            <Image src="/biketime-logo.png" alt="BikeTime" width={120} height={28} className="h-7 w-auto" />
           </Link>
           <Link href="/catalog" className="text-blue-600 hover:underline">Katalog</Link>
         </div>

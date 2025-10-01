@@ -16,7 +16,20 @@ const sanitize = (v?: string) => {
 
 export default function DetailPage() {
   const { id } = useParams<{ id: string }>();
-  const [bike, setBike] = useState<any>(null);
+  type Bike = {
+    id?: string;
+    nrLf?: string;
+    marke?: string;
+    modell?: string;
+    bild1?: string;
+    farbe?: string;
+    motor?: string;
+    akku?: string;
+    sizes?: string[];
+    capacitiesWh?: number[];
+    [key: string]: unknown;
+  };
+  const [bike, setBike] = useState<Bike | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,14 +52,14 @@ export default function DetailPage() {
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/catalog" className="text-blue-600">← Zpět</Link>
           <Link href="/" className="flex items-center">
-            <img src="/biketime-logo.png" alt="BikeTime" className="h-7 w-auto" />
+            <Image src="/biketime-logo.png" alt="BikeTime" width={120} height={28} className="h-7 w-auto" />
           </Link>
         </div>
       </header>
 
       <section className="max-w-5xl mx-auto px-4 py-8 grid md:grid-cols-2 gap-8">
         <div className="relative aspect-square bg-white border rounded">
-          {bike.bild1 ? (
+          {typeof bike.bild1 === 'string' && bike.bild1.length > 0 ? (
             <Image src={bike.bild1} alt={`${sanitize(bike.marke)} ${sanitize(bike.modell)}`} fill className="object-contain p-6" />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-sm">
