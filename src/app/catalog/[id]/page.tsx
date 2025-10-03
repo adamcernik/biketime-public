@@ -86,6 +86,145 @@ export default function DetailPage() {
           )}
         </div>
       </section>
+      <section className="max-w-5xl mx-auto px-4 pb-12">
+        {(() => {
+          const spec = (bike.specifications as Record<string, unknown> | undefined) ?? {};
+
+          const toStringValue = (v: unknown): string => {
+            if (v == null) return '';
+            if (typeof v === 'string') return sanitize(v);
+            if (typeof v === 'number') return v.toString();
+            if (Array.isArray(v)) return v.map(toStringValue).filter(Boolean).join(', ');
+            return '';
+          };
+
+          const getValue = (keys: string[]): string => {
+            for (const k of keys) {
+              const top = toStringValue((bike as Record<string, unknown>)[k]);
+              if (top) return top;
+              const fromSpec = toStringValue(spec[k]);
+              if (fromSpec) return fromSpec;
+            }
+            return '';
+          };
+
+          const getCategory = (): string => {
+            const c = getValue(['Categorie (PRGR)', 'Category (PRGR)', 'categoriePrgr', 'categoryPrgr']);
+            return c.toLowerCase() === 'unknown manual entry required' ? '' : c;
+          };
+
+          const isEbike = (): boolean => {
+            const cat = getCategory().toLowerCase();
+            const drive = getValue(['Antriebsart (MOTO)']).toLowerCase();
+            return cat.startsWith('e-') || drive.includes('elektro') || drive.includes('e-') || Boolean(bike.motor);
+          };
+
+          type Field = { label: string; keys: string[] };
+          type Section = { title: string; fields: Field[]; condition?: () => boolean };
+
+          const sections: Section[] = [
+            {
+              title: 'General',
+              fields: [
+                { label: 'Marke', keys: ['marke', 'Marke'] },
+                { label: 'Modell', keys: ['modell', 'Modell'] },
+                { label: 'Produkt', keys: ['Produkt'] },
+                { label: 'Kategorie (PRGR)', keys: ['Categorie (PRGR)', 'Category (PRGR)', 'categoriePrgr', 'categoryPrgr'] },
+              ],
+            },
+            {
+              title: 'Frame & Suspension',
+              fields: [
+                { label: 'Rahmen (RAHM)', keys: ['Rahmen (RAHM)'] },
+                { label: 'Gabel (GABE)', keys: ['Gabel (GABE)'] },
+                { label: 'Dämpfer (DAMP)', keys: ['Dämpfer (DAMP)'] },
+                { label: 'Federweg VR (FWR)', keys: ['Federweg VR (FWR)'] },
+                { label: 'Federweg HR (FHR)', keys: ['Federweg HR (FHR)'] },
+              ],
+            },
+            {
+              title: 'Drivetrain & Brakes',
+              fields: [
+                { label: 'Schaltung (SCHL)', keys: ['Schaltung (SCHL)'] },
+                { label: 'Kurbelsatz (KURA)', keys: ['Kurbelsatz (KURA)'] },
+                { label: 'Kassette (KASS)', keys: ['Kassette (KASS)'] },
+                { label: 'Kette (KETT)', keys: ['Kette (KETT)'] },
+                { label: 'Bremse VR (BRVR)', keys: ['Bremse VR (BRVR)'] },
+                { label: 'Bremse HR (BRHR)', keys: ['Bremse HR (BRHR)'] },
+              ],
+            },
+            {
+              title: 'Wheels & Tires',
+              fields: [
+                { label: 'Felge (FELG)', keys: ['Felge (FELG)'] },
+                { label: 'Reifen VR (RVR)', keys: ['Reifen VR (RVR)'] },
+                { label: 'Reifen HR (RHR)', keys: ['Reifen HR (RHR)'] },
+                { label: 'Laufradgröße (LRGR)', keys: ['Laufradgröße (LRGR)'] },
+              ],
+            },
+            {
+              title: 'E-Bike System',
+              condition: isEbike,
+              fields: [
+                { label: 'Motor (MOTO)', keys: ['Motor (MOTO)', 'motor'] },
+                { label: 'Motorleistung (W) (MOPW)', keys: ['Motorleistung (W) (MOPW)'] },
+                { label: 'Drehmoment (Nm) (MOTQ)', keys: ['Drehmoment (Nm) (MOTQ)'] },
+                { label: 'Akku (AKKU)', keys: ['Akku (AKKU)', 'Akku'] },
+                { label: 'Akkukapazität (Wh) (AKWH)', keys: ['Akkukapazität (Wh) (AKWH)'] },
+                { label: 'Display (DISP)', keys: ['Display (DISP)'] },
+                { label: 'Ladegerät (LADG)', keys: ['Ladegerät (LADG)'] },
+              ],
+            },
+            {
+              title: 'Key Features / Accessories',
+              fields: [
+                { label: 'Sattel (SATT)', keys: ['Sattel (SATT)'] },
+                { label: 'Sattelstütze (STZT)', keys: ['Sattelstütze (STZT)'] },
+                { label: 'Vorbau (VORB)', keys: ['Vorbau (VORB)'] },
+                { label: 'Lenker (LENK)', keys: ['Lenker (LENK)'] },
+                { label: 'Licht VR (FRLI)', keys: ['Licht VR (FRLI)'] },
+                { label: 'Licht HR (RLIC)', keys: ['Licht HR (RLIC)'] },
+                { label: 'Gepäckträger (GEPK)', keys: ['Gepäckträger (GEPK)'] },
+                { label: 'Ständer (STAN)', keys: ['Ständer (STAN)'] },
+              ],
+            },
+            {
+              title: 'Weight',
+              fields: [
+                { label: 'Gewicht (GEWI)', keys: ['Gewicht (GEWI)'] },
+                { label: 'Gewicht ohne Akku (GWAK)', keys: ['Gewicht ohne Akku (GWAK)'] },
+              ],
+            },
+          ];
+
+          const renderRow = (label: string, value: string) => (
+            <div key={label} className="grid grid-cols-3 gap-4 py-2 border-b">
+              <div className="col-span-1 text-gray-500 text-sm">{label}</div>
+              <div className="col-span-2 text-sm text-gray-800">{value}</div>
+            </div>
+          );
+
+          return (
+            <div className="bg-white border rounded-lg overflow-hidden">
+              {sections.map((section) => {
+                if (section.condition && !section.condition()) return null;
+                const rows = section.fields
+                  .map((f) => ({ label: f.label, value: getValue(f.keys) }))
+                  .filter((r) => Boolean(r.value));
+                if (rows.length === 0) return null;
+                return (
+                  <div key={section.title} className="p-4">
+                    <h2 className="text-lg font-semibold mb-2">{section.title}</h2>
+                    <div className="divide-y">
+                      {rows.map((r) => renderRow(r.label, r.value))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
+      </section>
     </main>
   );
 }
