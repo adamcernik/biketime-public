@@ -1,9 +1,8 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 
 const sanitize = (v?: string) => {
   const s = (v ?? '').toString().trim();
@@ -16,6 +15,7 @@ const sanitize = (v?: string) => {
 
 export default function DetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   type Bike = {
     id?: string;
     nrLf?: string;
@@ -31,6 +31,7 @@ export default function DetailPage() {
   };
   const [bike, setBike] = useState<Bike | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -43,22 +44,41 @@ export default function DetailPage() {
     if (id) load();
   }, [id]);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsModalOpen(false);
+    };
+    if (isModalOpen) {
+      window.addEventListener('keydown', onKey);
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      document.documentElement.style.overflow = '';
+    }
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.documentElement.style.overflow = '';
+    };
+  }, [isModalOpen]);
+
   if (loading) return <div className="p-6">Načítám...</div>;
   if (!bike) return <div className="p-6">Nenalezeno</div>;
 
   return (
     <main className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/catalog" className="text-blue-600">← Zpět</Link>
-          <Link href="/" className="flex items-center">
-            <Image src="/biketime-logo.png" alt="BikeTime" width={120} height={28} className="h-7 w-auto" />
-          </Link>
-        </div>
-      </header>
-
       <section className="max-w-5xl mx-auto px-4 py-8 grid md:grid-cols-2 gap-8">
-        <div className="relative aspect-square bg-white border rounded">
+        <div
+          className={`relative aspect-square bg-white border rounded ${typeof bike.bild1 === 'string' && bike.bild1.length > 0 ? 'cursor-zoom-in' : ''}`}
+          onClick={() => {
+            if (typeof bike.bild1 === 'string' && bike.bild1.length > 0) setIsModalOpen(true);
+          }}
+          role={typeof bike.bild1 === 'string' && bike.bild1.length > 0 ? 'button' : undefined}
+          tabIndex={typeof bike.bild1 === 'string' && bike.bild1.length > 0 ? 0 : -1}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              if (typeof bike.bild1 === 'string' && bike.bild1.length > 0) setIsModalOpen(true);
+            }
+          }}
+        >
           {typeof bike.bild1 === 'string' && bike.bild1.length > 0 ? (
             <Image src={bike.bild1} alt={`${sanitize(bike.marke)} ${sanitize(bike.modell)}`} fill className="object-contain p-6" />
           ) : (
@@ -72,9 +92,15 @@ export default function DetailPage() {
           <h1 className="text-3xl font-bold mb-2">{[sanitize(bike.marke), sanitize(bike.modell)].filter(Boolean).join(' ')}</h1>
           {bike.farbe && <div className="text-gray-700 mb-4">{bike.farbe}</div>}
           {(bike.motor || bike.akku) && <div className="text-sm text-gray-700 mb-4">{bike.motor}{bike.motor && bike.akku ? ', ' : ''}{bike.akku}</div>}
-          {!!bike.capacitiesWh?.length && (
-            <div className="text-sm text-gray-700 mb-2">Baterie: {bike.capacitiesWh.join(', ')} Wh</div>
-          )}
+          {(() => {
+            const spec = (bike.specifications as Record<string, unknown> | undefined) ?? {};
+            const toStr = (v: unknown) => (v == null ? '' : String(v));
+            const category = (toStr((bike as Record<string, unknown>)['Categorie (PRGR)']) || toStr((bike as Record<string, unknown>).categoriePrgr) || toStr(spec['Categorie (PRGR)']) || toStr(spec['Category (PRGR)'])).toLowerCase();
+            const drive = toStr(spec['Antriebsart (MOTO)']).toLowerCase();
+            const isE = category.startsWith('e-') || drive.includes('elektro') || drive.includes('e-') || Boolean(bike.motor);
+            if (!isE || !(bike.capacitiesWh && bike.capacitiesWh.length)) return null;
+            return <div className="text-sm text-gray-700 mb-2">Baterie: {bike.capacitiesWh.join(', ')} Wh</div>;
+          })()}
           {(() => {
             const cat = (bike['Categorie (PRGR)'] ?? bike.categoriePrgr ?? '').toString();
             return cat.toLowerCase() === 'unknown manual entry required' ? null : (
@@ -124,75 +150,75 @@ export default function DetailPage() {
 
           const sections: Section[] = [
             {
-              title: 'General',
+              title: 'Obecné',
               fields: [
-                { label: 'Marke', keys: ['marke', 'Marke'] },
-                { label: 'Modell', keys: ['modell', 'Modell'] },
-                { label: 'Produkt', keys: ['Produkt'] },
-                { label: 'Kategorie (PRGR)', keys: ['Categorie (PRGR)', 'Category (PRGR)', 'categoriePrgr', 'categoryPrgr'] },
+                { label: 'Značka', keys: ['marke', 'Marke', 'Hersteller (HERS)'] },
+                { label: 'Model', keys: ['modell', 'Modell', 'Model series (MOSE)'] },
+                { label: 'Produkt', keys: ['produkt', 'Produkt', 'Product type (PRAR)'] },
+                { label: 'Kategorie', keys: ['Categorie (PRGR)', 'Category (PRGR)', 'categoriePrgr', 'categoryPrgr'] },
               ],
             },
             {
-              title: 'Frame & Suspension',
+              title: 'Rám a odpružení',
               fields: [
-                { label: 'Rahmen (RAHM)', keys: ['Rahmen (RAHM)'] },
-                { label: 'Gabel (GABE)', keys: ['Gabel (GABE)'] },
-                { label: 'Dämpfer (DAMP)', keys: ['Dämpfer (DAMP)'] },
-                { label: 'Federweg VR (FWR)', keys: ['Federweg VR (FWR)'] },
-                { label: 'Federweg HR (FHR)', keys: ['Federweg HR (FHR)'] },
+                { label: 'Rám', keys: ['Rahmen (RAHM)', 'Frame (RABE)'] },
+                { label: 'Vidlice', keys: ['Gabel (GABE)', 'Fork (GABE)'] },
+                { label: 'Tlumič', keys: ['Dämpfer (DAMP)', 'Rear suspension (HEF)'] },
+                { label: 'Zdvih přední', keys: ['Federweg VR (FWR)', 'Travel fork (FEDE)'] },
+                { label: 'Zdvih zadní', keys: ['Federweg HR (FHR)', 'Suspension travel (rear) (HBFW)'] },
               ],
             },
             {
-              title: 'Drivetrain & Brakes',
+              title: 'Pohon a brzdy',
               fields: [
-                { label: 'Schaltung (SCHL)', keys: ['Schaltung (SCHL)'] },
-                { label: 'Kurbelsatz (KURA)', keys: ['Kurbelsatz (KURA)'] },
-                { label: 'Kassette (KASS)', keys: ['Kassette (KASS)'] },
-                { label: 'Kette (KETT)', keys: ['Kette (KETT)'] },
-                { label: 'Bremse VR (BRVR)', keys: ['Bremse VR (BRVR)'] },
-                { label: 'Bremse HR (BRHR)', keys: ['Bremse HR (BRHR)'] },
+                { label: 'Řazení', keys: ['Schaltung (SCHL)', 'Derailleur type (SCHF)', 'Derailleur type - gears (GANG)'] },
+                { label: 'Kliky', keys: ['Kurbelsatz (KURA)', 'Crankset (TRLA)'] },
+                { label: 'Kazeta', keys: ['Kassette (KASS)', 'Cassette (CASE)'] },
+                { label: 'Řetěz', keys: ['Kette (KETT)', 'Chain (KETT)'] },
+                { label: 'Brzda přední', keys: ['Bremse VR (BRVR)', 'Brake (BRMV)', 'Brakes (BREM)', 'Brake disc (BRSV)'] },
+                { label: 'Brzda zadní', keys: ['Bremse HR (BRHR)', 'Brake disc rear (BRSH)'] },
               ],
             },
             {
-              title: 'Wheels & Tires',
+              title: 'Kola a pláště',
               fields: [
-                { label: 'Felge (FELG)', keys: ['Felge (FELG)'] },
-                { label: 'Reifen VR (RVR)', keys: ['Reifen VR (RVR)'] },
-                { label: 'Reifen HR (RHR)', keys: ['Reifen HR (RHR)'] },
-                { label: 'Laufradgröße (LRGR)', keys: ['Laufradgröße (LRGR)'] },
+                { label: 'Ráfek', keys: ['Felge (FELG)', 'Rim (FELG)'] },
+                { label: 'Plášť přední', keys: ['Reifen VR (RVR)', 'Tires (BERE)'] },
+                { label: 'Plášť zadní', keys: ['Reifen HR (RHR)'] },
+                { label: 'Velikost kol', keys: ['Laufradgröße (LRGR)', 'Wheel size (RADG)'] },
               ],
             },
             {
-              title: 'E-Bike System',
+              title: 'E‑bike systém',
               condition: isEbike,
               fields: [
-                { label: 'Motor (MOTO)', keys: ['Motor (MOTO)', 'motor'] },
-                { label: 'Motorleistung (W) (MOPW)', keys: ['Motorleistung (W) (MOPW)'] },
-                { label: 'Drehmoment (Nm) (MOTQ)', keys: ['Drehmoment (Nm) (MOTQ)'] },
-                { label: 'Akku (AKKU)', keys: ['Akku (AKKU)', 'Akku'] },
-                { label: 'Akkukapazität (Wh) (AKWH)', keys: ['Akkukapazität (Wh) (AKWH)'] },
-                { label: 'Display (DISP)', keys: ['Display (DISP)'] },
-                { label: 'Ladegerät (LADG)', keys: ['Ladegerät (LADG)'] },
+                { label: 'Motor', keys: ['Motor (MOTO)', 'Motor (MOTM)', 'motor'] },
+                { label: 'Výkon motoru (W)', keys: ['Motorleistung (W) (MOPW)', 'Motorleistung (Watt) (MLWA)'] },
+                { label: 'Točivý moment (Nm)', keys: ['Drehmoment (Nm) (MOTQ)', 'Drehmoment (Nm) (DMNM)'] },
+                { label: 'Baterie', keys: ['Akku (AKKU)', 'Akkumodell (AKKU)', 'Akku', 'akku'] },
+                { label: 'Kapacita baterie (Wh)', keys: ['Akkukapazität (Wh) (AKWH)', 'Battery (Wh) (AKLW)'] },
+                { label: 'Displej', keys: ['Display (DISP)'] },
+                { label: 'Nabíječka', keys: ['Ladegerät (LADG)', 'Charger (LGSC)'] },
               ],
             },
             {
-              title: 'Key Features / Accessories',
+              title: 'Vybavení a doplňky',
               fields: [
-                { label: 'Sattel (SATT)', keys: ['Sattel (SATT)'] },
-                { label: 'Sattelstütze (STZT)', keys: ['Sattelstütze (STZT)'] },
-                { label: 'Vorbau (VORB)', keys: ['Vorbau (VORB)'] },
-                { label: 'Lenker (LENK)', keys: ['Lenker (LENK)'] },
-                { label: 'Licht VR (FRLI)', keys: ['Licht VR (FRLI)'] },
-                { label: 'Licht HR (RLIC)', keys: ['Licht HR (RLIC)'] },
-                { label: 'Gepäckträger (GEPK)', keys: ['Gepäckträger (GEPK)'] },
-                { label: 'Ständer (STAN)', keys: ['Ständer (STAN)'] },
+                { label: 'Sedlo', keys: ['Sattel (SATT)', 'Saddle (SATT)'] },
+                { label: 'Sedlovka', keys: ['Sattelstütze (STZT)', 'Seatpost (SAST)'] },
+                { label: 'Představec', keys: ['Vorbau (VORB)', 'Stem (VORB)'] },
+                { label: 'Řídítka', keys: ['Lenker (LENK)', 'Handlebar (LENB)'] },
+                { label: 'Světlo přední', keys: ['Licht VR (FRLI)', 'Front lightning set (FRLI)'] },
+                { label: 'Světlo zadní', keys: ['Licht HR (RLIC)', 'Rear lightning set (RLIC)'] },
+                { label: 'Nosič', keys: ['Gepäckträger (GEPK)', 'Carrier (GPT)'] },
+                { label: 'Stojan', keys: ['Ständer (STAN)', 'Stand (STAE)'] },
               ],
             },
             {
-              title: 'Weight',
+              title: 'Hmotnost',
               fields: [
-                { label: 'Gewicht (GEWI)', keys: ['Gewicht (GEWI)'] },
-                { label: 'Gewicht ohne Akku (GWAK)', keys: ['Gewicht ohne Akku (GWAK)'] },
+                { label: 'Hmotnost', keys: ['Gewicht (GEWI)', 'Weight ** (GEW)'] },
+                { label: 'Hmotnost bez baterie', keys: ['Gewicht ohne Akku (GWAK)'] },
               ],
             },
           ];
@@ -225,6 +251,28 @@ export default function DetailPage() {
           );
         })()}
       </section>
+      {isModalOpen && typeof bike.bild1 === 'string' && bike.bild1.length > 0 && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+          onClick={() => setIsModalOpen(false)}
+        >
+          <div className="absolute top-4 right-4">
+            <button
+              aria-label="Zavřít"
+              className="h-10 w-10 rounded-full bg-white/90 text-gray-800 hover:bg-white flex items-center justify-center shadow"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsModalOpen(false);
+              }}
+            >
+              ×
+            </button>
+          </div>
+          <div className="relative w-[90vw] h-[90vh]" onClick={(e) => e.stopPropagation()}>
+            <Image src={bike.bild1} alt={`${sanitize(bike.marke)} ${sanitize(bike.modell)}`} fill className="object-contain" />
+          </div>
+        </div>
+      )}
     </main>
   );
 }

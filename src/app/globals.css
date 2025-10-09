@@ -24,3 +24,13 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Prevent logo selection/drag without affecting SSR markup */
+.logo-link {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.logo-image {
+  pointer-events: none;
+  user-select: none;
+}

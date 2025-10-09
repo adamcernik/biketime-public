@@ -64,11 +64,8 @@ export default function CatalogPage() {
 
   return (
     <main className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b">
+      <header className="bg-white">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center">
-            <Image src="/biketime-logo.png" alt="BikeTime" width={120} height={28} className="h-7 w-auto" />
-          </Link>
           <div className="flex items-center gap-3">
             <div className="flex items-center text-sm gap-1 border rounded px-2 py-1 bg-white">
               <button
@@ -117,6 +114,8 @@ export default function CatalogPage() {
                 </svg>
               </span>
             </div>
+          </div>
+          <div className="ml-auto">
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -143,7 +142,7 @@ export default function CatalogPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             {bikes.map((b) => (
-              <Link key={b.id} href={`/catalog/${b.id}`} className="bg-white border rounded-lg overflow-hidden hover:shadow">
+              <Link key={b.id} href={`/catalog/${b.id}`} className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
                 <div className="aspect-square relative bg-white">
                   {b.bild1 ? (
                     <Image

@@ -1,23 +1,29 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import FeaturedBikes from '@/components/FeaturedBikes';
 
 export default function Home() {
   return (
     <main className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center">
-            <Image src="/biketime-logo.png" alt="BikeTime" width={120} height={28} className="h-7 w-auto" />
-          </Link>
-          <Link href="/catalog" className="text-blue-600 hover:underline">Katalog</Link>
+      <section className="relative">
+        <div className="absolute inset-0" aria-hidden="true">
+          <Image
+            src="/ZEG_525900080644_Mode_002.jpg"
+            alt="Biketime hero"
+            fill
+            className="object-cover"
+            priority
+          />
+          <div className="absolute inset-0 bg-black/40" />
         </div>
-      </header>
-
-      <section className="max-w-5xl mx-auto px-4 py-10">
-        <h1 className="text-3xl font-bold mb-4">Veřejný katalog kol</h1>
-        <p className="text-gray-700 mb-6">Prohlédněte si kompletní nabídku importovaných kol.</p>
-        <Link href="/catalog" className="inline-block bg-black text-white px-6 py-3 rounded-md">Přejít do katalogu</Link>
+        <div className="max-w-6xl mx-auto px-4 py-[146px] relative text-white">
+          <h1 className="text-4xl md:text-5xl font-extrabold mb-4">BULLS SONIC EN-R TEAM</h1>
+          <p className="text-lg max-w-2xl mb-6">Bosch Performance Line CX-RACE GEN5 (Smart System) 25/100 Nm, 600 Wh</p>
+          <Link href="/catalog/525900080644" className="inline-block bg-white text-black px-6 py-3 rounded-md font-medium hover:bg-gray-100">Zobrazit detail</Link>
+        </div>
       </section>
+
+      <FeaturedBikes />
     </main>
   );
 }
