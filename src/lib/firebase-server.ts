@@ -18,12 +18,5 @@ if (!getApps().length) {
 }
 
 export const db = getFirestore(app);
-// Initialize Auth only in the browser to avoid SSR/build-time errors
-export const auth = typeof window !== 'undefined' ? (await import('firebase/auth')).getAuth(app) : undefined as unknown as import('firebase/auth').Auth;
-export const googleProvider = typeof window !== 'undefined' ? new (await import('firebase/auth')).GoogleAuthProvider() : undefined;
-if (typeof window !== 'undefined' && googleProvider) {
-  googleProvider.setCustomParameters({ prompt: 'select_account' });
-}
-
 
 

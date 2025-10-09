@@ -24,6 +24,10 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!auth) {
+      setLoading(false);
+      return;
+    }
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setLoading(false);
@@ -35,9 +39,11 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     user,
     loading,
     signInWithGoogle: async () => {
+      if (!auth || !googleProvider) return;
       await signInWithPopup(auth, googleProvider);
     },
     signOutUser: async () => {
+      if (!auth) return;
       await signOut(auth);
     },
   }), [user, loading]);
