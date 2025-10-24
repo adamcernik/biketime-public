@@ -67,7 +67,7 @@ export default function DetailPage() {
     <main className="min-h-screen bg-gray-50">
       <section className="max-w-5xl mx-auto px-4 py-8 grid md:grid-cols-2 gap-8">
         <div
-          className={`relative aspect-square bg-white border rounded ${typeof bike.bild1 === 'string' && bike.bild1.length > 0 ? 'cursor-zoom-in' : ''}`}
+          className={`relative aspect-square bg-white rounded shadow-sm ${typeof bike.bild1 === 'string' && bike.bild1.length > 0 ? 'cursor-zoom-in' : ''}`}
           onClick={() => {
             if (typeof bike.bild1 === 'string' && bike.bild1.length > 0) setIsModalOpen(true);
           }}
@@ -224,14 +224,14 @@ export default function DetailPage() {
           ];
 
           const renderRow = (label: string, value: string) => (
-            <div key={label} className="grid grid-cols-3 gap-4 py-2 border-b">
+            <div key={label} className="grid grid-cols-3 gap-4 py-2">
               <div className="col-span-1 text-gray-500 text-sm">{label}</div>
               <div className="col-span-2 text-sm text-gray-800">{value}</div>
             </div>
           );
 
           return (
-            <div className="bg-white border rounded-lg overflow-hidden">
+            <div className="bg-white rounded-lg overflow-hidden shadow-sm divide-y">
               {sections.map((section) => {
                 if (section.condition && !section.condition()) return null;
                 const rows = section.fields

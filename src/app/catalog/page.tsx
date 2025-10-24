@@ -64,28 +64,28 @@ export default function CatalogPage() {
 
   return (
     <main className="min-h-screen bg-gray-50">
-      <header className="bg-white">
+      <header className="bg-white shadow-sm">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex items-center text-sm gap-1 border rounded px-2 py-1 bg-white">
+            <div className="flex items-center text-sm gap-1 rounded px-2 py-1 bg-gray-100">
               <button
                 onClick={()=>setEbikeOnly('ebike')}
-                className={`px-2 py-1 rounded ${ebikeOnly==='ebike'?'bg-black text-white':'text-gray-700'}`}
+                className={`px-2 py-1 rounded ${ebikeOnly==='ebike'?'bg-black text-white':'text-gray-700 hover:bg-gray-200'}`}
               >E‑bike</button>
               <button
                 onClick={()=>setEbikeOnly('non')}
-                className={`px-2 py-1 rounded ${ebikeOnly==='non'?'bg-black text-white':'text-gray-700'}`}
+                className={`px-2 py-1 rounded ${ebikeOnly==='non'?'bg-black text-white':'text-gray-700 hover:bg-gray-200'}`}
               >Bez motoru</button>
               <button
                 onClick={()=>setEbikeOnly('all')}
-                className={`px-2 py-1 rounded ${ebikeOnly==='all'?'bg-black text-white':'text-gray-700'}`}
+                className={`px-2 py-1 rounded ${ebikeOnly==='all'?'bg-black text-white':'text-gray-700 hover:bg-gray-200'}`}
               >Vše</button>
             </div>
             <div className="relative">
               <select
                 value={size}
                 onChange={(e) => setSize(e.target.value)}
-                className="appearance-none bg-white border rounded px-3 pr-8 h-10 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                className="appearance-none bg-white rounded px-3 pr-8 h-10 text-sm focus:outline-none focus:ring-2 focus:ring-black shadow-sm"
               >
                 <option value="">Všechny velikosti</option>
                 {sizeOptions.map((s) => (
@@ -102,7 +102,7 @@ export default function CatalogPage() {
               <select
                 value={year}
                 onChange={(e) => setYear(e.target.value)}
-                className="appearance-none bg-white border rounded px-3 pr-8 h-10 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                className="appearance-none bg-white rounded px-3 pr-8 h-10 text-sm focus:outline-none focus:ring-2 focus:ring-black shadow-sm"
               >
                 {yearOptions.map((y) => (
                   <option key={y} value={y}>{y}</option>
@@ -120,7 +120,7 @@ export default function CatalogPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Hledat kola..."
-              className="border rounded px-3 h-10 text-sm w-64"
+              className="rounded px-3 h-10 text-sm w-64 shadow-sm focus:outline-none focus:ring-2 focus:ring-black"
             />
           </div>
         </div>
@@ -132,7 +132,7 @@ export default function CatalogPage() {
               <button
                 key={t}
                 onClick={() => setCategory(t)}
-                className={`text-xs px-3 py-1 rounded-full border ${category===t? 'bg-black text-white' : 'bg-white text-gray-800'}`}
+                className={`text-xs px-3 py-1 rounded-full ring-1 ring-gray-300 ${category===t? 'bg-black text-white' : 'bg-white text-gray-800 hover:bg-gray-100'}`}
               >{t}</button>
             ))}
           </div>
@@ -173,7 +173,7 @@ export default function CatalogPage() {
                   {!!b.capacitiesWh?.length && (
                     <div className="mt-2 flex flex-wrap gap-2">
                       {b.capacitiesWh.map((w) => (
-                        <span key={w} className="text-xs px-2 py-0.5 rounded-full border bg-white text-gray-800">
+                        <span key={w} className="text-xs px-2 py-0.5 rounded-full ring-1 ring-gray-300 bg-white text-gray-800">
                           {w} Wh
                         </span>
                       ))}

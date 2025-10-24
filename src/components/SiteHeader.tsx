@@ -8,7 +8,6 @@ import { useAuth } from './AuthProvider';
 const navItems: { href: string; label: string }[] = [
   { href: '/catalog', label: 'Katalog' },
   { href: '/prodejny', label: 'Prodejny' },
-  { href: '/aktuality', label: 'Aktuality' },
   { href: '/kola-bulls', label: 'Kola Bulls' },
   { href: '/ke-stazeni', label: 'Ke stažení' },
   { href: '/kontakt', label: 'Kontakt' },
@@ -104,14 +103,14 @@ export default function SiteHeader() {
         </nav>
         <button
           aria-label="Menu"
-          className="md:hidden h-9 w-9 inline-flex items-center justify-center rounded border"
+          className="md:hidden h-9 w-9 inline-flex items-center justify-center rounded bg-gray-50 ring-1 ring-gray-300"
           onClick={() => setOpen((v) => !v)}
         >
           ☰
         </button>
       </div>
       {open && (
-        <div className="md:hidden border-t bg-white">
+        <div className="md:hidden bg-white shadow-sm">
           <nav className="max-w-6xl mx-auto px-4 py-3 flex flex-col gap-3">
             {navItems.map((item) => (
               <Link
