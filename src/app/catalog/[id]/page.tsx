@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 
@@ -15,7 +15,6 @@ const sanitize = (v?: string) => {
 
 export default function DetailPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   type Bike = {
     id?: string;
     nrLf?: string;

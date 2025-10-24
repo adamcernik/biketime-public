@@ -24,7 +24,7 @@ function formatDisplayUrl(url: string): string {
     const u = new URL(url);
     const host = u.host.replace(/^www\./, '');
     return `${host}${u.pathname}`.replace(/\/$/, '/');
-  } catch (_) {
+  } catch {
     return url.replace(/^https?:\/\//, '').replace(/^www\./, '');
   }
 }

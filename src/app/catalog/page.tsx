@@ -29,7 +29,7 @@ interface Bike {
 
 export default function CatalogPage() {
   const [bikes, setBikes] = useState<Bike[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<string[]>([]); // kept for future UI filters
   const [sizeOptions, setSizeOptions] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
