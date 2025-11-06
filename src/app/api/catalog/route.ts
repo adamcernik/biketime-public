@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
     const sizeFilter = (searchParams.get('size') || '').trim();
     const refresh = searchParams.get('refresh') === 'true';
     const ebikeParam = searchParams.get('ebike'); // 'true' | 'false' | null
+    const inStockParam = searchParams.get('inStock'); // 'true' | null
 
     // Helpers used throughout this handler
     const PLACEHOLDER = 'unknown manual entry required';
@@ -88,6 +89,31 @@ export async function GET(req: NextRequest) {
       return mapped;
     };
 
+    // Price helpers (MOC in CZK). We try a set of common keys and also scan specification keys.
+    const toNumberFromMixed = (v: unknown): number | null => {
+      if (v == null) return null;
+      if (typeof v === 'number' && Number.isFinite(v)) return v;
+      const s = String(v).replace(/[^0-9.,]/g, '').replace(/,/g, '.');
+      if (!s) return null;
+      const n = parseFloat(s);
+      return Number.isFinite(n) ? n : null;
+    };
+    const PRICE_KEYS = ['moc','MOC','mocCzk','mocCZK','priceCzk','priceCZK','price','cena','Cena','uvp','UVP','UPE','uvpCZK'];
+    const getMocCzk = (b: any): number | null => {
+      for (const k of PRICE_KEYS) {
+        const n = toNumberFromMixed((b as any)[k]);
+        if (n != null) return n;
+      }
+      const spec = (b?.specifications ?? {}) as Record<string, unknown>;
+      for (const k of Object.keys(spec)) {
+        if (/moc|uvp|price|cena/i.test(k)) {
+          const n = toNumberFromMixed(spec[k]);
+          if (n != null) return n;
+        }
+      }
+      return null;
+    };
+
     // Compute or reuse aggregated list (with sizes), categories, and size options
     let aggregated: RawBike[];
     let categories: string[];
@@ -100,7 +126,10 @@ export async function GET(req: NextRequest) {
       const n = parseInt((y ?? '').toString(), 10);
       return Number.isFinite(n) ? n : null;
     };
-    const yearParam = parseInt((searchParams.get('year') || '2026').toString(), 10);
+    const yearRaw = searchParams.get('year');
+    const yearParam = yearRaw && yearRaw.trim() !== '' && !Number.isNaN(parseInt(yearRaw, 10))
+      ? parseInt(yearRaw, 10)
+      : null;
 
     if (!CATALOG_CACHE || CATALOG_CACHE.expiresAt < now || refresh || LAST_YEAR !== yearParam) {
       const bikesRef = collection(db, 'bikes');
@@ -108,7 +137,9 @@ export async function GET(req: NextRequest) {
       const snap = await getDocs(q);
       let items: RawBike[] = snap.docs.map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) })) as RawBike[];
       const yearOptions = Array.from(new Set(items.map(getModelYear).filter((n): n is number => !!n))).sort((a,b)=>b-a);
-      items = items.filter((b: any) => getModelYear(b) === yearParam);
+      if (yearParam !== null) {
+        items = items.filter((b: any) => getModelYear(b) === yearParam);
+      }
 
     // Build list of unique categories for UI dropdown
 
@@ -186,17 +217,23 @@ export async function GET(req: NextRequest) {
       return m ? m[1] : nr;
     };
 
-    const familyToGroup: Record<string, { representative: RawBike; sizes: string[]; capacitiesWh: number[]; items: RawBike[] }> = {};
+    const familyToGroup: Record<string, { representative: RawBike; sizes: string[]; capacitiesWh: number[]; items: RawBike[]; stockQty: number; stockSizes: Set<string> }> = {};
     for (const it of items) {
       const nr = getNrLf(it);
       const { size } = getBaseAndSize(nr);
       const family = getFamilyKey(nr);
       if (!familyToGroup[family]) {
-        familyToGroup[family] = { representative: it, sizes: [], capacitiesWh: [], items: [] };
+        familyToGroup[family] = { representative: it, sizes: [], capacitiesWh: [], items: [], stockQty: 0, stockSizes: new Set<string>() };
       }
       familyToGroup[family].items.push(it);
       if (size) {
         if (!familyToGroup[family].sizes.includes(size)) familyToGroup[family].sizes.push(size);
+      }
+      // accumulate B2B stock quantity (treat missing as 0)
+      const qty = Number((it as any).b2bStockQuantity ?? 0);
+      if (Number.isFinite(qty) && qty > 0) {
+        familyToGroup[family].stockQty += qty;
+        if (size) familyToGroup[family].stockSizes.add(size);
       }
       const cap = getCapacityWh(it);
       if (cap) {
@@ -224,6 +261,11 @@ export async function GET(req: NextRequest) {
       const rep: RawBike & { sizes?: string[]; capacitiesWh?: number[] } = { ...(group.representative as RawBike) } as RawBike & { sizes?: string[]; capacitiesWh?: number[] };
         rep.sizes = group.sizes.sort((a: string, b: string) => a.localeCompare(b, 'cs', { numeric: true }));
         rep.capacitiesWh = group.capacitiesWh.sort((a: number, b: number) => a - b);
+        (rep as any).b2bStockQuantity = group.stockQty;
+        (rep as any).stockSizes = Array.from(group.stockSizes).sort((a: string, b: string) => a.localeCompare(b, 'cs', { numeric: true }));
+        // Attach MOC price (CZK) for the representative. Prefer a price present on any item in the family.
+        const priceFromFamily = group.items.map(getMocCzk).find((p) => p != null);
+        if (priceFromFamily != null) (rep as any).mocCzk = priceFromFamily;
         if (!isEbike(rep)) {
           // Ensure non‑E bikes do not show battery capacities
           rep.capacitiesWh = [];
@@ -301,13 +343,41 @@ export async function GET(req: NextRequest) {
       afterFilters = afterFilters.filter((g: any) => (g.sizes || []).includes(sizeFilter));
     }
 
-    // Categories should reflect the E-bike toggle selection
-    let categoriesResponseSource = aggregated;
-    if (ebikeParam === 'true') categoriesResponseSource = aggregated.filter(isEbike);
-    else if (ebikeParam === 'false') categoriesResponseSource = aggregated.filter((b: any) => !isEbike(b));
+    if (inStockParam === 'true') {
+      afterFilters = afterFilters.filter((g: any) => Number((g as any).b2bStockQuantity ?? 0) > 0);
+    }
+
+    // Categories should reflect the active filters EXCEPT the selected category
+    let categorySource = aggregated;
+    if (search) {
+      categorySource = categorySource.filter((b: any) =>
+        (b.marke || '').toLowerCase().includes(search) ||
+        (b.modell || '').toLowerCase().includes(search) ||
+        (b.nrLf || '').toLowerCase().includes(search) ||
+        (b.farbe || '').toLowerCase().includes(search)
+      );
+    }
+    if (ebikeParam === 'true') {
+      categorySource = categorySource.filter((b: any) => {
+        const cat = getCategory(b).toLowerCase();
+        return cat.startsWith('e-') || (b.specifications?.['Antriebsart (MOTO)'] ?? '').toString().toLowerCase().includes('elektro');
+      });
+    } else if (ebikeParam === 'false') {
+      categorySource = categorySource.filter((b: any) => {
+        const cat = getCategory(b).toLowerCase();
+        const isE = cat.startsWith('e-') || (b.specifications?.['Antriebsart (MOTO)'] ?? '').toString().toLowerCase().includes('elektro');
+        return !isE;
+      });
+    }
+    if (sizeFilter) {
+      categorySource = categorySource.filter((g: any) => (g.sizes || []).includes(sizeFilter));
+    }
+    if (inStockParam === 'true') {
+      categorySource = categorySource.filter((g: any) => Number((g as any).b2bStockQuantity ?? 0) > 0);
+    }
     const categoriesForResponse = Array.from(
       new Set(
-        categoriesResponseSource
+        categorySource
           .map((b: any) => getMappedCategory(b, ebikeParam))
           .filter((v: string | null) => !!v)
       )
@@ -325,7 +395,7 @@ export async function GET(req: NextRequest) {
       totalPages: Math.ceil(total / pageSize),
       categories: categoriesForResponse,
       sizeOptions,
-      yearOptions: ((globalThis as any).__BT_YEAR_OPTIONS__ as number[] | undefined) || [2026],
+      yearOptions: ((globalThis as any).__BT_YEAR_OPTIONS__ as number[] | undefined) || [],
     });
   } catch (e) {
     console.error(e);

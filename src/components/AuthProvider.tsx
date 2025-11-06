@@ -1,8 +1,9 @@
 'use client';
 
 import { ReactNode, createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { auth, googleProvider } from '@/lib/firebase';
+import { auth, googleProvider, db } from '@/lib/firebase';
 import { onAuthStateChanged, signInWithPopup, signOut, User } from 'firebase/auth';
+import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 
 type AuthContextValue = {
   user: User | null;
@@ -31,6 +32,36 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setLoading(false);
+      if (u && db) {
+        const adminEmails = new Set(
+          [
+            ...(process.env.NEXT_PUBLIC_ADMIN_EMAILS
+              ? process.env.NEXT_PUBLIC_ADMIN_EMAILS.split(',').map((e) => e.trim().toLowerCase())
+              : []),
+            'adam.cernik@gmail.com', // seed poweradmin
+          ].filter(Boolean)
+        );
+        const shouldBeAdmin = adminEmails.has((u.email ?? '').toLowerCase());
+        const ref = doc(db, 'users', u.uid);
+        getDoc(ref).then(async (snap) => {
+          if (!snap.exists()) {
+            await setDoc(ref, {
+              uid: u.uid,
+              email: u.email ?? '',
+              displayName: u.displayName ?? '',
+              photoURL: u.photoURL ?? '',
+              isAdmin: shouldBeAdmin,
+              createdAt: serverTimestamp(),
+              lastLoginAt: serverTimestamp(),
+            });
+          } else {
+            const current = snap.data() as { isAdmin?: boolean } | undefined;
+            const updates: Record<string, unknown> = { lastLoginAt: serverTimestamp() };
+            if (shouldBeAdmin && !current?.isAdmin) updates.isAdmin = true;
+            await updateDoc(ref, updates);
+          }
+        }).catch(() => {/* ignore */});
+      }
     });
     return () => unsub();
   }, []);

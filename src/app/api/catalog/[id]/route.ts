@@ -19,6 +19,63 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
     const data = snap.data() as Record<string, unknown>;
     const bike: BikeFields & { id: string; sizes?: string[]; capacitiesWh?: number[] } = { ...(data as BikeFields), id: snap.id };
 
+    // Attach MOC price (CZK) if present under common keys or specification keys
+    const toNumberFromMixed = (v: unknown): number | null => {
+      if (v == null) return null;
+      if (typeof v === 'number' && Number.isFinite(v)) return v;
+      const s = String(v).replace(/[^0-9.,]/g, '').replace(/,/g, '.');
+      if (!s) return null;
+      const n = parseFloat(s);
+      return Number.isFinite(n) ? n : null;
+    };
+    const PRICE_KEYS = ['moc','MOC','mocCzk','mocCZK','priceCzk','priceCZK','price','cena','Cena','uvp','UVP','UPE','uvpCZK'];
+    const getMocCzk = (b: Record<string, unknown>): number | null => {
+      for (const k of PRICE_KEYS) {
+        const n = toNumberFromMixed(b[k]);
+        if (n != null) return n;
+      }
+      const spec = ((b.specifications ?? {}) as Record<string, unknown>);
+      for (const k of Object.keys(spec)) {
+        if (/moc|uvp|price|cena/i.test(k)) {
+          const n = toNumberFromMixed(spec[k]);
+          if (n != null) return n;
+        }
+      }
+      return null;
+    };
+    const price = getMocCzk(data);
+    if (price != null) (bike as any).mocCzk = price;
+
+    // Extract dealer price levels A–F (CZK). We scan both top-level fields and specifications.
+    const getTierPricesCzk = (b: Record<string, unknown>): Partial<Record<'A'|'B'|'C'|'D'|'E'|'F', number>> => {
+      const out: Partial<Record<'A'|'B'|'C'|'D'|'E'|'F', number>> = {};
+      const tryAssign = (key: string, value: unknown) => {
+        const rawKey = key ?? '';
+        const keyNorm = String(rawKey).replace(/[\s.\-]/g, '').toLowerCase();
+        const keyNoCzk = keyNorm.replace(/czk$/, '');
+        // Try forms like 'a','b',... directly
+        const direct = keyNoCzk.length === 1 ? keyNoCzk.toUpperCase() : '';
+        // Try prefixed forms like 'pricea','cenaa','tierb','levelc'
+        const stripped = keyNoCzk.replace(/^(price|cena|cenik|tier|level|pricelist|dealer)/, '');
+        const suffix = stripped.length === 1 ? stripped.toUpperCase() : '';
+        // Try forms like 'a_price','b_cena'
+        const firstChar = keyNoCzk.charAt(0).toUpperCase();
+        const restHasPrice = /price|cena|cenik/.test(keyNoCzk.slice(1));
+        const candidate = ['A','B','C','D','E','F'].includes(direct)
+          ? direct
+          : (['A','B','C','D','E','F'].includes(suffix) ? suffix : (restHasPrice && ['A','B','C','D','E','F'].includes(firstChar) ? firstChar : ''));
+        if (!candidate) return;
+        const n = toNumberFromMixed(value);
+        if (n != null) out[candidate as 'A'|'B'|'C'|'D'|'E'|'F'] = n;
+      };
+      for (const [k, v] of Object.entries(b)) tryAssign(k, v);
+      const spec = ((b.specifications ?? {}) as Record<string, unknown>);
+      for (const [k, v] of Object.entries(spec)) tryAssign(k, v);
+      return out;
+    };
+    const levels = getTierPricesCzk(data);
+    if (Object.keys(levels).length > 0) (bike as any).priceLevelsCzk = levels;
+
     // Derive sizes for this model by finding same NRLF base among active bikes
     const nr = ((data.nrLf as string | undefined) ?? (data.lfSn as string | undefined) ?? '').toString();
     const m = nr.match(/^(.*?)(\d{2})$/);
@@ -51,6 +108,22 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
           .filter(Boolean) as number[]
       )).sort((a, b) => a - b);
       if (capacities.length) bike.capacitiesWh = capacities;
+
+      // Compute which sizes are in stock (sum of b2bStockQuantity per size > 0)
+      const sizeToQty: Record<string, number> = {};
+      for (const d of list.docs) {
+        const dataDoc = d.data() as Record<string, unknown>;
+        const nrDoc = (((dataDoc.nrLf as string | undefined) ?? (dataDoc.lfSn as string | undefined) ?? '').toString());
+        if (!nrDoc.startsWith(base)) continue; // only aggregate sizes within the same model base
+        const code = nrDoc.match(/(\d{2})$/)?.[1];
+        if (!code) continue;
+        const qty = Number((dataDoc as any).b2bStockQuantity ?? 0);
+        if (Number.isFinite(qty) && qty > 0) {
+          sizeToQty[code] = (sizeToQty[code] ?? 0) + qty;
+        }
+      }
+      const stockSizes = Object.entries(sizeToQty).filter(([,q]) => q > 0).map(([s]) => s).sort((a, b) => a.localeCompare(b, 'cs', { numeric: true }));
+      (bike as any).stockSizes = stockSizes;
     }
 
     return NextResponse.json(bike);
