@@ -31,11 +31,13 @@ export default function AdminBikesPage() {
       // If a year is selected, query by top-level field to avoid slicing issues
       const q = year ? query(col, where('modelljahr', '==', parseInt(year, 10))) : query(col, limit(400));
       const snap = await getDocs(q);
-      const items: Bike[] = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+      const items: Bike[] = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Partial<Bike>) }));
       // derive model years from known fields
       const extractYear = (b: Bike): number | null => {
-        const fromTop = (b as any).modelljahr ?? (b as any).modelYear;
-        const fromSpec = b.specifications?.Modelljahr ?? (b.specifications as any)?.modelljahr;
+        const top = (b as unknown as { modelljahr?: unknown; modelYear?: unknown });
+        const fromTop = top.modelljahr ?? top.modelYear;
+        const specs = b.specifications as Record<string, unknown> | undefined;
+        const fromSpec = (specs?.Modelljahr as unknown) ?? (specs?.modelljahr as unknown);
         const v = fromTop ?? fromSpec;
         const n = parseInt((v ?? '').toString(), 10);
         return Number.isFinite(n) ? n : null;
@@ -74,8 +76,10 @@ export default function AdminBikesPage() {
       (b.nrLf ?? '').toLowerCase().includes(s)
     ;
     const extractYear = (b: Bike): number | null => {
-      const fromTop = (b as any).modelljahr ?? (b as any).modelYear;
-      const fromSpec = b.specifications?.Modelljahr ?? (b.specifications as any)?.modelljahr;
+      const top = (b as unknown as { modelljahr?: unknown; modelYear?: unknown });
+      const fromTop = top.modelljahr ?? top.modelYear;
+      const specs = b.specifications as Record<string, unknown> | undefined;
+      const fromSpec = (specs?.Modelljahr as unknown) ?? (specs?.modelljahr as unknown);
       const v = fromTop ?? fromSpec;
       const n = parseInt((v ?? '').toString(), 10);
       return Number.isFinite(n) ? n : null;

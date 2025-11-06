@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { db } from '@/lib/firebase';
-import { collection, doc, getDocs, orderBy, query, updateDoc } from 'firebase/firestore';
+import { collection, doc, getDocs, query, updateDoc } from 'firebase/firestore';
 
 type UserRow = {
   uid: string;
@@ -22,7 +22,7 @@ export default function AdminUsersPage() {
       setLoading(true);
       const q = query(collection(db, 'users'));
       const snap = await getDocs(q);
-      setUsers(snap.docs.map((d)=> ({ uid: d.id, ...(d.data() as any) })));
+      setUsers(snap.docs.map((d)=> ({ uid: d.id, ...(d.data() as Partial<UserRow>) })));
       setLoading(false);
     };
     void load();

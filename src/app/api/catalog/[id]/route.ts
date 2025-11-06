@@ -7,6 +7,9 @@ interface BikeFields {
   lfSn?: string;
   bild1?: string;
   specifications?: Record<string, unknown>;
+  mocCzk?: number;
+  priceLevelsCzk?: Partial<Record<'A'|'B'|'C'|'D'|'E'|'F', number>>;
+  stockSizes?: string[];
   [key: string]: unknown;
 }
 
@@ -44,7 +47,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       return null;
     };
     const price = getMocCzk(data);
-    if (price != null) (bike as any).mocCzk = price;
+    if (price != null) bike.mocCzk = price;
 
     // Extract dealer price levels A–F (CZK). We scan both top-level fields and specifications.
     const getTierPricesCzk = (b: Record<string, unknown>): Partial<Record<'A'|'B'|'C'|'D'|'E'|'F', number>> => {
@@ -74,7 +77,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       return out;
     };
     const levels = getTierPricesCzk(data);
-    if (Object.keys(levels).length > 0) (bike as any).priceLevelsCzk = levels;
+    if (Object.keys(levels).length > 0) bike.priceLevelsCzk = levels;
 
     // Derive sizes for this model by finding same NRLF base among active bikes
     const nr = ((data.nrLf as string | undefined) ?? (data.lfSn as string | undefined) ?? '').toString();
@@ -117,13 +120,14 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
         if (!nrDoc.startsWith(base)) continue; // only aggregate sizes within the same model base
         const code = nrDoc.match(/(\d{2})$/)?.[1];
         if (!code) continue;
-        const qty = Number((dataDoc as any).b2bStockQuantity ?? 0);
+        const qtyRaw = (dataDoc as Record<string, unknown>)['b2bStockQuantity'];
+        const qty = typeof qtyRaw === 'number' ? qtyRaw : Number(qtyRaw ?? 0);
         if (Number.isFinite(qty) && qty > 0) {
           sizeToQty[code] = (sizeToQty[code] ?? 0) + qty;
         }
       }
       const stockSizes = Object.entries(sizeToQty).filter(([,q]) => q > 0).map(([s]) => s).sort((a, b) => a.localeCompare(b, 'cs', { numeric: true }));
-      (bike as any).stockSizes = stockSizes;
+      bike.stockSizes = stockSizes;
     }
 
     return NextResponse.json(bike);

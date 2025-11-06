@@ -3,7 +3,7 @@
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, type DocumentData } from 'firebase/firestore';
 
 type Bike = {
   id: string;
@@ -28,7 +28,7 @@ export default function AdminBikeDetailPage() {
       if (!db) return;
       const ref = doc(db, 'bikes', id);
       const snap = await getDoc(ref);
-      if (snap.exists()) setBike({ id: snap.id, ...(snap.data() as any) });
+      if (snap.exists()) setBike({ id: snap.id, ...(snap.data() as Partial<Bike>) });
     };
     if (id) void load();
   }, [id]);
@@ -37,7 +37,7 @@ export default function AdminBikeDetailPage() {
     if (!db || !bike) return;
     setSaving(true);
     const { id: bikeId, ...payload } = bike;
-    await updateDoc(doc(db, 'bikes', bikeId), payload as any);
+    await updateDoc(doc(db, 'bikes', bikeId), payload as DocumentData);
     setSaving(false);
     router.push('/admin/bikes');
   };
