@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -32,7 +32,7 @@ interface Bike {
   priceLevelsCzk?: Partial<Record<'A'|'B'|'C'|'D'|'E'|'F', number>>;
 }
 
-export default function CatalogPage() {
+function CatalogContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -357,6 +357,14 @@ export default function CatalogPage() {
         )}
       </section>
     </main>
+  );
+}
+
+export default function CatalogPage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen bg-gray-50"><section className="max-w-5xl mx-auto px-4 py-6 text-gray-600">Načítám...</section></main>}>
+      <CatalogContent />
+    </Suspense>
   );
 }
 
