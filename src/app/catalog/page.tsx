@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 const sanitize = (v?: string) => {
   const s = (v ?? '').toString().trim();
@@ -32,6 +33,9 @@ interface Bike {
 }
 
 export default function CatalogPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [bikes, setBikes] = useState<Bike[]>([]);
   const [categories, setCategories] = useState<string[]>([]); // kept for future UI filters
   const [sizeOptions, setSizeOptions] = useState<string[]>([]);
@@ -49,6 +53,52 @@ export default function CatalogPage() {
   const pageSize = 24;
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+
+  // Initialize state from URL params and keep in sync on back/forward
+  useEffect(() => {
+    if (!searchParams) return;
+    const q = new URLSearchParams(searchParams as unknown as URLSearchParams);
+    const qSearch = q.get('search') ?? '';
+    const qCategory = q.get('category') ?? '';
+    const qSize = q.get('size') ?? '';
+    const qYear = q.get('year') ?? '';
+    const qInStock = q.get('inStock') === 'true';
+    const qEbike = q.get('ebike');
+    const qPage = Number(q.get('page') ?? '1') || 1;
+    const qView = (q.get('view') === 'list' ? 'list' : 'grid') as 'grid' | 'list';
+    const eb: 'all' | 'ebike' | 'non' =
+      qEbike === 'true' ? 'ebike' : (qEbike === 'false' ? 'non' : 'all');
+    // Only update when different to avoid loops
+    setSearch((prev) => (prev !== qSearch ? qSearch : prev));
+    setCategory((prev) => (prev !== qCategory ? qCategory : prev));
+    setSize((prev) => (prev !== qSize ? qSize : prev));
+    setYear((prev) => (prev !== qYear ? qYear : prev));
+    setInStockOnly((prev) => (prev !== qInStock ? qInStock : prev));
+    setEbikeOnly((prev) => (prev !== eb ? eb : prev));
+    setPage((prev) => (prev !== qPage ? qPage : prev));
+    setViewMode((prev) => (prev !== qView ? qView : prev));
+  }, [searchParams]);
+
+  // Push state to URL (replace) so filters are shareable and preserved on back
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (category) params.set('category', category);
+    if (size) params.set('size', size);
+    if (ebikeOnly === 'ebike') params.set('ebike', 'true');
+    if (ebikeOnly === 'non') params.set('ebike', 'false');
+    if (year) params.set('year', year);
+    if (inStockOnly) params.set('inStock', 'true');
+    if (viewMode === 'list') params.set('view', 'list');
+    if (page > 1) params.set('page', String(page));
+    const next = params.toString();
+    const current = searchParams?.toString() ?? '';
+    if (next !== current) {
+      const url = next ? `${pathname}?${next}` : pathname;
+      router.replace(url, { scroll: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, category, size, ebikeOnly, year, inStockOnly, page, viewMode]);
 
   useEffect(() => {
     const load = async () => {
