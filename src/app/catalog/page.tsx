@@ -53,6 +53,7 @@ export default function CatalogPage() {
   const pageSize = 24;
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [hydratedFromUrl, setHydratedFromUrl] = useState(false);
 
   // Initialize state from URL params and keep in sync on back/forward
   useEffect(() => {
@@ -77,10 +78,12 @@ export default function CatalogPage() {
     setEbikeOnly((prev) => (prev !== eb ? eb : prev));
     setPage((prev) => (prev !== qPage ? qPage : prev));
     setViewMode((prev) => (prev !== qView ? qView : prev));
+    setHydratedFromUrl(true);
   }, [searchParams]);
 
   // Push state to URL (replace) so filters are shareable and preserved on back
   useEffect(() => {
+    if (!hydratedFromUrl) return; // avoid wiping URL before we read it
     const params = new URLSearchParams();
     if (search) params.set('search', search);
     if (category) params.set('category', category);
@@ -98,7 +101,7 @@ export default function CatalogPage() {
       router.replace(url, { scroll: false });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, category, size, ebikeOnly, year, inStockOnly, page, viewMode]);
+  }, [search, category, size, ebikeOnly, year, inStockOnly, page, viewMode, hydratedFromUrl]);
 
   useEffect(() => {
     const load = async () => {
