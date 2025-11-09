@@ -7,6 +7,7 @@ import { useAuth } from './AuthProvider';
 
 const navItems: { href: string; label: string }[] = [
   { href: '/catalog', label: 'Katalog' },
+  { href: '/skladem', label: 'Skladem' },
   { href: '/prodejny', label: 'Prodejny' },
   { href: '/kola-bulls', label: 'Kola Bulls' },
   { href: '/ke-stazeni', label: 'Ke stažení' },
