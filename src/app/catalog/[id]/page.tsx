@@ -92,34 +92,35 @@ export default function DetailPage() {
         <div>
           <div className="text-sm text-gray-500 font-mono mb-2">{bike.nrLf}</div>
           <h1 className="text-3xl font-bold mb-2">{[sanitize(bike.marke), sanitize(bike.modell)].filter(Boolean).join(' ')}</h1>
-          {typeof bike.mocCzk === 'number' && bike.mocCzk > 0 && (
-            <div className="text-2xl font-semibold text-green-700 mb-3">
-              {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(bike.mocCzk)}
-            </div>
-          )}
-          {bike.farbe && <div className="text-gray-700 mb-4">{bike.farbe}</div>}
-          {(bike.motor || bike.akku) && <div className="text-sm text-gray-700 mb-4">{bike.motor}{bike.motor && bike.akku ? ', ' : ''}{bike.akku}</div>}
           {(() => {
-            const lv = bike.priceLevelsCzk ?? {};
-            const order: Array<'A'|'B'|'C'|'D'|'E'|'F'> = ['A','B','C','D','E','F'];
-            const present = order.filter(k => typeof lv[k] === 'number');
-            if (present.length === 0) return null;
+            const c = bike.priceLevelsCzk?.C;
+            const hasC = typeof c === 'number' && Number.isFinite(c) && c > 0;
+            const hasMoc = typeof bike.mocCzk === 'number' && Number.isFinite(bike.mocCzk) && bike.mocCzk > 0;
+            if (!hasC && !hasMoc) return null;
             return (
-              <div className="mt-4 bg-white rounded shadow-sm p-4">
-                <h2 className="text-base font-semibold mb-2">Ceník úrovní</h2>
-                <div className="grid grid-cols-2 gap-x-6 gap-y-1">
-                  {present.map(k => (
-                    <div key={k} className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Úroveň {k}</span>
-                      <span className="text-sm font-medium">
-                        {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(lv[k] as number)}
-                      </span>
+              <div className="mb-4">
+                {hasC && (
+                  <div className="mb-2">
+                    <div className="text-xs text-gray-600">nákupní cena bez DPH</div>
+                    <div className="text-3xl font-bold">
+                      {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(c as number)}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                )}
+                {hasMoc && (
+                  <div>
+                    <div className="text-xs text-gray-600">MOC vč. DPH</div>
+                    <div className="text-sm font-medium text-black">
+                      {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(bike.mocCzk as number)}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })()}
+          {bike.farbe && <div className="text-gray-700 mb-4">{bike.farbe}</div>}
+          {(bike.motor || bike.akku) && <div className="text-sm text-gray-700 mb-4">{bike.motor}{bike.motor && bike.akku ? ', ' : ''}{bike.akku}</div>}
+          
           {(() => {
             const spec = (bike.specifications as Record<string, unknown> | undefined) ?? {};
             const toStr = (v: unknown) => (v == null ? '' : String(v));

@@ -47,7 +47,20 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       return null;
     };
     const price = getMocCzk(data);
-    if (price != null) bike.mocCzk = price;
+    // Helpers to determine e‑bike\n
+    const getCategory = (b: Record<string, unknown>): string => {\n
+      const fromTopLevel = (b['Category (PRGR)'] ?? b['Categorie (PRGR)']) as unknown;\n
+      const fromSpecs = ((b.specifications ?? {}) as Record<string, unknown>)['Category (PRGR)']\n
+        ?? ((b.specifications ?? {}) as Record<string, unknown>)['Categorie (PRGR)'];\n
+      return (fromTopLevel ?? fromSpecs ?? '').toString();\n
+    };\n
+    const isEbike = (b: Record<string, unknown>): boolean => {\n
+      const cat = getCategory(b).toLowerCase();\n
+      const drive = (((b.specifications ?? {}) as Record<string, unknown>)['Antriebsart (MOTO)'] ?? '').toString().toLowerCase();\n
+      return cat.startsWith('e-') || drive.includes('elektro');\n
+    };\n
+    // Only attach MOC for e‑bikes to avoid showing EUR UVP for non‑e bikes\n
+    if (price != null && isEbike(data)) bike.mocCzk = price;
 
     // Extract dealer price levels A–F (CZK). We scan both top-level fields and specifications.
     const getTierPricesCzk = (b: Record<string, unknown>): Partial<Record<'A'|'B'|'C'|'D'|'E'|'F', number>> => {

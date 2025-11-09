@@ -28,6 +28,7 @@ interface Bike {
   b2bStockQuantity?: number;
   stockSizes?: string[];
   mocCzk?: number;
+  priceLevelsCzk?: Partial<Record<'A'|'B'|'C'|'D'|'E'|'F', number>>;
 }
 
 export default function CatalogPage() {
@@ -202,11 +203,6 @@ export default function CatalogPage() {
                     {Number(b.b2bStockQuantity ?? 0) > 0 && (
                       <span className="absolute top-2 left-2 text-[10px] px-2 py-0.5 rounded bg-green-600 text-white">SKLADEM</span>
                     )}
-                    {typeof b.mocCzk === 'number' && b.mocCzk > 0 && (
-                      <span className="absolute bottom-2 right-2 text-xs px-2 py-1 rounded bg-white/95 text-gray-900 shadow">
-                        {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(b.mocCzk)}
-                      </span>
-                    )}
                   </div>
                 ) : (
                   <div className="relative w-28 h-28 bg-white flex items-center justify-center">
@@ -223,11 +219,27 @@ export default function CatalogPage() {
                 <div className={viewMode==='grid' ? 'p-3' : 'flex-1'}>
                   <div className="text-xs text-gray-500 font-mono">{b.nrLf}</div>
                   <div className="font-semibold">{[sanitize(b.marke), sanitize(b.modell)].filter(Boolean).join(' ')}</div>
-                  {typeof b.mocCzk === 'number' && b.mocCzk > 0 && (
-                    <div className="mt-1 font-semibold text-green-700">
-                      {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(b.mocCzk)}
-                    </div>
-                  )}
+                  {(() => {
+                    const c = b.priceLevelsCzk?.C;
+                    const hasC = typeof c === 'number' && c > 0;
+                    const hasMoc = typeof b.mocCzk === 'number' && b.mocCzk > 0;
+                    if (!hasC && !hasMoc) return null;
+                    return (
+                      <div className="mt-1">
+                        {hasC && (
+                          <div className="font-semibold text-gray-900">
+                            {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(c as number)}
+                          </div>
+                        )}
+                        {hasMoc && (
+                          <div className="text-xs text-black">
+                            <span className="text-gray-600">MOC vč. DPH: </span>
+                            {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(b.mocCzk as number)}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                   {(b.motor || b.akku) && (
                     <div className="text-xs text-gray-600 mt-1">
                       {b.motor}

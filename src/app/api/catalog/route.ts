@@ -113,6 +113,28 @@ export async function GET(req: NextRequest) {
       }
       return null;
     };
+    const getTierPricesCzk = (b: Record<string, unknown>): Partial<Record<'A'|'B'|'C'|'D'|'E'|'F', number>> => {
+      const out: Partial<Record<'A'|'B'|'C'|'D'|'E'|'F', number>> = {};
+      const tryAssign = (key: string, value: unknown) => {
+        const keyNorm = String(key).replace(/[\\s.\\-]/g, '').toLowerCase();
+        const keyNoCzk = keyNorm.replace(/czk$/, '');
+        const direct = keyNoCzk.length === 1 ? keyNoCzk.toUpperCase() : '';
+        const stripped = keyNoCzk.replace(/^(price|cena|cenik|tier|level|pricelist|dealer)/, '');
+        const suffix = stripped.length === 1 ? stripped.toUpperCase() : '';
+        const firstChar = keyNoCzk.charAt(0).toUpperCase();
+        const restHasPrice = /price|cena|cenik/.test(keyNoCzk.slice(1));
+        const candidate = ['A','B','C','D','E','F'].includes(direct)
+          ? direct
+          : (['A','B','C','D','E','F'].includes(suffix) ? suffix : (restHasPrice && ['A','B','C','D','E','F'].includes(firstChar) ? firstChar : ''));
+        if (!candidate) return;
+        const n = toNumberFromMixed(value);
+        if (n != null) out[candidate as 'A'|'B'|'C'|'D'|'E'|'F'] = n;
+      };
+      for (const [k, v] of Object.entries(b)) tryAssign(k, v);
+      const spec = ((b as any).specifications ?? {}) as Record<string, unknown>;
+      for (const [k, v] of Object.entries(spec)) tryAssign(k, v);
+      return out;
+    };
 
     // Compute or reuse aggregated list (with sizes), categories, and size options
     let aggregated: RawBike[];
@@ -265,7 +287,15 @@ export async function GET(req: NextRequest) {
         (rep as any).stockSizes = Array.from(group.stockSizes).sort((a: string, b: string) => a.localeCompare(b, 'cs', { numeric: true }));
         // Attach MOC price (CZK) for the representative. Prefer a price present on any item in the family.
         const priceFromFamily = group.items.map(getMocCzk).find((p) => p != null);
-        if (priceFromFamily != null) (rep as any).mocCzk = priceFromFamily;
+        // Only expose MOC for e‑bikes; non‑e bikes have EUR UVP which is misleading for CZK MOC
+        if (priceFromFamily != null && isEbike(rep)) (rep as any).mocCzk = priceFromFamily;
+        // Attach dealer tiers (prefer a member with C present)
+        const tiersList = group.items.map((it) => getTierPricesCzk(it as unknown as Record<string, unknown>));
+        const withC = tiersList.find((t) => t.C != null);
+        const anyLevels = withC || tiersList.find((t) => Object.keys(t).length > 0);
+        if (anyLevels && Object.keys(anyLevels).length > 0) {
+          (rep as any).priceLevelsCzk = anyLevels;
+        }
         if (!isEbike(rep)) {
           // Ensure non‑E bikes do not show battery capacities
           rep.capacitiesWh = [];
