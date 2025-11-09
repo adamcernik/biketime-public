@@ -47,18 +47,18 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       return null;
     };
     const price = getMocCzk(data);
-    // Helpers to determine e‑bike\n
-    const getCategory = (b: Record<string, unknown>): string => {\n
-      const fromTopLevel = (b['Category (PRGR)'] ?? b['Categorie (PRGR)']) as unknown;\n
-      const fromSpecs = ((b.specifications ?? {}) as Record<string, unknown>)['Category (PRGR)']\n
-        ?? ((b.specifications ?? {}) as Record<string, unknown>)['Categorie (PRGR)'];\n
-      return (fromTopLevel ?? fromSpecs ?? '').toString();\n
-    };\n
-    const isEbike = (b: Record<string, unknown>): boolean => {\n
-      const cat = getCategory(b).toLowerCase();\n
-      const drive = (((b.specifications ?? {}) as Record<string, unknown>)['Antriebsart (MOTO)'] ?? '').toString().toLowerCase();\n
-      return cat.startsWith('e-') || drive.includes('elektro');\n
-    };\n
+    // Helpers to determine e‑bike
+    const getCategory = (b: Record<string, unknown>): string => {
+      const fromTopLevel = (b['Category (PRGR)'] ?? b['Categorie (PRGR)']) as unknown;
+      const specs = (b.specifications ?? {}) as Record<string, unknown>;
+      const fromSpecs = specs['Category (PRGR)'] ?? specs['Categorie (PRGR)'];
+      return (fromTopLevel ?? fromSpecs ?? '').toString();
+    };
+    const isEbike = (b: Record<string, unknown>): boolean => {
+      const cat = getCategory(b).toLowerCase();
+      const drive = (((b.specifications ?? {}) as Record<string, unknown>)['Antriebsart (MOTO)'] ?? '').toString().toLowerCase();
+      return cat.startsWith('e-') || drive.includes('elektro');
+    };
     // Only attach MOC for e‑bikes to avoid showing EUR UVP for non‑e bikes\n
     if (price != null && isEbike(data)) bike.mocCzk = price;
 
