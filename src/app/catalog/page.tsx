@@ -104,6 +104,9 @@ function CatalogContent() {
   }, [search, category, size, ebikeOnly, year, inStockOnly, page, viewMode, hydratedFromUrl]);
 
   useEffect(() => {
+    if (!hydratedFromUrl) return;
+    const controller = new AbortController();
+    const { signal } = controller;
     const load = async () => {
       setLoading(true);
       const params = new URLSearchParams();
@@ -116,25 +119,29 @@ function CatalogContent() {
       if (inStockOnly) params.set('inStock', 'true');
       params.set('page', String(page));
       params.set('pageSize', String(pageSize));
-      const res = await fetch(`/api/catalog?${params.toString()}`);
+      const res = await fetch(`/api/catalog?${params.toString()}`, { signal });
       const data = await res.json();
-      setBikes((data.bikes ?? []) as Bike[]);
-      setCategories((data.categories ?? []) as string[]);
-      setSizeOptions((data.sizeOptions ?? []) as string[]);
-      setTags((data.categories ?? []) as string[]);
-      setYearOptions(((data.yearOptions ?? []) as number[]).map(String));
-      setTotal(Number(data.total ?? 0));
-      setTotalPages(Number(data.totalPages ?? 1) || 1);
-      if (Number(data.page) && data.page !== page) setPage(Number(data.page));
-      setLoading(false);
+      if (!signal.aborted) {
+        setBikes((data.bikes ?? []) as Bike[]);
+        setCategories((data.categories ?? []) as string[]);
+        setSizeOptions((data.sizeOptions ?? []) as string[]);
+        setTags((data.categories ?? []) as string[]);
+        setYearOptions(((data.yearOptions ?? []) as number[]).map(String));
+        setTotal(Number(data.total ?? 0));
+        setTotalPages(Number(data.totalPages ?? 1) || 1);
+        if (Number(data.page) && data.page !== page) setPage(Number(data.page));
+        setLoading(false);
+      }
     };
     load();
-  }, [search, category, size, ebikeOnly, year, inStockOnly, page]);
+    return () => controller.abort();
+  }, [search, category, size, ebikeOnly, year, inStockOnly, page, hydratedFromUrl]);
 
   // Reset to first page when filters change
   useEffect(() => {
+    if (!hydratedFromUrl) return;
     setPage(1);
-  }, [search, category, size, ebikeOnly, year, inStockOnly]);
+  }, [search, category, size, ebikeOnly, year, inStockOnly, hydratedFromUrl]);
 
   return (
     <main className="min-h-screen bg-gray-50">
