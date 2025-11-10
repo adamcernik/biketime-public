@@ -21,9 +21,17 @@ export default function FeaturedBikes() {
     const load = async () => {
       try {
         setLoading(true);
-        const res = await fetch('/api/catalog?ebike=true&year=2026&pageSize=3');
-        const data = await res.json();
-        setBikes((data?.bikes ?? []).slice(0, 3));
+        // Try homepage config first
+        const conf = await fetch('/api/homepage', { cache: 'no-store' }).then(r => r.json()).catch(() => ({ featured: [] }));
+        const featured: BikeCard[] = (conf?.featured ?? []) as BikeCard[];
+        if (featured.length > 0) {
+          setBikes(featured.slice(0, 3));
+        } else {
+          // Fallback to auto pick
+          const res = await fetch('/api/catalog?ebike=true&year=2026&pageSize=3');
+          const data = await res.json();
+          setBikes((data?.bikes ?? []).slice(0, 3));
+        }
       } finally {
         setLoading(false);
       }
