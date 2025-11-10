@@ -93,28 +93,13 @@ export default function DetailPage() {
           <div className="text-sm text-gray-500 font-mono mb-2">{bike.nrLf}</div>
           <h1 className="text-3xl font-bold mb-2">{[sanitize(bike.marke), sanitize(bike.modell)].filter(Boolean).join(' ')}</h1>
           {(() => {
-            const c = bike.priceLevelsCzk?.C;
-            const hasC = typeof c === 'number' && Number.isFinite(c) && c > 0;
             const hasMoc = typeof bike.mocCzk === 'number' && Number.isFinite(bike.mocCzk) && bike.mocCzk > 0;
-            if (!hasC && !hasMoc) return null;
+            if (!hasMoc) return null;
             return (
               <div className="mb-4">
-                {hasC && (
-                  <div className="mb-2">
-                    <div className="text-xs text-gray-600">nákupní cena bez DPH</div>
-                    <div className="text-3xl font-bold">
-                      {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(c as number)}
-                    </div>
-                  </div>
-                )}
-                {hasMoc && (
-                  <div>
-                    <div className="text-xs text-gray-600">MOC vč. DPH</div>
-                    <div className="text-sm font-medium text-black">
-                      {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(bike.mocCzk as number)}
-                    </div>
-                  </div>
-                )}
+                <div className="text-4xl font-extrabold text-green-700">
+                  {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(bike.mocCzk as number)}
+                </div>
               </div>
             );
           })()}

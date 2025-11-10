@@ -104,23 +104,13 @@ export default function InStockPage() {
                   <div className="text-xs text-gray-500 font-mono">{b.nrLf}</div>
                   <div className="font-semibold">{[sanitize(b.marke), sanitize(b.modell)].filter(Boolean).join(' ')}</div>
                   {(() => {
-                    const c = b.priceLevelsCzk?.C;
-                    const hasC = typeof c === 'number' && c > 0;
                     const hasMoc = typeof b.mocCzk === 'number' && b.mocCzk > 0;
-                    if (!hasC && !hasMoc) return null;
+                    if (!hasMoc) return null;
                     return (
                       <div className="mt-1">
-                        {hasC && (
-                          <div className="font-semibold text-gray-900">
-                            {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(c as number)}
-                          </div>
-                        )}
-                        {hasMoc && (
-                          <div className="text-xs text-black">
-                            <span className="text-gray-600">MOC vč. DPH: </span>
-                            {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(b.mocCzk as number)}
-                          </div>
-                        )}
+                        <div className="text-xl font-bold text-green-700">
+                          {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(b.mocCzk as number)}
+                        </div>
                       </div>
                     );
                   })()}
