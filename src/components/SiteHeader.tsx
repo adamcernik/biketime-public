@@ -34,50 +34,7 @@ export default function SiteHeader() {
           <div className="text-center opacity-95">
             Přímý prodej je možný pouze pro naše smluvní odběratele.
           </div>
-          <div className="hidden sm:flex items-center justify-end gap-4">
-            {user ? (
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setProfileOpen((v) => !v)}
-                  className="inline-flex items-center gap-2 hover:underline"
-                  aria-haspopup="menu"
-                  aria-expanded={profileOpen}
-                >
-                  {user.photoURL ? (
-                    <Image src={user.photoURL} alt={user.displayName ?? 'Profil'} width={24} height={24} className="h-6 w-6 rounded-full object-cover" />
-                  ) : (
-                    <span className="h-6 w-6 rounded-full bg-white/30 inline-block" />
-                  )}
-                  <span>{(user.displayName ?? user.email ?? '').split(' ')[0]}</span>
-                  <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5H7z"/></svg>
-                </button>
-                {profileOpen && (
-                  <div className="absolute right-0 mt-2 w-44 bg-white text-gray-800 rounded shadow-lg py-2 z-50" role="menu">
-                    <Link href="/zona" className="block px-3 py-2 hover:bg-gray-100" onClick={() => setProfileOpen(false)} role="menuitem">
-                      Klientská zóna
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setProfileOpen(false);
-                        void signOutUser();
-                      }}
-                      className="block w-full text-left px-3 py-2 hover:bg-gray-100"
-                      role="menuitem"
-                    >
-                      Odhlásit
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <button onClick={signInWithGoogle} className="inline-flex items-center gap-2 hover:underline">
-                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12a5 5 0 100-10 5 5 0 000 10zm0 2c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5z"/></svg>
-                Přihlášení
-              </button>
-            )}
-          </div>
+          <div className="hidden sm:flex items-center justify-end gap-4" />
         </div>
       </div>
       <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
