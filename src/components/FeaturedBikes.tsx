@@ -9,6 +9,9 @@ type BikeCard = {
   marke?: string;
   modell?: string;
   bild1?: string;
+  mocCzk?: number | null;
+  motor?: string;
+  akku?: string;
 };
 
 const sanitize = (v?: string) => (v ?? '').toString().trim();
@@ -47,18 +50,38 @@ export default function FeaturedBikes() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {bikes.map((b) => (
-            <Link key={b.id} href={`/catalog/${b.id}`} className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-              <div className="aspect-square relative bg-white flex items-center justify-center">
-                {b.bild1 ? (
-                  <Image src={b.bild1} alt={`${sanitize(b.marke)} ${sanitize(b.modell)}`} fill className="object-contain p-4" />
-                ) : (
-                  <div className="text-gray-500 text-sm">Zatím není k dispozici foto</div>
+            <div key={b.id} className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+              <Link href={`/catalog/${b.id}`}>
+                <div className="aspect-square relative bg-white flex items-center justify-center">
+                  {b.bild1 ? (
+                    <Image src={b.bild1} alt={`${sanitize(b.marke)} ${sanitize(b.modell)}`} fill className="object-contain p-4" />
+                  ) : (
+                    <div className="text-gray-500 text-sm">Zatím není k dispozici foto</div>
+                  )}
+                </div>
+              </Link>
+              <div className="p-4 space-y-1">
+                <div className="font-semibold leading-tight">{[sanitize(b.marke), sanitize(b.modell)].filter(Boolean).join(' ')}</div>
+                {(b.motor || b.akku) && (
+                  <div className="text-xs text-gray-600">
+                    {b.motor}{b.motor && b.akku ? ' · ' : ''}{b.akku}
+                  </div>
                 )}
+                {typeof b.mocCzk === 'number' && b.mocCzk > 0 && (
+                  <div className="text-sm font-semibold text-gray-900">
+                    {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(b.mocCzk)}
+                  </div>
+                )}
+                <div className="pt-2">
+                  <Link
+                    href={`/catalog/${b.id}`}
+                    className="inline-flex items-center justify-center px-3 py-1.5 rounded-md bg-black text-white hover:bg-gray-800 text-sm"
+                  >
+                    Zjistit více
+                  </Link>
+                </div>
               </div>
-              <div className="p-3">
-                <div className="font-semibold">{[sanitize(b.marke), sanitize(b.modell)].filter(Boolean).join(' ')}</div>
-              </div>
-            </Link>
+            </div>
           ))}
         </div>
       )}
