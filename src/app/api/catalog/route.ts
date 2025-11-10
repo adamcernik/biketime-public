@@ -325,9 +325,13 @@ export async function GET(req: NextRequest) {
         aggregatedComputed.push(rep);
       }
 
-      // If no specific year is requested, prefer showing 2026 models first
-      if (yearParam === null) {
+      // If no specific year or e‑bike filter is requested, prefer showing E‑bikes first,
+      // and within each group prefer 2026 models first.
+      if (yearParam === null && ebikeParam == null) {
         aggregatedComputed.sort((a: RawBike, b: RawBike) => {
+          const ae = isEbike(a) ? 1 : 0;
+          const be = isEbike(b) ? 1 : 0;
+          if (ae !== be) return be - ae; // E‑bikes first
           const ya = getModelYear(a);
           const yb = getModelYear(b);
           const aIs2026 = ya === 2026 ? 1 : 0;
