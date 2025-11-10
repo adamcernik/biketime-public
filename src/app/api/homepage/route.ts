@@ -4,8 +4,11 @@ import { doc, getDoc } from 'firebase/firestore';
 
 export async function GET(_req: NextRequest) {
   try {
-    const cfgRef = doc(db, 'site', 'homepage');
-    const cfgSnap = await getDoc(cfgRef);
+    // Prefer settings/homepage (public readable per rules); fallback to legacy site/homepage
+    let cfgSnap = await getDoc(doc(db, 'settings', 'homepage'));
+    if (!cfgSnap.exists()) {
+      cfgSnap = await getDoc(doc(db, 'site', 'homepage'));
+    }
     const featuredIds: string[] = (cfgSnap.exists() ? (cfgSnap.data()?.featuredIds ?? []) : []) as string[];
 
     const bikes: any[] = [];
