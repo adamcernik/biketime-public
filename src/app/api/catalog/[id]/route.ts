@@ -131,6 +131,22 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       )).sort((a, b) => a - b);
       if (capacities.length) bike.capacitiesWh = capacities;
 
+      // If detail bike still has no MOC, try to inherit from any family member (prefer explicit mocCzk)
+      if ((bike.mocCzk as unknown) == null) {
+        const familyDocs = list.docs
+          .map(d => d.data() as Record<string, unknown>)
+          .filter(b => ((((b.nrLf as string | undefined) ?? (b.lfSn as string | undefined) ?? '').toString())).startsWith(base));
+        const explicitFromFamily = familyDocs
+          .map((b) => toNumberFromMixed((b as Record<string, unknown>)['mocCzk']))
+          .find((v) => v != null);
+        if (explicitFromFamily != null) {
+          bike.mocCzk = explicitFromFamily;
+        } else {
+          const derivedFromFamily = familyDocs.map(getMocCzk).find((v) => v != null);
+          if (derivedFromFamily != null) bike.mocCzk = derivedFromFamily;
+        }
+      }
+
       // Compute which sizes are in stock (sum of b2bStockQuantity per size > 0)
       const sizeToQty: Record<string, number> = {};
       for (const d of list.docs) {
