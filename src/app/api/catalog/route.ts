@@ -325,6 +325,18 @@ export async function GET(req: NextRequest) {
         aggregatedComputed.push(rep);
       }
 
+      // If no specific year is requested, prefer showing 2026 models first
+      if (yearParam === null) {
+        aggregatedComputed.sort((a: RawBike, b: RawBike) => {
+          const ya = getModelYear(a);
+          const yb = getModelYear(b);
+          const aIs2026 = ya === 2026 ? 1 : 0;
+          const bIs2026 = yb === 2026 ? 1 : 0;
+          if (aIs2026 !== bIs2026) return bIs2026 - aIs2026; // put 2026 first
+          return 0;
+        });
+      }
+
       // Compute global size options from aggregated list
       const sizeOptionsComputed = Array.from(
         new Set(aggregatedComputed.flatMap((g: any) => (Array.isArray(g.sizes) ? g.sizes : [])))
