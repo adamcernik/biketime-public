@@ -8,7 +8,6 @@ interface BikeFields {
   bild1?: string;
   specifications?: Record<string, unknown>;
   mocCzk?: number;
-  priceLevelsCzk?: Partial<Record<'A'|'B'|'C'|'D'|'E'|'F', number>>;
   stockSizes?: string[];
   [key: string]: unknown;
 }
@@ -68,35 +67,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       bike.mocCzk = price;
     }
 
-    // Extract dealer price levels A–F (CZK). We scan both top-level fields and specifications.
-    const getTierPricesCzk = (b: Record<string, unknown>): Partial<Record<'A'|'B'|'C'|'D'|'E'|'F', number>> => {
-      const out: Partial<Record<'A'|'B'|'C'|'D'|'E'|'F', number>> = {};
-      const tryAssign = (key: string, value: unknown) => {
-        const rawKey = key ?? '';
-        const keyNorm = String(rawKey).replace(/[\s.\-]/g, '').toLowerCase();
-        const keyNoCzk = keyNorm.replace(/czk$/, '');
-        // Try forms like 'a','b',... directly
-        const direct = keyNoCzk.length === 1 ? keyNoCzk.toUpperCase() : '';
-        // Try prefixed forms like 'pricea','cenaa','tierb','levelc'
-        const stripped = keyNoCzk.replace(/^(price|cena|cenik|tier|level|pricelist|dealer)/, '');
-        const suffix = stripped.length === 1 ? stripped.toUpperCase() : '';
-        // Try forms like 'a_price','b_cena'
-        const firstChar = keyNoCzk.charAt(0).toUpperCase();
-        const restHasPrice = /price|cena|cenik/.test(keyNoCzk.slice(1));
-        const candidate = ['A','B','C','D','E','F'].includes(direct)
-          ? direct
-          : (['A','B','C','D','E','F'].includes(suffix) ? suffix : (restHasPrice && ['A','B','C','D','E','F'].includes(firstChar) ? firstChar : ''));
-        if (!candidate) return;
-        const n = toNumberFromMixed(value);
-        if (n != null) out[candidate as 'A'|'B'|'C'|'D'|'E'|'F'] = n;
-      };
-      for (const [k, v] of Object.entries(b)) tryAssign(k, v);
-      const spec = ((b.specifications ?? {}) as Record<string, unknown>);
-      for (const [k, v] of Object.entries(spec)) tryAssign(k, v);
-      return out;
-    };
-    const levels = getTierPricesCzk(data);
-    if (Object.keys(levels).length > 0) bike.priceLevelsCzk = levels;
+    // Dealer tier prices (A–F) are intentionally not exposed in the public API.
 
     // Derive sizes for this model by finding same NRLF base among active bikes
     const nr = ((data.nrLf as string | undefined) ?? (data.lfSn as string | undefined) ?? '').toString();
