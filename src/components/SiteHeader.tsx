@@ -18,7 +18,7 @@ export default function SiteHeader() {
   const [profileOpen, setProfileOpen] = useState(false);
   const { user, signInWithGoogle, signOutUser } = useAuth();
   return (
-    <header className="bg-white shadow-sm sticky top-0 z-40">
+    <header className="bg-white shadow-sm sticky top-0 z-40" suppressHydrationWarning>
       <div className="w-full" style={{ backgroundColor: '#9BBC09' }}>
         <div className="max-w-6xl mx-auto px-4 py-1 text-sm text-white flex flex-col gap-1 sm:grid sm:grid-cols-3 sm:items-center">
           <div className="flex items-center gap-4 whitespace-nowrap">
