@@ -59,8 +59,14 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       const drive = (((b.specifications ?? {}) as Record<string, unknown>)['Antriebsart (MOTO)'] ?? '').toString().toLowerCase();
       return cat.startsWith('e-') || drive.includes('elektro');
     };
-    // Only attach MOC for e‑bikes to avoid showing EUR UVP for non‑e bikes\n
-    if (price != null && isEbike(data)) bike.mocCzk = price;
+    // Prefer explicitly stored CZK MOC when present (e.g., after import), regardless of e‑bike detection.
+    const explicitMoc = toNumberFromMixed((data as Record<string, unknown>)['mocCzk']);
+    if (explicitMoc != null) {
+      bike.mocCzk = explicitMoc;
+    } else if (price != null && isEbike(data)) {
+      // Fallback: only attach derived MOC for e‑bikes to avoid showing EUR UVP for non‑e bikes
+      bike.mocCzk = price;
+    }
 
     // Extract dealer price levels A–F (CZK). We scan both top-level fields and specifications.
     const getTierPricesCzk = (b: Record<string, unknown>): Partial<Record<'A'|'B'|'C'|'D'|'E'|'F', number>> => {

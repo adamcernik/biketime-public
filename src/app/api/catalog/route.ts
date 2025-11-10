@@ -285,10 +285,18 @@ export async function GET(req: NextRequest) {
         rep.capacitiesWh = group.capacitiesWh.sort((a: number, b: number) => a - b);
         (rep as any).b2bStockQuantity = group.stockQty;
         (rep as any).stockSizes = Array.from(group.stockSizes).sort((a: string, b: string) => a.localeCompare(b, 'cs', { numeric: true }));
-        // Attach MOC price (CZK) for the representative. Prefer a price present on any item in the family.
-        const priceFromFamily = group.items.map(getMocCzk).find((p) => p != null);
-        // Only expose MOC for e‑bikes; non‑e bikes have EUR UVP which is misleading for CZK MOC
-        if (priceFromFamily != null && isEbike(rep)) (rep as any).mocCzk = priceFromFamily;
+        // Attach MOC price (CZK) for the representative.
+        // Prefer an explicitly stored CZK MOC (e.g., 'mocCzk' after import) from any item in the family.
+        const explicitFromFamily = group.items
+          .map((it) => toNumberFromMixed((it as any)['mocCzk']))
+          .find((p) => p != null);
+        if (explicitFromFamily != null) {
+          (rep as any).mocCzk = explicitFromFamily;
+        } else {
+          // Otherwise derive from common keys, but only for e‑bikes to avoid showing EUR UVP on non‑e bikes
+          const priceFromFamily = group.items.map(getMocCzk).find((p) => p != null);
+          if (priceFromFamily != null && isEbike(rep)) (rep as any).mocCzk = priceFromFamily;
+        }
         // Attach dealer tiers (prefer a member with C present)
         const tiersList = group.items.map((it) => getTierPricesCzk(it as unknown as Record<string, unknown>));
         const withC = tiersList.find((t) => t.C != null);
