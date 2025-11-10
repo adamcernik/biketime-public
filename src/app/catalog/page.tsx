@@ -119,18 +119,25 @@ function CatalogContent() {
       if (inStockOnly) params.set('inStock', 'true');
       params.set('page', String(page));
       params.set('pageSize', String(pageSize));
-      const res = await fetch(`/api/catalog?${params.toString()}`, { signal });
-      const data = await res.json();
-      if (!signal.aborted) {
-        setBikes((data.bikes ?? []) as Bike[]);
-        setCategories((data.categories ?? []) as string[]);
-        setSizeOptions((data.sizeOptions ?? []) as string[]);
-        setTags((data.categories ?? []) as string[]);
-        setYearOptions(((data.yearOptions ?? []) as number[]).map(String));
-        setTotal(Number(data.total ?? 0));
-        setTotalPages(Number(data.totalPages ?? 1) || 1);
-        if (Number(data.page) && data.page !== page) setPage(Number(data.page));
-        setLoading(false);
+      try {
+        const res = await fetch(`/api/catalog?${params.toString()}`, { signal });
+        const data = await res.json();
+        if (!signal.aborted) {
+          setBikes((data.bikes ?? []) as Bike[]);
+          setCategories((data.categories ?? []) as string[]);
+          setSizeOptions((data.sizeOptions ?? []) as string[]);
+          setTags((data.categories ?? []) as string[]);
+          setYearOptions(((data.yearOptions ?? []) as number[]).map(String));
+          setTotal(Number(data.total ?? 0));
+          setTotalPages(Number(data.totalPages ?? 1) || 1);
+          if (Number(data.page) && data.page !== page) setPage(Number(data.page));
+          setLoading(false);
+        }
+      } catch (err) {
+        if (!(err instanceof DOMException && err.name === 'AbortError')) {
+          // eslint-disable-next-line no-console
+          console.warn('Catalog fetch failed', err);
+        }
       }
     };
     load();
@@ -256,7 +263,13 @@ function CatalogContent() {
                 {viewMode==='grid' ? (
                   <div className="aspect-square relative bg-white">
                     {b.bild1 ? (
-                      <Image src={b.bild1} alt={`${sanitize(b.marke)} ${sanitize(b.modell)}`.trim()} fill className="object-contain p-4" />
+                      <Image
+                        src={b.bild1}
+                        alt={`${sanitize(b.marke)} ${sanitize(b.modell)}`.trim()}
+                        fill
+                        sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                        className="object-contain p-4"
+                      />
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-sm">Zatím není k dispozici foto</div>
                     )}
@@ -267,7 +280,13 @@ function CatalogContent() {
                 ) : (
                   <div className="relative w-28 h-28 bg-white flex items-center justify-center">
                     {b.bild1 ? (
-                      <Image src={b.bild1} alt={`${sanitize(b.marke)} ${sanitize(b.modell)}`.trim()} fill className="object-contain p-1" />
+                      <Image
+                        src={b.bild1}
+                        alt={`${sanitize(b.marke)} ${sanitize(b.modell)}`.trim()}
+                        fill
+                        sizes="112px"
+                        className="object-contain p-1"
+                      />
                     ) : (
                       <div className="text-gray-500 text-xs">Bez foto</div>
                     )}

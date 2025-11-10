@@ -91,6 +91,7 @@ export default function SiteHeader() {
             src="/biketime-logo.png"
             alt="BikeTime"
             fill
+            sizes="140px"
             priority
             className="object-contain logo-image"
           />

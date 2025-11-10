@@ -92,7 +92,13 @@ export default function InStockPage() {
               >
                 <div className="aspect-square relative bg-white">
                   {b.bild1 ? (
-                    <Image src={b.bild1} alt={`${sanitize(b.marke)} ${sanitize(b.modell)}`.trim()} fill className="object-contain p-4" />
+                    <Image
+                      src={b.bild1}
+                      alt={`${sanitize(b.marke)} ${sanitize(b.modell)}`.trim()}
+                      fill
+                      sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                      className="object-contain p-4"
+                    />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-sm">Zatím není k dispozici foto</div>
                   )}

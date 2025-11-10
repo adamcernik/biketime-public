@@ -82,7 +82,13 @@ export default function DetailPage() {
           }}
         >
           {typeof bike.bild1 === 'string' && bike.bild1.length > 0 ? (
-            <Image src={bike.bild1} alt={`${sanitize(bike.marke)} ${sanitize(bike.modell)}`} fill className="object-contain p-6" />
+            <Image
+              src={bike.bild1}
+              alt={`${sanitize(bike.marke)} ${sanitize(bike.modell)}`}
+              fill
+              sizes="(min-width: 768px) 50vw, 100vw"
+              className="object-contain p-6"
+            />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-sm">
               Zatím není k dispozici foto
