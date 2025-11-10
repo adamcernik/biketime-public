@@ -293,9 +293,9 @@ export async function GET(req: NextRequest) {
         if (explicitFromFamily != null) {
           (rep as any).mocCzk = explicitFromFamily;
         } else {
-          // Otherwise derive from common keys, but only for e‑bikes to avoid showing EUR UVP on non‑e bikes
+          // Otherwise derive from common keys/specs for any bike
           const priceFromFamily = group.items.map(getMocCzk).find((p) => p != null);
-          if (priceFromFamily != null && isEbike(rep)) (rep as any).mocCzk = priceFromFamily;
+          if (priceFromFamily != null) (rep as any).mocCzk = priceFromFamily;
         }
         // Attach dealer tiers (prefer a member with C present)
         const tiersList = group.items.map((it) => getTierPricesCzk(it as unknown as Record<string, unknown>));

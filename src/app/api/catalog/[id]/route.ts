@@ -63,8 +63,8 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
     const explicitMoc = toNumberFromMixed((data as Record<string, unknown>)['mocCzk']);
     if (explicitMoc != null) {
       bike.mocCzk = explicitMoc;
-    } else if (price != null && isEbike(data)) {
-      // Fallback: only attach derived MOC for e‑bikes to avoid showing EUR UVP for non‑e bikes
+    } else if (price != null) {
+      // Fallback: derive from common keys/specs for any bike
       bike.mocCzk = price;
     }
 
