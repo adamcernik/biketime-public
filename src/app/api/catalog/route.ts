@@ -303,6 +303,8 @@ export async function GET(req: NextRequest) {
         // Expose OUR stock as the public in-stock flags to UI using existing property names
         (rep as any).b2bStockQuantity = group.stockQty;
         (rep as any).stockSizes = Array.from(group.stockSizes).sort((a: string, b: string) => a.localeCompare(b, 'cs', { numeric: true }));
+        // Attach full list of family NRLFs for accurate search by code
+        (rep as any).allNrLfs = group.items.map(g => getNrLf(g)).filter(Boolean);
         // Attach MOC price (CZK) for the representative.
         // Prefer an explicitly stored CZK MOC (e.g., 'mocCzk' after import) from any item in the family.
         const explicitFromFamily = group.items
@@ -380,12 +382,17 @@ export async function GET(req: NextRequest) {
     // Apply filters on cached aggregated list
     let afterFilters = aggregated;
     if (search) {
-      afterFilters = afterFilters.filter((b: any) =>
-        (b.marke || '').toLowerCase().includes(search) ||
-        (b.modell || '').toLowerCase().includes(search) ||
-        (b.nrLf || '').toLowerCase().includes(search) ||
-        (b.farbe || '').toLowerCase().includes(search)
-      );
+      afterFilters = afterFilters.filter((b: any) => {
+        const s = search;
+        const matchesBasic =
+          (b.marke || '').toLowerCase().includes(s) ||
+          (b.modell || '').toLowerCase().includes(s) ||
+          (b.nrLf || '').toLowerCase().includes(s) ||
+          (b.farbe || '').toLowerCase().includes(s);
+        const allCodes: string[] = Array.isArray((b as any).allNrLfs) ? ((b as any).allNrLfs as string[]) : [];
+        const matchesCodes = allCodes.some(code => code.toLowerCase().includes(s));
+        return matchesBasic || matchesCodes;
+      });
     }
     if (category) {
       afterFilters = afterFilters.filter((b: any) => {
@@ -416,12 +423,17 @@ export async function GET(req: NextRequest) {
     // Categories should reflect the active filters EXCEPT the selected category
     let categorySource = aggregated;
     if (search) {
-      categorySource = categorySource.filter((b: any) =>
-        (b.marke || '').toLowerCase().includes(search) ||
-        (b.modell || '').toLowerCase().includes(search) ||
-        (b.nrLf || '').toLowerCase().includes(search) ||
-        (b.farbe || '').toLowerCase().includes(search)
-      );
+      categorySource = categorySource.filter((b: any) => {
+        const s = search;
+        const matchesBasic =
+          (b.marke || '').toLowerCase().includes(s) ||
+          (b.modell || '').toLowerCase().includes(s) ||
+          (b.nrLf || '').toLowerCase().includes(s) ||
+          (b.farbe || '').toLowerCase().includes(s);
+        const allCodes: string[] = Array.isArray((b as any).allNrLfs) ? ((b as any).allNrLfs as string[]) : [];
+        const matchesCodes = allCodes.some(code => code.toLowerCase().includes(s));
+        return matchesBasic || matchesCodes;
+      });
     }
     if (ebikeParam === 'true') {
       categorySource = categorySource.filter((b: any) => {
