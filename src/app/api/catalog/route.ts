@@ -263,10 +263,11 @@ export async function GET(req: NextRequest) {
         familyToGroup[family].stockQty += effectiveQty;
         if (size) familyToGroup[family].stockSizes.add(size);
       }
-      // Track in-transit quantities (prefer our stock list, fallback to B2B shipping qty)
+      // Track in-transit quantities:
+      // - Only from our stock list when present (authoritative)
+      // - Ignore supplier B2B shipping to avoid false positives
       const oursTransit = useOurStock ? Number(((nrToStock as any)[nr]?.inTransit) ?? 0) : 0;
-      const b2bShip = Number((it as any).b2bShipQuantity ?? 0);
-      const effectiveTransit = useOurStock ? (Number.isFinite(oursTransit) ? oursTransit : 0) : (Number.isFinite(b2bShip) ? b2bShip : 0);
+      const effectiveTransit = useOurStock ? (Number.isFinite(oursTransit) ? oursTransit : 0) : 0;
       if (effectiveTransit > 0) {
         familyToGroup[family].transitQty += effectiveTransit;
         if (size) familyToGroup[family].transitSizes.add(size);

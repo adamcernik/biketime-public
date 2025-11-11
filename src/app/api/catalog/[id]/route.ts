@@ -171,10 +171,6 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
           const ours = nrToStock[nrDoc];
           const tran = (ours?.inTransit ?? 0);
           if (tran > 0) sizeToTransit[code] = (sizeToTransit[code] ?? 0) + tran;
-        } else {
-          const b2bShipRaw = (dataDoc as Record<string, unknown>)['b2bShipQuantity'];
-          const b2bShip = typeof b2bShipRaw === 'number' ? b2bShipRaw : Number(b2bShipRaw ?? 0);
-          if (b2bShip > 0) sizeToTransit[code] = (sizeToTransit[code] ?? 0) + b2bShip;
         }
       }
       bike.onTheWaySizes = Object.entries(sizeToTransit).filter(([,q]) => q > 0).map(([s]) => s).sort((a, b) => a.localeCompare(b, 'cs', { numeric: true }));
