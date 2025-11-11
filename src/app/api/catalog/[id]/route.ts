@@ -127,55 +127,35 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
         const n = Number(s || '0');
         return Number.isFinite(n) ? n : 0;
       };
-      let stockSizes: string[] = [];
+      // Build union of OUR stock (if present) and B2B per size
+      const nrToStock: Record<string, { stock: number; inTransit: number }> = {};
       if (useOurStock) {
-        const nrToStock: Record<string, { stock: number; inTransit: number }> = {};
         for (const s of stockSnap.docs) {
           const d = s.data() as Record<string, unknown>;
           const key = ((d.nrLf as string | undefined) ?? (d.nrlf as string | undefined) ?? s.id ?? '').toString().trim();
           if (!key) continue;
-          const sd = d as {
-            stock?: unknown;
-            qty?: unknown;
-            onHand?: unknown;
-            inTransit?: unknown;
-            in_transit?: unknown;
-            incoming?: unknown;
-          };
+          const sd = d as { stock?: unknown; qty?: unknown; onHand?: unknown; inTransit?: unknown; in_transit?: unknown; incoming?: unknown };
           nrToStock[key] = {
             stock: toNum(sd.stock ?? sd.qty ?? sd.onHand ?? 0),
             inTransit: toNum(sd.inTransit ?? sd.in_transit ?? sd.incoming ?? 0),
           };
         }
-        const sizeToQty: Record<string, number> = {};
-        for (const d of list.docs) {
-          const dataDoc = d.data() as Record<string, unknown>;
-          const nrDoc = (((dataDoc.nrLf as string | undefined) ?? (dataDoc.lfSn as string | undefined) ?? '').toString());
-          if (!nrDoc.startsWith(base)) continue;
-          const code = nrDoc.match(/(\d{2})$/)?.[1];
-          if (!code) continue;
-          const ours = nrToStock[nrDoc];
-          const qty = (ours?.stock ?? 0) + (ours?.inTransit ?? 0);
-          if (qty > 0) sizeToQty[code] = (sizeToQty[code] ?? 0) + qty;
-        }
-        stockSizes = Object.entries(sizeToQty).filter(([,q]) => q > 0).map(([s]) => s).sort((a, b) => a.localeCompare(b, 'cs', { numeric: true }));
-      } else {
-        const sizeToQty: Record<string, number> = {};
-        for (const d of list.docs) {
-          const dataDoc = d.data() as Record<string, unknown>;
-          const nrDoc = (((dataDoc.nrLf as string | undefined) ?? (dataDoc.lfSn as string | undefined) ?? '').toString());
-          if (!nrDoc.startsWith(base)) continue;
-          const code = nrDoc.match(/(\d{2})$/)?.[1];
-          if (!code) continue;
-          const qtyRaw = (dataDoc as Record<string, unknown>)['b2bStockQuantity'];
-          const qty = typeof qtyRaw === 'number' ? qtyRaw : Number(qtyRaw ?? 0);
-          if (Number.isFinite(qty) && qty > 0) {
-            sizeToQty[code] = (sizeToQty[code] ?? 0) + qty;
-          }
-        }
-        stockSizes = Object.entries(sizeToQty).filter(([,q]) => q > 0).map(([s]) => s).sort((a, b) => a.localeCompare(b, 'cs', { numeric: true }));
       }
-      bike.stockSizes = stockSizes;
+      const sizeToQty: Record<string, number> = {};
+      for (const d of list.docs) {
+        const dataDoc = d.data() as Record<string, unknown>;
+        const nrDoc = (((dataDoc.nrLf as string | undefined) ?? (dataDoc.lfSn as string | undefined) ?? '').toString());
+        if (!nrDoc.startsWith(base)) continue;
+        const code = nrDoc.match(/(\d{2})$/)?.[1];
+        if (!code) continue;
+        const ours = nrToStock[nrDoc];
+        const oursQty = (ours?.stock ?? 0) + (ours?.inTransit ?? 0);
+        const b2bRaw = (dataDoc as Record<string, unknown>)['b2bStockQuantity'];
+        const b2bQty = typeof b2bRaw === 'number' ? b2bRaw : Number(b2bRaw ?? 0);
+        const total = (Number.isFinite(oursQty) ? oursQty : 0) + (Number.isFinite(b2bQty) ? b2bQty : 0);
+        if (total > 0) sizeToQty[code] = (sizeToQty[code] ?? 0) + total;
+      }
+      bike.stockSizes = Object.entries(sizeToQty).filter(([,q]) => q > 0).map(([s]) => s).sort((a, b) => a.localeCompare(b, 'cs', { numeric: true }));
     }
 
     return NextResponse.json(bike);

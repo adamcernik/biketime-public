@@ -251,22 +251,16 @@ export async function GET(req: NextRequest) {
       if (size) {
         if (!familyToGroup[family].sizes.includes(size)) familyToGroup[family].sizes.push(size);
       }
-      // Accumulate stock:
-      // - If our stock list is available, use (stock + inTransit) from it.
-      // - Otherwise, fallback to B2B stock quantity on the item.
-      if (useOurStock) {
-        const ours = (nrToStock as any)[nr] as { stock?: number; inTransit?: number } | undefined;
-        const oursQty = (ours?.stock ?? 0) + (ours?.inTransit ?? 0);
-        if (oursQty > 0) {
-          familyToGroup[family].stockQty += oursQty;
-          if (size) familyToGroup[family].stockSizes.add(size);
-        }
-      } else {
-        const qty = Number((it as any).b2bStockQuantity ?? 0);
-        if (Number.isFinite(qty) && qty > 0) {
-          familyToGroup[family].stockQty += qty;
-          if (size) familyToGroup[family].stockSizes.add(size);
-        }
+      // Accumulate stock using UNION logic:
+      // - If our stock list is available, use (stock + inTransit)
+      // - Always also include B2B stock if present
+      const oursMaybe = useOurStock ? ((nrToStock as any)[nr] as { stock?: number; inTransit?: number } | undefined) : undefined;
+      const oursQty = (oursMaybe?.stock ?? 0) + (oursMaybe?.inTransit ?? 0);
+      const b2bQty = Number((it as any).b2bStockQuantity ?? 0);
+      const totalQty = (Number.isFinite(oursQty) ? oursQty : 0) + (Number.isFinite(b2bQty) ? b2bQty : 0);
+      if (totalQty > 0) {
+        familyToGroup[family].stockQty += totalQty;
+        if (size) familyToGroup[family].stockSizes.add(size);
       }
       const cap = getCapacityWh(it);
       if (cap) {
@@ -294,11 +288,10 @@ export async function GET(req: NextRequest) {
         // After we know stockSizes, prefer representative that is actually in stock (by size) if available
         const pickInStockRepresentative = (): RawBike => {
           const inStockCheck = (nrCode: string, item: RawBike): boolean => {
-            if (useOurStock) {
-              const ours = (nrToStock as any)[nrCode] as { stock?: number; inTransit?: number } | undefined;
-              return ((ours?.stock ?? 0) + (ours?.inTransit ?? 0)) > 0;
-            }
-            return Number(((item as any).b2bStockQuantity ?? 0)) > 0;
+            const oursMaybe2 = useOurStock ? ((nrToStock as any)[nrCode] as { stock?: number; inTransit?: number } | undefined) : undefined;
+            const oursQty2 = (oursMaybe2?.stock ?? 0) + (oursMaybe2?.inTransit ?? 0);
+            const b2bQty2 = Number(((item as any).b2bStockQuantity ?? 0));
+            return (Number.isFinite(oursQty2) ? oursQty2 : 0) + (Number.isFinite(b2bQty2) ? b2bQty2 : 0) > 0;
           };
           const firstInStock = group.items.find(candidate => inStockCheck(getNrLf(candidate), candidate));
           return (firstInStock ?? group.representative) as RawBike;
