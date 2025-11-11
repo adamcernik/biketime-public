@@ -273,7 +273,11 @@ function CatalogContent() {
                     ) : (
                       <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-sm">Zatím není k dispozici foto</div>
                     )}
-                    {(b.stockSizes ?? []).length > 0 && (
+                    {(() => {
+                      const repSize = ((b.nrLf ?? '') as string).toString().match(/(\d{2})$/)?.[1];
+                      const hasRepSizeInStock = repSize ? (b.stockSizes ?? []).includes(repSize) : (b.stockSizes ?? []).length > 0;
+                      return hasRepSizeInStock;
+                    })() && (
                       <span className="absolute top-2 left-2 text-[10px] px-2 py-0.5 rounded bg-green-600 text-white">SKLADEM</span>
                     )}
                   </div>
@@ -290,7 +294,11 @@ function CatalogContent() {
                     ) : (
                       <div className="text-gray-500 text-xs">Bez foto</div>
                     )}
-                    {(b.stockSizes ?? []).length > 0 && (
+                    {(() => {
+                      const repSize = ((b.nrLf ?? '') as string).toString().match(/(\d{2})$/)?.[1];
+                      const hasRepSizeInStock = repSize ? (b.stockSizes ?? []).includes(repSize) : (b.stockSizes ?? []).length > 0;
+                      return hasRepSizeInStock;
+                    })() && (
                       <span className="absolute top-1 left-1 text-[10px] px-2 py-0.5 rounded bg-green-600 text-white">SKLADEM</span>
                     )}
                   </div>
