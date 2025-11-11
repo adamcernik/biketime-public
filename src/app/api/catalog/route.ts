@@ -137,6 +137,24 @@ export async function GET(req: NextRequest) {
       const q = query(bikesRef, where('isActive', '==', true));
       const snap = await getDocs(q);
       let items: RawBike[] = snap.docs.map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) })) as RawBike[];
+      // Load our stock list (biketime) to decide in-stock flags from our own data, not B2B
+      const stockSnap = await getDocs(collection(db, 'stock'));
+      const rawStock = stockSnap.docs.map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) }));
+      const toNum = (v: unknown): number => {
+        if (typeof v === 'number' && Number.isFinite(v)) return v;
+        const s = String(v ?? '').replace(/[^0-9.-]/g, '');
+        const n = Number(s || '0');
+        return Number.isFinite(n) ? n : 0;
+      };
+      const nrToStock: Record<string, { stock: number; inTransit: number }> = {};
+      for (const s of rawStock) {
+        const key = ((s as any).nrLf ?? (s as any).nrlf ?? (s as any).id ?? '').toString().trim();
+        if (!key) continue;
+        nrToStock[key] = {
+          stock: toNum((s as any).stock ?? (s as any).qty ?? (s as any).onHand ?? 0),
+          inTransit: toNum((s as any).inTransit ?? (s as any).in_transit ?? (s as any).incoming ?? 0),
+        };
+      }
       const yearOptions = Array.from(new Set(items.map(getModelYear).filter((n): n is number => !!n))).sort((a,b)=>b-a);
       if (yearParam !== null) {
         items = items.filter((b: any) => getModelYear(b) === yearParam);
@@ -230,10 +248,11 @@ export async function GET(req: NextRequest) {
       if (size) {
         if (!familyToGroup[family].sizes.includes(size)) familyToGroup[family].sizes.push(size);
       }
-      // accumulate B2B stock quantity (treat missing as 0)
-      const qty = Number((it as any).b2bStockQuantity ?? 0);
-      if (Number.isFinite(qty) && qty > 0) {
-        familyToGroup[family].stockQty += qty;
+      // accumulate OUR stock (biketime) by NRLF item (treat missing as 0); consider in stock if stock>0 OR inTransit>0
+      const ours = (nrToStock as any)[nr] as { stock?: number; inTransit?: number } | undefined;
+      const oursQty = (ours?.stock ?? 0) + (ours?.inTransit ?? 0);
+      if (oursQty > 0) {
+        familyToGroup[family].stockQty += oursQty;
         if (size) familyToGroup[family].stockSizes.add(size);
       }
       const cap = getCapacityWh(it);
@@ -262,6 +281,7 @@ export async function GET(req: NextRequest) {
       const rep: RawBike & { sizes?: string[]; capacitiesWh?: number[] } = { ...(group.representative as RawBike) } as RawBike & { sizes?: string[]; capacitiesWh?: number[] };
         rep.sizes = group.sizes.sort((a: string, b: string) => a.localeCompare(b, 'cs', { numeric: true }));
         rep.capacitiesWh = group.capacitiesWh.sort((a: number, b: number) => a - b);
+        // Expose OUR stock as the public in-stock flags to UI using existing property names
         (rep as any).b2bStockQuantity = group.stockQty;
         (rep as any).stockSizes = Array.from(group.stockSizes).sort((a: string, b: string) => a.localeCompare(b, 'cs', { numeric: true }));
         // Attach MOC price (CZK) for the representative.

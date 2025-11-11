@@ -118,7 +118,24 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
         }
       }
 
-      // Compute which sizes are in stock (sum of b2bStockQuantity per size > 0)
+      // Compute which sizes are in stock based on our own stock list (stock collection)
+      const stockSnap = await getDocs(collection(db, 'stock'));
+      const toNum = (v: unknown): number => {
+        if (typeof v === 'number' && Number.isFinite(v)) return v;
+        const s = String(v ?? '').replace(/[^0-9.-]/g, '');
+        const n = Number(s || '0');
+        return Number.isFinite(n) ? n : 0;
+      };
+      const nrToStock: Record<string, { stock: number; inTransit: number }> = {};
+      for (const s of stockSnap.docs) {
+        const d = s.data() as Record<string, unknown>;
+        const key = ((d.nrLf as string | undefined) ?? (d.nrlf as string | undefined) ?? s.id ?? '').toString().trim();
+        if (!key) continue;
+        nrToStock[key] = {
+          stock: toNum(d.stock ?? (d as any).qty ?? (d as any).onHand ?? 0),
+          inTransit: toNum((d as any).inTransit ?? (d as any).in_transit ?? (d as any).incoming ?? 0),
+        };
+      }
       const sizeToQty: Record<string, number> = {};
       for (const d of list.docs) {
         const dataDoc = d.data() as Record<string, unknown>;
@@ -126,11 +143,9 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
         if (!nrDoc.startsWith(base)) continue; // only aggregate sizes within the same model base
         const code = nrDoc.match(/(\d{2})$/)?.[1];
         if (!code) continue;
-        const qtyRaw = (dataDoc as Record<string, unknown>)['b2bStockQuantity'];
-        const qty = typeof qtyRaw === 'number' ? qtyRaw : Number(qtyRaw ?? 0);
-        if (Number.isFinite(qty) && qty > 0) {
-          sizeToQty[code] = (sizeToQty[code] ?? 0) + qty;
-        }
+        const ours = nrToStock[nrDoc];
+        const qty = (ours?.stock ?? 0) + (ours?.inTransit ?? 0);
+        if (qty > 0) sizeToQty[code] = (sizeToQty[code] ?? 0) + qty;
       }
       const stockSizes = Object.entries(sizeToQty).filter(([,q]) => q > 0).map(([s]) => s).sort((a, b) => a.localeCompare(b, 'cs', { numeric: true }));
       bike.stockSizes = stockSizes;
