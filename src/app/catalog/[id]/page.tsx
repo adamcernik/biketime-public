@@ -27,6 +27,7 @@ export default function DetailPage() {
     sizes?: string[];
     capacitiesWh?: number[];
     stockSizes?: string[];
+    onTheWaySizes?: string[];
     mocCzk?: number;
     priceLevelsCzk?: Partial<Record<'A'|'B'|'C'|'D'|'E'|'F', number>>;
     [key: string]: unknown;
@@ -132,8 +133,9 @@ export default function DetailPage() {
               <span className="text-gray-600">Dostupné velikosti:</span>
               {bike.sizes.map((s) => {
                 const inStock = (bike.stockSizes ?? []).includes(s);
+                const onWay = !inStock && (bike.onTheWaySizes ?? []).includes(s);
                 return (
-                  <span key={s} className={`px-2 py-0.5 rounded-full ring-1 ${inStock ? 'ring-green-600 bg-green-50 text-green-800' : 'ring-gray-300 bg-white text-gray-800'}`}>{s}</span>
+                  <span key={s} className={`px-2 py-0.5 rounded-full ring-1 ${inStock ? 'ring-green-600 bg-green-50 text-green-800' : onWay ? 'ring-orange-500 bg-orange-50 text-orange-700' : 'ring-gray-300 bg-white text-gray-800'}`}>{s}</span>
                 );
               })}
             </div>

@@ -240,13 +240,13 @@ export async function GET(req: NextRequest) {
       return m ? m[1] : nr;
     };
 
-    const familyToGroup: Record<string, { representative: RawBike; sizes: string[]; capacitiesWh: number[]; items: RawBike[]; stockQty: number; stockSizes: Set<string> }> = {};
+    const familyToGroup: Record<string, { representative: RawBike; sizes: string[]; capacitiesWh: number[]; items: RawBike[]; stockQty: number; stockSizes: Set<string>; transitQty: number; transitSizes: Set<string> }> = {};
       for (const it of items) {
       const nr = getNrLf(it);
       const { size } = getBaseAndSize(nr);
       const family = getFamilyKey(nr);
       if (!familyToGroup[family]) {
-        familyToGroup[family] = { representative: it, sizes: [], capacitiesWh: [], items: [], stockQty: 0, stockSizes: new Set<string>() };
+        familyToGroup[family] = { representative: it, sizes: [], capacitiesWh: [], items: [], stockQty: 0, stockSizes: new Set<string>(), transitQty: 0, transitSizes: new Set<string>() };
       }
       familyToGroup[family].items.push(it);
       if (size) {
@@ -262,6 +262,14 @@ export async function GET(req: NextRequest) {
       if (effectiveQty > 0) {
         familyToGroup[family].stockQty += effectiveQty;
         if (size) familyToGroup[family].stockSizes.add(size);
+      }
+      // Track in-transit quantities (prefer our stock list, fallback to B2B shipping qty)
+      const oursTransit = useOurStock ? Number(((nrToStock as any)[nr]?.inTransit) ?? 0) : 0;
+      const b2bShip = Number((it as any).b2bShipQuantity ?? 0);
+      const effectiveTransit = useOurStock ? (Number.isFinite(oursTransit) ? oursTransit : 0) : (Number.isFinite(b2bShip) ? b2bShip : 0);
+      if (effectiveTransit > 0) {
+        familyToGroup[family].transitQty += effectiveTransit;
+        if (size) familyToGroup[family].transitSizes.add(size);
       }
       const cap = getCapacityWh(it);
       if (cap) {
@@ -319,6 +327,9 @@ export async function GET(req: NextRequest) {
         (rep as any).stockSizes = Array.from(group.stockSizes).sort((a: string, b: string) => a.localeCompare(b, 'cs', { numeric: true }));
         // Attach full list of family NRLFs for accurate search by code
         (rep as any).allNrLfs = group.items.map(g => getNrLf(g)).filter(Boolean);
+        // Attach in-transit sizes and total
+        (rep as any).onTheWaySizes = Array.from(group.transitSizes).sort((a: string, b: string) => a.localeCompare(b, 'cs', { numeric: true }));
+        (rep as any).inTransitQty = group.transitQty;
         // Attach MOC price (CZK) for the representative.
         // Prefer an explicitly stored CZK MOC (e.g., 'mocCzk' after import) from any item in the family.
         const explicitFromFamily = group.items

@@ -28,6 +28,7 @@ interface Bike {
   capacitiesWh?: number[];
   b2bStockQuantity?: number;
   stockSizes?: string[];
+  onTheWaySizes?: string[];
   mocCzk?: number;
   priceLevelsCzk?: Partial<Record<'A'|'B'|'C'|'D'|'E'|'F', number>>;
 }
@@ -276,9 +277,18 @@ function CatalogContent() {
                     {(() => {
                       const repSize = ((b.nrLf ?? '') as string).toString().match(/(\d{2})$/)?.[1];
                       const hasRepSizeInStock = repSize ? (b.stockSizes ?? []).includes(repSize) : (b.stockSizes ?? []).length > 0;
-                      return hasRepSizeInStock;
+                      if (hasRepSizeInStock) return true;
+                      const hasRepOnWay = repSize ? (b.onTheWaySizes ?? []).includes(repSize) : (b.onTheWaySizes ?? []).length > 0;
+                      return hasRepOnWay;
                     })() && (
-                      <span className="absolute top-2 left-2 text-[10px] px-2 py-0.5 rounded bg-green-600 text-white">SKLADEM</span>
+                      (() => {
+                        const repSize = ((b.nrLf ?? '') as string).toString().match(/(\d{2})$/)?.[1];
+                        const inStock = repSize ? (b.stockSizes ?? []).includes(repSize) : (b.stockSizes ?? []).length > 0;
+                        const onWay = repSize ? (b.onTheWaySizes ?? []).includes(repSize) : (b.onTheWaySizes ?? []).length > 0;
+                        return inStock
+                          ? <span className="absolute top-2 left-2 text-[10px] px-2 py-0.5 rounded bg-green-600 text-white">SKLADEM</span>
+                          : (onWay ? <span className="absolute top-2 left-2 text-[10px] px-2 py-0.5 rounded bg-orange-500 text-white">NA CESTĚ</span> : null);
+                      })()
                     )}
                   </div>
                 ) : (
@@ -297,9 +307,18 @@ function CatalogContent() {
                     {(() => {
                       const repSize = ((b.nrLf ?? '') as string).toString().match(/(\d{2})$/)?.[1];
                       const hasRepSizeInStock = repSize ? (b.stockSizes ?? []).includes(repSize) : (b.stockSizes ?? []).length > 0;
-                      return hasRepSizeInStock;
+                      if (hasRepSizeInStock) return true;
+                      const hasRepOnWay = repSize ? (b.onTheWaySizes ?? []).includes(repSize) : (b.onTheWaySizes ?? []).length > 0;
+                      return hasRepOnWay;
                     })() && (
-                      <span className="absolute top-1 left-1 text-[10px] px-2 py-0.5 rounded bg-green-600 text-white">SKLADEM</span>
+                      (() => {
+                        const repSize = ((b.nrLf ?? '') as string).toString().match(/(\d{2})$/)?.[1];
+                        const inStock = repSize ? (b.stockSizes ?? []).includes(repSize) : (b.stockSizes ?? []).length > 0;
+                        const onWay = repSize ? (b.onTheWaySizes ?? []).includes(repSize) : (b.onTheWaySizes ?? []).length > 0;
+                        return inStock
+                          ? <span className="absolute top-1 left-1 text-[10px] px-2 py-0.5 rounded bg-green-600 text-white">SKLADEM</span>
+                          : (onWay ? <span className="absolute top-1 left-1 text-[10px] px-2 py-0.5 rounded bg-orange-500 text-white">NA CESTĚ</span> : null);
+                      })()
                     )}
                   </div>
                 )}
@@ -328,8 +347,9 @@ function CatalogContent() {
                     <div className="text-xs text-gray-600 mt-1 flex flex-wrap gap-1">
                       {b.sizes.map((s) => {
                         const inStock = (b.stockSizes ?? []).includes(s);
+                        const onWay = !inStock && (b.onTheWaySizes ?? []).includes(s);
                         return (
-                          <span key={s} className={`px-2 py-0.5 rounded-full ring-1 ${inStock ? 'ring-green-600 bg-green-50 text-green-800' : 'ring-gray-300 bg-white text-gray-800'}`}>{s}</span>
+                          <span key={s} className={`px-2 py-0.5 rounded-full ring-1 ${inStock ? 'ring-green-600 bg-green-50 text-green-800' : onWay ? 'ring-orange-500 bg-orange-50 text-orange-700' : 'ring-gray-300 bg-white text-gray-800'}`}>{s}</span>
                         );
                       })}
                     </div>
