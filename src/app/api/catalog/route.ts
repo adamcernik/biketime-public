@@ -133,9 +133,9 @@ export async function GET(req: NextRequest) {
       : null;
 
     if (!CATALOG_CACHE || CATALOG_CACHE.expiresAt < now || refresh || LAST_YEAR !== yearParam) {
-      const bikesRef = collection(db, 'bikes');
-      const q = query(bikesRef, where('isActive', '==', true));
-      const snap = await getDocs(q);
+    const bikesRef = collection(db, 'bikes');
+    const q = query(bikesRef, where('isActive', '==', true));
+    const snap = await getDocs(q);
       let items: RawBike[] = snap.docs.map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) })) as RawBike[];
       // Optionally load our stock list (biketime). If not present, we will fallback to B2B quantities.
       const stockSnap = await getDocs(collection(db, 'stock'));
@@ -235,7 +235,8 @@ export async function GET(req: NextRequest) {
       return null;
     };
     const getFamilyKey = (nr: string): string => {
-      const m = nr.match(/^(.*?)(\d{3})$/);
+      // Group by NRLF base = NRLF without the last two digits (size code)
+      const m = nr.match(/^(.*?)(\d{2})$/);
       return m ? m[1] : nr;
     };
 
