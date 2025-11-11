@@ -102,7 +102,7 @@ export default function InStockPage() {
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-sm">Zatím není k dispozici foto</div>
                   )}
-                  {Number(b.b2bStockQuantity ?? 0) > 0 && (
+                  {(b.stockSizes ?? []).length > 0 && (
                     <span className="absolute top-2 left-2 text-[10px] px-2 py-0.5 rounded bg-green-600 text-white">SKLADEM</span>
                   )}
                 </div>
