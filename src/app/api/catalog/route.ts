@@ -358,6 +358,14 @@ export async function GET(req: NextRequest) {
       };
       rep.marke = clean(rep.marke);
       rep.modell = clean(rep.modell);
+      // Workaround: hide 2022/2023/2024 models unless in stock or in transit
+      const repYear = getModelYear(rep as RawBike);
+      const isOldYear = repYear === 2022 || repYear === 2023 || repYear === 2024;
+      const qty = Number(((rep as any).b2bStockQuantity ?? 0)) || 0;
+      const inTransit = Number(((rep as any).inTransitQty ?? 0)) || 0;
+      if (isOldYear && qty <= 0 && inTransit <= 0) {
+        continue;
+      }
       // skip entries with no usable title
       if ((rep.marke ?? '') === '' && (rep.modell ?? '') === '') {
         continue;
