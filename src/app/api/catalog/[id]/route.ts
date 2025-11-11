@@ -134,9 +134,17 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
           const d = s.data() as Record<string, unknown>;
           const key = ((d.nrLf as string | undefined) ?? (d.nrlf as string | undefined) ?? s.id ?? '').toString().trim();
           if (!key) continue;
+          const sd = d as {
+            stock?: unknown;
+            qty?: unknown;
+            onHand?: unknown;
+            inTransit?: unknown;
+            in_transit?: unknown;
+            incoming?: unknown;
+          };
           nrToStock[key] = {
-            stock: toNum(d.stock ?? (d as any).qty ?? (d as any).onHand ?? 0),
-            inTransit: toNum((d as any).inTransit ?? (d as any).in_transit ?? (d as any).incoming ?? 0),
+            stock: toNum(sd.stock ?? sd.qty ?? sd.onHand ?? 0),
+            inTransit: toNum(sd.inTransit ?? sd.in_transit ?? sd.incoming ?? 0),
           };
         }
         const sizeToQty: Record<string, number> = {};

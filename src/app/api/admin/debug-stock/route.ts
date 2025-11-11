@@ -34,29 +34,47 @@ export async function GET(req: NextRequest) {
     const family = m3 ? m3[1] : nrVal;
 
     // Gather family docs
+    type BikeDoc = { id: string; nrLf?: string; lfSn?: string; b2bStockQuantity?: number | string };
     const list = await getDocs(query(collection(db, 'bikes'), where('isActive', '==', true)));
-    const familyDocs = list.docs
-      .map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) }))
-      .filter(b => ((((b.nrLf as string | undefined) ?? (b.lfSn as string | undefined) ?? '').toString())).startsWith(family));
-    const familyStock = familyDocs.map(b => {
+    const familyDocs: BikeDoc[] = list.docs
+      .map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) } as BikeDoc))
+      .filter((b: BikeDoc) => ((((b.nrLf as string | undefined) ?? (b.lfSn as string | undefined) ?? '').toString())).startsWith(family));
+    const toNum = (v: unknown): number => {
+      if (typeof v === 'number' && Number.isFinite(v)) return v;
+      const s = String(v ?? '').replace(/[^0-9.-]/g, '');
+      const n = Number(s || '0');
+      return Number.isFinite(n) ? n : 0;
+    };
+    const familyStock = familyDocs.map((b: BikeDoc) => {
       const n = (((b.nrLf as string | undefined) ?? (b.lfSn as string | undefined) ?? '').toString());
       const size = n.match(/(\\d{2})$/)?.[1] ?? '';
-      const b2b = Number((b as any).b2bStockQuantity ?? 0) || 0;
+      const b2b = toNum(b.b2bStockQuantity ?? 0);
       return { id: b.id as string, nrLf: n, size, b2bStockQuantity: b2b };
     });
 
     // Our stock document(s)
     const stockDocs = await getDocs(collection(db, 'stock'));
-    const ourStock = stockDocs.docs
-      .map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) }))
-      .filter(s => {
-        const key = ((s as any).nrLf ?? (s as any).nrlf ?? s.id ?? '').toString();
+    type StockRow = {
+      id: string;
+      nrLf?: string;
+      nrlf?: string;
+      stock?: number | string;
+      qty?: number | string;
+      onHand?: number | string;
+      inTransit?: number | string;
+      in_transit?: number | string;
+      incoming?: number | string;
+    };
+    const rows: StockRow[] = stockDocs.docs.map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) } as StockRow));
+    const ourStock = rows
+      .filter((s: StockRow) => {
+        const key = (s.nrLf ?? s.nrlf ?? s.id ?? '').toString();
         return key === nr || key.startsWith(family) || key === nrVal;
       })
-      .map(s => {
-        const key = ((s as any).nrLf ?? (s as any).nrlf ?? s.id ?? '').toString();
-        const stock = Number((s as any).stock ?? (s as any).qty ?? (s as any).onHand ?? 0) || 0;
-        const inTransit = Number((s as any).inTransit ?? (s as any).in_transit ?? (s as any).incoming ?? 0) || 0;
+      .map((s: StockRow) => {
+        const key = (s.nrLf ?? s.nrlf ?? s.id ?? '').toString();
+        const stock = toNum(s.stock ?? s.qty ?? s.onHand ?? 0);
+        const inTransit = toNum(s.inTransit ?? s.in_transit ?? s.incoming ?? 0);
         return { id: s.id as string, key, stock, inTransit };
       });
 
