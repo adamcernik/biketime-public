@@ -296,7 +296,19 @@ export async function GET(req: NextRequest) {
           const firstInStock = group.items.find(candidate => inStockCheck(getNrLf(candidate), candidate));
           return (firstInStock ?? group.representative) as RawBike;
         };
-        const representative = pickInStockRepresentative();
+        // Prefer a representative that matches the search query's NRLF (if provided),
+        // otherwise fall back to the first in‑stock variant, otherwise the existing representative.
+        const pickSearchOrInStockRepresentative = (): RawBike => {
+          // If user typed a code, prefer the exact family member whose NRLF matches the query
+          if (search && search.length > 0) {
+            const codeHit = group.items.find(candidate =>
+              getNrLf(candidate).toLowerCase().includes(search)
+            );
+            if (codeHit) return codeHit as RawBike;
+          }
+          return pickInStockRepresentative();
+        };
+        const representative = pickSearchOrInStockRepresentative();
         const rep: RawBike & { sizes?: string[]; capacitiesWh?: number[] } = { ...(representative as RawBike) } as RawBike & { sizes?: string[]; capacitiesWh?: number[] };
         rep.sizes = group.sizes.sort((a: string, b: string) => a.localeCompare(b, 'cs', { numeric: true }));
         rep.capacitiesWh = group.capacitiesWh.sort((a: number, b: number) => a - b);
