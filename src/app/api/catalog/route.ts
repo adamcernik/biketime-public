@@ -54,10 +54,31 @@ export async function GET(req: NextRequest) {
     };
     const isEbike = (b: any): boolean => {
       const cat = getCategory(b).toLowerCase();
-      const drive = (b.specifications?.['Antriebsart (MOTO)'] ?? '')
+      const spec = (b.specifications ?? {}) as Record<string, unknown>;
+      const drive = (spec['Antriebsart (MOTO)'] ?? '').toString().toLowerCase();
+      const motor = (spec['Motor (MOTM)'] ?? spec['Motor (MOTO)'] ?? b.motor ?? '')
         .toString()
         .toLowerCase();
-      return cat.startsWith('e-') || drive.includes('elektro');
+      const battery = (
+        spec['Akku (AKKU)'] ??
+        spec['Akkumodell (AKKU)'] ??
+        spec['Battery (Wh) (AKLW)'] ??
+        b.akku ??
+        ''
+      )
+        .toString()
+        .toLowerCase();
+      const modelName = (b.modell ?? '').toString().toLowerCase();
+      // Heuristics: explicit E- category, drive mentions elektro, known motor/battery fields present,
+      // model names often start with 'e-' or contain 'e-stream'
+      return (
+        cat.startsWith('e-') ||
+        drive.includes('elektro') ||
+        motor.length > 0 ||
+        battery.length > 0 ||
+        modelName.startsWith('e-') ||
+        modelName.includes('e-stream')
+      );
     };
     const mapRawToTag = (raw: string, isE: boolean): string | null => {
       const r = raw.trim();
@@ -435,16 +456,9 @@ export async function GET(req: NextRequest) {
       });
     }
     if (ebikeParam === 'true') {
-      afterFilters = afterFilters.filter((b: any) => {
-        const cat = getCategory(b).toLowerCase();
-        return cat.startsWith('e-') || (b.specifications?.['Antriebsart (MOTO)'] ?? '').toString().toLowerCase().includes('elektro');
-      });
+      afterFilters = afterFilters.filter((b: any) => isEbike(b));
     } else if (ebikeParam === 'false') {
-      afterFilters = afterFilters.filter((b: any) => {
-        const cat = getCategory(b).toLowerCase();
-        const isE = cat.startsWith('e-') || (b.specifications?.['Antriebsart (MOTO)'] ?? '').toString().toLowerCase().includes('elektro');
-        return !isE;
-      });
+      afterFilters = afterFilters.filter((b: any) => !isEbike(b));
     }
     if (sizeFilter) {
       afterFilters = afterFilters.filter((g: any) => (g.sizes || []).includes(sizeFilter));
@@ -470,16 +484,9 @@ export async function GET(req: NextRequest) {
       });
     }
     if (ebikeParam === 'true') {
-      categorySource = categorySource.filter((b: any) => {
-        const cat = getCategory(b).toLowerCase();
-        return cat.startsWith('e-') || (b.specifications?.['Antriebsart (MOTO)'] ?? '').toString().toLowerCase().includes('elektro');
-      });
+      categorySource = categorySource.filter((b: any) => isEbike(b));
     } else if (ebikeParam === 'false') {
-      categorySource = categorySource.filter((b: any) => {
-        const cat = getCategory(b).toLowerCase();
-        const isE = cat.startsWith('e-') || (b.specifications?.['Antriebsart (MOTO)'] ?? '').toString().toLowerCase().includes('elektro');
-        return !isE;
-      });
+      categorySource = categorySource.filter((b: any) => !isEbike(b));
     }
     if (sizeFilter) {
       categorySource = categorySource.filter((g: any) => (g.sizes || []).includes(sizeFilter));
