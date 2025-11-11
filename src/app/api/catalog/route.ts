@@ -137,9 +137,10 @@ export async function GET(req: NextRequest) {
       const q = query(bikesRef, where('isActive', '==', true));
       const snap = await getDocs(q);
       let items: RawBike[] = snap.docs.map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) })) as RawBike[];
-      // Load our stock list (biketime) to decide in-stock flags from our own data, not B2B
+      // Optionally load our stock list (biketime). If not present, we will fallback to B2B quantities.
       const stockSnap = await getDocs(collection(db, 'stock'));
       const rawStock = stockSnap.docs.map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) }));
+      const useOurStock = rawStock.length > 0;
       const toNum = (v: unknown): number => {
         if (typeof v === 'number' && Number.isFinite(v)) return v;
         const s = String(v ?? '').replace(/[^0-9.-]/g, '');
@@ -147,13 +148,15 @@ export async function GET(req: NextRequest) {
         return Number.isFinite(n) ? n : 0;
       };
       const nrToStock: Record<string, { stock: number; inTransit: number }> = {};
-      for (const s of rawStock) {
-        const key = ((s as any).nrLf ?? (s as any).nrlf ?? (s as any).id ?? '').toString().trim();
-        if (!key) continue;
-        nrToStock[key] = {
-          stock: toNum((s as any).stock ?? (s as any).qty ?? (s as any).onHand ?? 0),
-          inTransit: toNum((s as any).inTransit ?? (s as any).in_transit ?? (s as any).incoming ?? 0),
-        };
+      if (useOurStock) {
+        for (const s of rawStock) {
+          const key = ((s as any).nrLf ?? (s as any).nrlf ?? (s as any).id ?? '').toString().trim();
+          if (!key) continue;
+          nrToStock[key] = {
+            stock: toNum((s as any).stock ?? (s as any).qty ?? (s as any).onHand ?? 0),
+            inTransit: toNum((s as any).inTransit ?? (s as any).in_transit ?? (s as any).incoming ?? 0),
+          };
+        }
       }
       const yearOptions = Array.from(new Set(items.map(getModelYear).filter((n): n is number => !!n))).sort((a,b)=>b-a);
       if (yearParam !== null) {
@@ -248,12 +251,22 @@ export async function GET(req: NextRequest) {
       if (size) {
         if (!familyToGroup[family].sizes.includes(size)) familyToGroup[family].sizes.push(size);
       }
-      // accumulate OUR stock (biketime) by NRLF item (treat missing as 0); consider in stock if stock>0 OR inTransit>0
-      const ours = (nrToStock as any)[nr] as { stock?: number; inTransit?: number } | undefined;
-      const oursQty = (ours?.stock ?? 0) + (ours?.inTransit ?? 0);
-      if (oursQty > 0) {
-        familyToGroup[family].stockQty += oursQty;
-        if (size) familyToGroup[family].stockSizes.add(size);
+      // Accumulate stock:
+      // - If our stock list is available, use (stock + inTransit) from it.
+      // - Otherwise, fallback to B2B stock quantity on the item.
+      if (useOurStock) {
+        const ours = (nrToStock as any)[nr] as { stock?: number; inTransit?: number } | undefined;
+        const oursQty = (ours?.stock ?? 0) + (ours?.inTransit ?? 0);
+        if (oursQty > 0) {
+          familyToGroup[family].stockQty += oursQty;
+          if (size) familyToGroup[family].stockSizes.add(size);
+        }
+      } else {
+        const qty = Number((it as any).b2bStockQuantity ?? 0);
+        if (Number.isFinite(qty) && qty > 0) {
+          familyToGroup[family].stockQty += qty;
+          if (size) familyToGroup[family].stockSizes.add(size);
+        }
       }
       const cap = getCapacityWh(it);
       if (cap) {
