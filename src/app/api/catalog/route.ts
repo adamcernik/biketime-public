@@ -251,15 +251,15 @@ export async function GET(req: NextRequest) {
       if (size) {
         if (!familyToGroup[family].sizes.includes(size)) familyToGroup[family].sizes.push(size);
       }
-      // Accumulate stock using UNION logic:
-      // - If our stock list is available, use (stock + inTransit)
-      // - Always also include B2B stock if present
+      // Accumulate stock:
+      // - Prefer OUR stock list when present (stock + inTransit)
+      // - Otherwise fallback to B2B stock only
       const oursMaybe = useOurStock ? ((nrToStock as any)[nr] as { stock?: number; inTransit?: number } | undefined) : undefined;
       const oursQty = (oursMaybe?.stock ?? 0) + (oursMaybe?.inTransit ?? 0);
       const b2bQty = Number((it as any).b2bStockQuantity ?? 0);
-      const totalQty = (Number.isFinite(oursQty) ? oursQty : 0) + (Number.isFinite(b2bQty) ? b2bQty : 0);
-      if (totalQty > 0) {
-        familyToGroup[family].stockQty += totalQty;
+      const effectiveQty = useOurStock ? (Number.isFinite(oursQty) ? oursQty : 0) : (Number.isFinite(b2bQty) ? b2bQty : 0);
+      if (effectiveQty > 0) {
+        familyToGroup[family].stockQty += effectiveQty;
         if (size) familyToGroup[family].stockSizes.add(size);
       }
       const cap = getCapacityWh(it);
@@ -291,7 +291,8 @@ export async function GET(req: NextRequest) {
             const oursMaybe2 = useOurStock ? ((nrToStock as any)[nrCode] as { stock?: number; inTransit?: number } | undefined) : undefined;
             const oursQty2 = (oursMaybe2?.stock ?? 0) + (oursMaybe2?.inTransit ?? 0);
             const b2bQty2 = Number(((item as any).b2bStockQuantity ?? 0));
-            return (Number.isFinite(oursQty2) ? oursQty2 : 0) + (Number.isFinite(b2bQty2) ? b2bQty2 : 0) > 0;
+            const eff = useOurStock ? (Number.isFinite(oursQty2) ? oursQty2 : 0) : (Number.isFinite(b2bQty2) ? b2bQty2 : 0);
+            return eff > 0;
           };
           const firstInStock = group.items.find(candidate => inStockCheck(getNrLf(candidate), candidate));
           return (firstInStock ?? group.representative) as RawBike;

@@ -127,7 +127,8 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
         const n = Number(s || '0');
         return Number.isFinite(n) ? n : 0;
       };
-      // Build union of OUR stock (if present) and B2B per size
+      // Compute size availability:
+      // - Prefer OUR stock list when present (stock + inTransit); otherwise fallback to B2B only
       const nrToStock: Record<string, { stock: number; inTransit: number }> = {};
       if (useOurStock) {
         for (const s of stockSnap.docs) {
@@ -152,8 +153,8 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
         const oursQty = (ours?.stock ?? 0) + (ours?.inTransit ?? 0);
         const b2bRaw = (dataDoc as Record<string, unknown>)['b2bStockQuantity'];
         const b2bQty = typeof b2bRaw === 'number' ? b2bRaw : Number(b2bRaw ?? 0);
-        const total = (Number.isFinite(oursQty) ? oursQty : 0) + (Number.isFinite(b2bQty) ? b2bQty : 0);
-        if (total > 0) sizeToQty[code] = (sizeToQty[code] ?? 0) + total;
+        const eff = useOurStock ? (Number.isFinite(oursQty) ? oursQty : 0) : (Number.isFinite(b2bQty) ? b2bQty : 0);
+        if (eff > 0) sizeToQty[code] = (sizeToQty[code] ?? 0) + eff;
       }
       bike.stockSizes = Object.entries(sizeToQty).filter(([,q]) => q > 0).map(([s]) => s).sort((a, b) => a.localeCompare(b, 'cs', { numeric: true }));
     }
