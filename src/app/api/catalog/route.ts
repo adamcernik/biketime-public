@@ -240,7 +240,7 @@ export async function GET(req: NextRequest) {
     };
 
     const familyToGroup: Record<string, { representative: RawBike; sizes: string[]; capacitiesWh: number[]; items: RawBike[]; stockQty: number; stockSizes: Set<string> }> = {};
-    for (const it of items) {
+      for (const it of items) {
       const nr = getNrLf(it);
       const { size } = getBaseAndSize(nr);
       const family = getFamilyKey(nr);
@@ -291,7 +291,20 @@ export async function GET(req: NextRequest) {
         if (seen.has(key)) continue;
         seen.add(key);
         const group = familyToGroup[key];
-      const rep: RawBike & { sizes?: string[]; capacitiesWh?: number[] } = { ...(group.representative as RawBike) } as RawBike & { sizes?: string[]; capacitiesWh?: number[] };
+        // After we know stockSizes, prefer representative that is actually in stock (by size) if available
+        const pickInStockRepresentative = (): RawBike => {
+          const inStockCheck = (nrCode: string, item: RawBike): boolean => {
+            if (useOurStock) {
+              const ours = (nrToStock as any)[nrCode] as { stock?: number; inTransit?: number } | undefined;
+              return ((ours?.stock ?? 0) + (ours?.inTransit ?? 0)) > 0;
+            }
+            return Number(((item as any).b2bStockQuantity ?? 0)) > 0;
+          };
+          const firstInStock = group.items.find(candidate => inStockCheck(getNrLf(candidate), candidate));
+          return (firstInStock ?? group.representative) as RawBike;
+        };
+        const representative = pickInStockRepresentative();
+        const rep: RawBike & { sizes?: string[]; capacitiesWh?: number[] } = { ...(representative as RawBike) } as RawBike & { sizes?: string[]; capacitiesWh?: number[] };
         rep.sizes = group.sizes.sort((a: string, b: string) => a.localeCompare(b, 'cs', { numeric: true }));
         rep.capacitiesWh = group.capacitiesWh.sort((a: number, b: number) => a - b);
         // Expose OUR stock as the public in-stock flags to UI using existing property names
