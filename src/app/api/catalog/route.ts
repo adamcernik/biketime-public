@@ -23,7 +23,6 @@ type AggregatedCache = {
   sizeOptions: string[];
 };
 let CATALOG_CACHE: AggregatedCache | null = null;
-let LAST_YEAR: number | null = null;
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 export async function GET(req: NextRequest) {
@@ -141,7 +140,6 @@ export async function GET(req: NextRequest) {
 
     // Compute or reuse aggregated list (with sizes), categories, and size options
     let aggregated: RawBike[];
-    let categories: string[];
     let sizeOptions: string[];
 
     const now = Date.now();
@@ -160,7 +158,7 @@ export async function GET(req: NextRequest) {
     const bikesRef = collection(db, 'bikes');
     const q = query(bikesRef, where('isActive', '==', true));
     const snap = await getDocs(q);
-      let items: RawBike[] = snap.docs.map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) })) as RawBike[];
+      const items: RawBike[] = snap.docs.map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) })) as RawBike[];
       // Optionally load our stock list (biketime). If not present, we will fallback to B2B quantities.
       const stockSnap = await getDocs(collection(db, 'stock'));
       const rawStock = stockSnap.docs.map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) }));
@@ -193,19 +191,7 @@ export async function GET(req: NextRequest) {
       ))
         .sort((a, b) => a.localeCompare(b, 'cs', { sensitivity: 'base' }));
 
-    let filtered = items;
-    if (search) {
-      filtered = items.filter(b =>
-        (b.marke || '').toLowerCase().includes(search) ||
-        (b.modell || '').toLowerCase().includes(search) ||
-        (b.nrLf || '').toLowerCase().includes(search) ||
-        (b.farbe || '').toLowerCase().includes(search)
-      );
-    }
-
-    if (category) {
-      filtered = filtered.filter((b: any) => getCategory(b).toLowerCase() === category);
-    }
+    // Note: filtering by search/category happens later on the cached aggregated list
 
       // Primary sort by category (Category/Categorie (PRGR)), then by brand and model
       items.sort((a: RawBike, b: RawBike) => {
@@ -443,15 +429,12 @@ export async function GET(req: NextRequest) {
         categories: categoriesComputed,
         sizeOptions: sizeOptionsComputed,
       };
-      LAST_YEAR = yearParam;
       aggregated = aggregatedComputed;
-      categories = categoriesComputed;
       sizeOptions = sizeOptionsComputed;
       // Attach yearOptions temporarily to global to return later via closure
       (globalThis as any).__BT_YEAR_OPTIONS__ = yearOptions;
     } else {
       aggregated = CATALOG_CACHE.aggregated;
-      categories = CATALOG_CACHE.categories;
       sizeOptions = CATALOG_CACHE.sizeOptions;
     }
 

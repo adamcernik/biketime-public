@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense, useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -17,8 +17,6 @@ type Accessory = {
   categorie?: string;
   productType?: string;
 };
-
-type ListResponse = { count: number; items: Accessory[] };
 
 function AccessoriesContent() {
   const [items, setItems] = useState<Accessory[]>([]);
@@ -66,44 +64,7 @@ function AccessoriesContent() {
   const CHIP_ORDER = ['osvětlení', 'láhve a košíky', 'zámky', 'elektronika', 'blatníky', 'sedlovky', 'představce'] as const;
   const types = CHIP_ORDER as unknown as string[];
 
-  function translateType(type: string): string {
-    const t = type.trim();
-    const map: Record<string, string> = {
-      'Electronic accessories': 'Elektronické příslušenství',
-      'Electronics accessories': 'Elektronické příslušenství',
-      'E-Bike headlights': 'Přední světla pro e‑bike',
-      'E-Bike rear light': 'Zadní světla pro e‑bike',
-      'Rechargeable/battery-powered headlights': 'Dobíjecí/poháněná baterií světla',
-      'E-bike lighting set': 'Sada osvětlení pro e‑bike',
-      'Headlights': 'Přední světla',
-      'Rear light': 'Zadní světlo',
-      'Lighting accessories': 'Příslušenství k osvětlení',
-      'Mudguards': 'Blatníky',
-      'Mudguard set': 'Sada blatníků',
-      'Front mudguard': 'Přední blatník',
-      'Accessories mudguards': 'Příslušenství k blatníkům',
-      'Bottles & holders': 'Láhve a košíky',
-      'Water bottle holder': 'Košík na láhev',
-      'Drinking bottle': 'Cyklistická láhev',
-      'Bicycle locks': 'Cyklistické zámky',
-      'Lock accessories': 'Příslušenství k zámkům',
-      'Folding shackle lock': 'Skládací zámek',
-      'Charger': 'Nabíječka',
-      'Cables': 'Kabely',
-      'ML-InterfaceRecharge': 'ML-Interface Recharge',
-      'Stem': 'Představec',
-      'Stems': 'Představce',
-      'Stem accessories': 'Příslušenství k představcům',
-      'Seat clamp': 'Objímka sedlovky',
-      'Seat posts': 'Sedlovky',
-      'Seat post accessories': 'Příslušenství k sedlovkám',
-      'Holder': 'Držák',
-      'Smartphone accessories': 'Příslušenství pro smartphone',
-      'Smartphone-Halter': 'Držák na smartphone',
-      'Ladekabel': 'Nabíjecí kabel',
-    };
-    return map[t] ?? t;
-  }
+  // no-op
 
   return (
     <main className="min-h-screen bg-gray-50">
