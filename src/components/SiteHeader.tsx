@@ -6,7 +6,8 @@ import { useState } from 'react';
 import { useAuth } from './AuthProvider';
 
 const navItems: { href: string; label: string }[] = [
-  { href: '/catalog', label: 'Katalog' },
+  { href: '/catalog', label: 'Katalog kol' },
+  { href: '/prislusenstvi', label: 'Příslušenství' },
   { href: '/prodejny', label: 'Prodejny' },
   { href: '/kola-bulls', label: 'Kola Bulls' },
   { href: '/ke-stazeni', label: 'Ke stažení' },
@@ -53,11 +54,14 @@ export default function SiteHeader() {
           />
         </Link>
         <nav className="hidden md:flex items-center gap-6">
-          {navItems.map((item) => (
-            <Link key={item.href} href={item.href} className="text-sm text-gray-700 hover:text-black">
-              {item.label}
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            const isBold = item.href === '/catalog' || item.href === '/prislusenstvi';
+            return (
+              <Link key={item.href} href={item.href} className={`text-sm ${isBold ? 'font-semibold' : ''} text-gray-700 hover:text-black`}>
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
         <button
           aria-label="Menu"
@@ -70,16 +74,19 @@ export default function SiteHeader() {
       {open && (
         <div className="md:hidden bg-white shadow-sm">
           <nav className="max-w-6xl mx-auto px-4 py-3 flex flex-col gap-3">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="text-sm text-gray-800"
-                onClick={() => setOpen(false)}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {navItems.map((item) => {
+              const isBold = item.href === '/catalog' || item.href === '/prislusenstvi';
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`text-sm ${isBold ? 'font-semibold' : ''} text-gray-800`}
+                  onClick={() => setOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
         </div>
       )}

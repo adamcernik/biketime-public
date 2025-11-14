@@ -24,13 +24,13 @@ type AggregatedCache = {
 };
 let CATALOG_CACHE: AggregatedCache | null = null;
 let LAST_YEAR: number | null = null;
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');
-    const pageSize = parseInt(searchParams.get('pageSize') || '48');
+    const pageSize = parseInt(searchParams.get('pageSize') || '24');
     const search = (searchParams.get('search') || '').toLowerCase();
     const category = (searchParams.get('category') || '').toLowerCase();
     const sizeFilter = (searchParams.get('size') || '').trim();
@@ -53,6 +53,9 @@ export async function GET(req: NextRequest) {
       return val.toLowerCase() === PLACEHOLDER ? '' : val;
     };
     const isEbike = (b: any): boolean => {
+      if (typeof (b as any).isEbike === 'boolean') {
+        return (b as any).isEbike as boolean;
+      }
       const cat = getCategory(b).toLowerCase();
       const spec = (b.specifications ?? {}) as Record<string, unknown>;
       const drive = (spec['Antriebsart (MOTO)'] ?? '').toString().toLowerCase();
@@ -153,7 +156,7 @@ export async function GET(req: NextRequest) {
       ? parseInt(yearRaw, 10)
       : null;
 
-    if (!CATALOG_CACHE || CATALOG_CACHE.expiresAt < now || refresh || LAST_YEAR !== yearParam) {
+    if (!CATALOG_CACHE || CATALOG_CACHE.expiresAt < now || refresh) {
     const bikesRef = collection(db, 'bikes');
     const q = query(bikesRef, where('isActive', '==', true));
     const snap = await getDocs(q);
@@ -180,9 +183,6 @@ export async function GET(req: NextRequest) {
         }
       }
       const yearOptions = Array.from(new Set(items.map(getModelYear).filter((n): n is number => !!n))).sort((a,b)=>b-a);
-      if (yearParam !== null) {
-        items = items.filter((b: any) => getModelYear(b) === yearParam);
-      }
 
     // Build list of unique categories for UI dropdown
 
@@ -365,7 +365,8 @@ export async function GET(req: NextRequest) {
           if (priceFromFamily != null) (rep as any).mocCzk = priceFromFamily;
         }
         // Do not attach dealer tiers to public response
-        if (!isEbike(rep)) {
+        const repIsE = isEbike(rep);
+        if (!repIsE) {
           // Ensure non‑E bikes do not show battery capacities
           rep.capacitiesWh = [];
         }
@@ -391,7 +392,28 @@ export async function GET(req: NextRequest) {
       if ((rep.marke ?? '') === '' && (rep.modell ?? '') === '') {
         continue;
       }
-        aggregatedComputed.push(rep);
+        // Create lean payload to reduce response size while preserving needed fields
+        const leanRep: any = {
+          id: rep.id,
+          marke: rep.marke,
+          modell: rep.modell,
+          nrLf: getNrLf(rep),
+          lfSn: rep.lfSn,
+          bild1: (rep as any).bild1,
+          farbe: rep.farbe,
+          sizes: rep.sizes,
+          capacitiesWh: rep.capacitiesWh,
+          b2bStockQuantity: (rep as any).b2bStockQuantity,
+          stockSizes: (rep as any).stockSizes,
+          allNrLfs: (rep as any).allNrLfs,
+          onTheWaySizes: (rep as any).onTheWaySizes,
+          inTransitQty: (rep as any).inTransitQty,
+          mocCzk: (rep as any).mocCzk,
+          isEbike: repIsE,
+          categoryPrgr: getCategory(rep),
+          modelljahr: getModelYear(rep as RawBike),
+        };
+        aggregatedComputed.push(leanRep);
       }
 
       // If no specific year or e‑bike filter is requested, prefer showing E‑bikes first,
@@ -433,9 +455,12 @@ export async function GET(req: NextRequest) {
       sizeOptions = CATALOG_CACHE.sizeOptions;
     }
 
-    // Optional filter by size
-    // Apply filters on cached aggregated list
+    // Optional filter by year, then size
+    // Apply filters on cached aggregated list (lean objects)
     let afterFilters = aggregated;
+    if (yearParam !== null) {
+      afterFilters = afterFilters.filter((b: any) => Number((b as any).modelljahr ?? 0) === yearParam);
+    }
     if (search) {
       afterFilters = afterFilters.filter((b: any) => {
         const s = search;
@@ -470,6 +495,9 @@ export async function GET(req: NextRequest) {
 
     // Categories should reflect the active filters EXCEPT the selected category
     let categorySource = aggregated;
+    if (yearParam !== null) {
+      categorySource = categorySource.filter((b: any) => Number((b as any).modelljahr ?? 0) === yearParam);
+    }
     if (search) {
       categorySource = categorySource.filter((b: any) => {
         const s = search;
@@ -506,16 +534,24 @@ export async function GET(req: NextRequest) {
     const start = (page - 1) * pageSize;
     const end = start + pageSize;
     const bikes = afterFilters.slice(start, end);
-    return NextResponse.json({
-      bikes,
-      total,
-      page,
-      pageSize,
-      totalPages: Math.ceil(total / pageSize),
-      categories: categoriesForResponse,
-      sizeOptions,
-      yearOptions: ((globalThis as any).__BT_YEAR_OPTIONS__ as number[] | undefined) || [],
-    });
+    return NextResponse.json(
+      {
+        bikes,
+        total,
+        page,
+        pageSize,
+        totalPages: Math.ceil(total / pageSize),
+        categories: categoriesForResponse,
+        sizeOptions,
+        yearOptions: ((globalThis as any).__BT_YEAR_OPTIONS__ as number[] | undefined) || [],
+      },
+      {
+        headers: {
+          // stronger CDN cache with graceful SWR
+          'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=900',
+        },
+      }
+    );
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: 'Failed to load' }, { status: 500 });
