@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/firebase-server';
 import { doc, getDoc } from 'firebase/firestore';
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
-    const id = params.id;
+    const { id } = await ctx.params;
     const snap = await getDoc(doc(db, 'accessories', id));
     if (!snap.exists()) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
