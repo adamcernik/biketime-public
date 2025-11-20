@@ -70,6 +70,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
     const nr = ((data.nrLf as string | undefined) ?? (data.lfSn as string | undefined) ?? '').toString();
     const m = nr.match(/^(.*?)(\d{2})$/);
     const base = m ? m[1] : nr;
+    (bike as any).nrLfBase = base || '';
     if (base) {
       const bikesRef = collection(db, 'bikes');
       const q = query(bikesRef, where('isActive', '==', true));
@@ -154,6 +155,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
         if (eff > 0) sizeToQty[code] = (sizeToQty[code] ?? 0) + eff;
       }
       bike.stockSizes = Object.entries(sizeToQty).filter(([,q]) => q > 0).map(([s]) => s).sort((a, b) => a.localeCompare(b, 'cs', { numeric: true }));
+      (bike as any).stockQtyBySize = sizeToQty;
 
       // Compute on-the-way sizes (in transit)
       const sizeToTransit: Record<string, number> = {};

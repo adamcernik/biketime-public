@@ -44,6 +44,13 @@ export async function GET(req: NextRequest) {
     return { id: d.id, ...data };
   });
 
+  // Visibility: respect explicit isVisible flag if present; otherwise default to inStock
+  const isVisible = (a: any): boolean => {
+    if (typeof a.isVisible === 'boolean') return a.isVisible;
+    if (typeof a.inStock === 'boolean') return a.inStock;
+    return true;
+  };
+
   // Compute global list of unique product types (for fixed chips)
   const allTypes = Array.from(
     new Set(all.map((a) => a.productType).filter(Boolean))
@@ -78,6 +85,7 @@ export async function GET(req: NextRequest) {
   };
 
   const filtered = all.filter((a) => {
+    if (!isVisible(a)) return false;
     if (qSearch) {
       const hay = [
         a.nrLf,

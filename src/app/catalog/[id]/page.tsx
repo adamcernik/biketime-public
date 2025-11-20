@@ -18,6 +18,7 @@ export default function DetailPage() {
   type Bike = {
     id?: string;
     nrLf?: string;
+    nrLfBase?: string;
     marke?: string;
     modell?: string;
     bild1?: string;
@@ -28,6 +29,7 @@ export default function DetailPage() {
     capacitiesWh?: number[];
     stockSizes?: string[];
     onTheWaySizes?: string[];
+    stockQtyBySize?: Record<string, number>;
     mocCzk?: number;
     priceLevelsCzk?: Partial<Record<'A'|'B'|'C'|'D'|'E'|'F', number>>;
     [key: string]: unknown;
@@ -134,8 +136,17 @@ export default function DetailPage() {
               {bike.sizes.map((s) => {
                 const inStock = (bike.stockSizes ?? []).includes(s);
                 const onWay = !inStock && (bike.onTheWaySizes ?? []).includes(s);
+                const qty = Number((bike.stockQtyBySize ?? {})[s] ?? 0);
+                const base = (bike.nrLfBase && String(bike.nrLfBase)) || String((bike.nrLf ?? '')).replace(/(\d{2})$/, '');
+                const fullNr = `${base}${s}`;
                 return (
-                  <span key={s} className={`px-2 py-0.5 rounded-full ring-1 ${inStock ? 'ring-green-600 bg-green-50 text-green-800' : onWay ? 'ring-orange-500 bg-orange-50 text-orange-700' : 'ring-gray-300 bg-white text-gray-800'}`}>{s}</span>
+                  <span
+                    key={s}
+                    title={fullNr}
+                    className={`px-2 py-0.5 rounded-full ring-1 ${inStock ? 'ring-green-600 bg-green-50 text-green-800' : onWay ? 'ring-orange-500 bg-orange-50 text-orange-700' : 'ring-gray-300 bg-white text-gray-800'}`}
+                  >
+                    {s}{qty > 0 ? ` (${qty})` : ''}
+                  </span>
                 );
               })}
             </div>

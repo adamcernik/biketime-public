@@ -141,13 +141,7 @@ export default function InStockPage() {
                       })}
                     </div>
                   )}
-                  {!!b.capacitiesWh?.length && (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {b.capacitiesWh.map((w) => (
-                        <span key={w} className="text-xs px-2 py-0.5 rounded-full ring-1 ring-gray-300 bg-white text-gray-800">{w} Wh</span>
-                      ))}
-                    </div>
-                  )}
+                  {/* Battery capacities intentionally hidden on cards */}
                   <div className="text-xs text-gray-500 mt-1">{(b['Categorie (PRGR)'] ?? b.categoriePrgr ?? '') as string}</div>
                 </div>
               </Link>
