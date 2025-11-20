@@ -25,6 +25,8 @@ export interface AccessoryDoc {
   productType?: string;
   categorie?: string;
   category?: string; // constant: Accessories
+  inStock?: boolean;
+  isVisible?: boolean;
 }
 
 export async function GET(req: NextRequest) {
@@ -45,7 +47,7 @@ export async function GET(req: NextRequest) {
   });
 
   // Visibility: respect explicit isVisible flag if present; otherwise default to inStock
-  const isVisible = (a: any): boolean => {
+  const isVisible = (a: AccessoryDoc): boolean => {
     if (typeof a.isVisible === 'boolean') return a.isVisible;
     if (typeof a.inStock === 'boolean') return a.inStock;
     return true;
