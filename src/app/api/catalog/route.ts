@@ -55,7 +55,12 @@ export async function GET(req: NextRequest) {
     };
     const getMose = (b: any): string => {
       const val = (b.specifications?.['Model series (MOSE)'] ?? '').toString().trim();
-      return val.toLowerCase() === PLACEHOLDER ? '' : val;
+      if (val.toLowerCase() === PLACEHOLDER) return '';
+      // Normalize to Title Case (e.g. "ICONIC EVO" -> "Iconic Evo")
+      return val.replace(
+        /\w\S*/g,
+        (txt) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase()
+      );
     };
 
     const isEbike = (b: any): boolean => {
