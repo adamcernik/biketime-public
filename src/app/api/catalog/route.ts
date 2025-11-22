@@ -254,6 +254,14 @@ export async function GET(req: NextRequest) {
         return null;
       };
       const getFamilyKey = (b: RawBike): string => {
+        // Group by Model Name + Brand to merge colors
+        // Fallback to NRLF base if model is missing
+        const model = (b.modell ?? '').toString().trim().toLowerCase();
+        const brand = (b.marke ?? '').toString().trim().toLowerCase();
+        if (model && brand) {
+          return `${brand}|${model}`;
+        }
+
         const nr = getNrLf(b);
         // Group by NRLF base = NRLF without the last two digits (size code)
         const m = nr.match(/^(.*?)(\d{2})$/);
@@ -271,13 +279,34 @@ export async function GET(req: NextRequest) {
         return base;
       };
 
-      const familyToGroup: Record<string, { representative: RawBike; sizes: string[]; capacitiesWh: number[]; items: RawBike[]; stockQty: number; stockSizes: Set<string>; transitQty: number; transitSizes: Set<string> }> = {};
+      const familyToGroup: Record<string, {
+        representative: RawBike;
+        sizes: string[];
+        capacitiesWh: number[];
+        items: RawBike[];
+        stockQty: number;
+        stockSizes: Set<string>;
+        transitQty: number;
+        transitSizes: Set<string>;
+        variants: Map<string, { id: string; color: string; image: string; nrLf: string }>;
+      }> = {};
+
       for (const it of items) {
         const nr = getNrLf(it);
         const { size } = getBaseAndSize(nr);
         const family = getFamilyKey(it);
         if (!familyToGroup[family]) {
-          familyToGroup[family] = { representative: it, sizes: [], capacitiesWh: [], items: [], stockQty: 0, stockSizes: new Set<string>(), transitQty: 0, transitSizes: new Set<string>() };
+          familyToGroup[family] = {
+            representative: it,
+            sizes: [],
+            capacitiesWh: [],
+            items: [],
+            stockQty: 0,
+            stockSizes: new Set<string>(),
+            transitQty: 0,
+            transitSizes: new Set<string>(),
+            variants: new Map(),
+          };
         }
         familyToGroup[family].items.push(it);
         if (size) {
@@ -307,6 +336,28 @@ export async function GET(req: NextRequest) {
         if (cap) {
           if (!familyToGroup[family].capacitiesWh.includes(cap)) familyToGroup[family].capacitiesWh.push(cap);
         }
+
+        // Collect variants (colors)
+        // We use the 8th digit of NRLF as a unique key for the variant within this model group
+        // Or simply use the color name if available.
+        // Let's use the color name + image as the unique identifier for a "visual variant".
+        const color = (it.farbe ?? '').toString().trim();
+        const image = ((it as any).bild1 ?? '').toString().trim();
+        // We want one entry per color. If multiple sizes exist for the same color, we just need one representative.
+        // We prefer one that has an image.
+        const variantKey = color.toLowerCase();
+        if (variantKey) {
+          const existing = familyToGroup[family].variants.get(variantKey);
+          if (!existing || (!existing.image && image)) {
+            familyToGroup[family].variants.set(variantKey, {
+              id: it.id,
+              color: color,
+              image: image,
+              nrLf: nr
+            });
+          }
+        }
+
         // pick representative: prefer having image, then higher capacity
         const current = familyToGroup[family].representative;
         const currentCap = getCapacityWh(current) ?? 0;
@@ -322,7 +373,10 @@ export async function GET(req: NextRequest) {
       for (const it of items) {
         const nr = getNrLf(it);
         const family = getFamilyKey(it);
-        const key = family || nr || it.id;
+        // If we grouped by model, 'family' is the key.
+        // If we fell back to NRLF, 'family' is the key.
+        const key = family;
+
         if (seen.has(key)) continue;
         seen.add(key);
         const group = familyToGroup[key];
@@ -351,7 +405,7 @@ export async function GET(req: NextRequest) {
           return pickInStockRepresentative();
         };
         const representative = pickSearchOrInStockRepresentative();
-        const rep: RawBike & { sizes?: string[]; capacitiesWh?: number[] } = { ...(representative as RawBike) } as RawBike & { sizes?: string[]; capacitiesWh?: number[] };
+        const rep: RawBike & { sizes?: string[]; capacitiesWh?: number[]; variants?: any[] } = { ...(representative as RawBike) } as RawBike & { sizes?: string[]; capacitiesWh?: number[]; variants?: any[] };
         rep.sizes = group.sizes.sort((a: string, b: string) => a.localeCompare(b, 'cs', { numeric: true }));
         rep.capacitiesWh = group.capacitiesWh.sort((a: number, b: number) => a - b);
         // Expose OUR stock as the public in-stock flags to UI using existing property names
@@ -362,6 +416,10 @@ export async function GET(req: NextRequest) {
         // Attach in-transit sizes and total
         (rep as any).onTheWaySizes = Array.from(group.transitSizes).sort((a: string, b: string) => a.localeCompare(b, 'cs', { numeric: true }));
         (rep as any).inTransitQty = group.transitQty;
+
+        // Attach variants
+        rep.variants = Array.from(group.variants.values());
+
         // Attach MOC price (CZK) for the representative.
         // Prefer an explicitly stored CZK MOC (e.g., 'mocCzk' after import) from any item in the family.
         const explicitFromFamily = group.items
@@ -423,6 +481,7 @@ export async function GET(req: NextRequest) {
           categoryPrgr: getCategory(rep),
           modelljahr: getModelYear(rep as RawBike),
           mose: getMose(rep),
+          variants: rep.variants,
         };
         aggregatedComputed.push(leanRep);
       }
