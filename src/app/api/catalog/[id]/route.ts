@@ -270,8 +270,8 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       }
 
       bike.batteryVariants = variants.sort((a, b) => {
-        const capA = (a as any).capacityWh || 0;
-        const capB = (b as any).capacityWh || 0;
+        const capA = (a['capacityWh'] as number) || 0;
+        const capB = (b['capacityWh'] as number) || 0;
         return capA - capB;
       });
     }
