@@ -31,6 +31,7 @@ interface Bike {
   onTheWaySizes?: string[];
   mocCzk?: number;
   priceLevelsCzk?: Partial<Record<'A' | 'B' | 'C' | 'D' | 'E' | 'F', number>>;
+  mose?: string;
 }
 
 function CatalogContent() {
@@ -40,9 +41,11 @@ function CatalogContent() {
   const [bikes, setBikes] = useState<Bike[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [sizeOptions, setSizeOptions] = useState<string[]>([]);
+  const [moseOptions, setMoseOptions] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [size, setSize] = useState('');
+  const [mose, setMose] = useState('');
   const [ebikeOnly, setEbikeOnly] = useState<'all' | 'ebike' | 'non'>('ebike');
   const [loading, setLoading] = useState(true);
   const [tags, setTags] = useState<string[]>([]);
@@ -64,6 +67,7 @@ function CatalogContent() {
     const qSearch = q.get('search') ?? '';
     const qCategory = q.get('category') ?? '';
     const qSize = q.get('size') ?? '';
+    const qMose = q.get('mose') ?? '';
     const qYear = q.get('year') ?? '';
     const qInStock = q.get('inStock') === 'true';
     const qEbike = q.get('ebike');
@@ -75,6 +79,7 @@ function CatalogContent() {
     setSearch((prev) => (prev !== qSearch ? qSearch : prev));
     setCategory((prev) => (prev !== qCategory ? qCategory : prev));
     setSize((prev) => (prev !== qSize ? qSize : prev));
+    setMose((prev) => (prev !== qMose ? qMose : prev));
     setYear((prev) => (prev !== qYear ? qYear : prev));
     setInStockOnly((prev) => (prev !== qInStock ? qInStock : prev));
     setEbikeOnly((prev) => (prev !== eb ? eb : prev));
@@ -99,6 +104,7 @@ function CatalogContent() {
     if (debouncedSearch) params.set('search', debouncedSearch);
     if (category) params.set('category', category);
     if (size) params.set('size', size);
+    if (mose) params.set('mose', mose);
     if (ebikeOnly === 'ebike') params.set('ebike', 'true');
     if (ebikeOnly === 'non') params.set('ebike', 'false');
     if (year) params.set('year', year);
@@ -111,7 +117,7 @@ function CatalogContent() {
       const url = next ? `${pathname}?${next}` : pathname;
       router.replace(url, { scroll: false });
     }
-  }, [debouncedSearch, category, size, ebikeOnly, year, inStockOnly, page, viewMode, hydratedFromUrl, pathname, router, searchParams]);
+  }, [debouncedSearch, category, size, mose, ebikeOnly, year, inStockOnly, page, viewMode, hydratedFromUrl, pathname, router, searchParams]);
 
   // Fetch data (use debouncedSearch)
   useEffect(() => {
@@ -124,6 +130,7 @@ function CatalogContent() {
       if (debouncedSearch) params.set('search', debouncedSearch);
       if (category) params.set('category', category);
       if (size) params.set('size', size);
+      if (mose) params.set('mose', mose);
       if (ebikeOnly === 'ebike') params.set('ebike', 'true');
       if (ebikeOnly === 'non') params.set('ebike', 'false');
       if (year) params.set('year', year);
@@ -137,6 +144,7 @@ function CatalogContent() {
           setBikes((data.bikes ?? []) as Bike[]);
           setCategories((data.categories ?? []) as string[]);
           setSizeOptions((data.sizeOptions ?? []) as string[]);
+          setMoseOptions((data.moseOptions ?? []) as string[]);
           setTags((data.categories ?? []) as string[]);
           setYearOptions(((data.yearOptions ?? []) as number[]).map(String));
           setTotal(Number(data.total ?? 0));
@@ -152,13 +160,13 @@ function CatalogContent() {
     };
     load();
     return () => controller.abort();
-  }, [debouncedSearch, category, size, ebikeOnly, year, inStockOnly, page, hydratedFromUrl]);
+  }, [debouncedSearch, category, size, mose, ebikeOnly, year, inStockOnly, page, hydratedFromUrl]);
 
   // Reset page on filter change (use debouncedSearch)
   useEffect(() => {
     if (!hydratedFromUrl) return;
     setPage(1);
-  }, [debouncedSearch, category, size, ebikeOnly, year, inStockOnly, hydratedFromUrl]);
+  }, [debouncedSearch, category, size, mose, ebikeOnly, year, inStockOnly, hydratedFromUrl]);
 
   return (
     <main className="min-h-screen bg-zinc-50 pb-20">
@@ -201,6 +209,17 @@ function CatalogContent() {
 
               {/* Dropdowns */}
               <div className="flex flex-wrap gap-3">
+                <select
+                  value={mose}
+                  onChange={(e) => setMose(e.target.value)}
+                  className="bg-white border border-zinc-200 text-zinc-700 text-sm rounded-lg focus:ring-primary focus:border-primary block p-2.5 max-w-[180px]"
+                >
+                  <option value="">Modelová řada</option>
+                  {moseOptions.map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+
                 <select
                   value={size}
                   onChange={(e) => setSize(e.target.value)}

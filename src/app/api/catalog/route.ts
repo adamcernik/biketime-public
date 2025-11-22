@@ -37,6 +37,8 @@ export async function GET(req: NextRequest) {
     const ebikeParam = searchParams.get('ebike'); // 'true' | 'false' | null
     const inStockParam = searchParams.get('inStock'); // 'true' | null
 
+    const moseParam = searchParams.get('mose'); // Model Series filter
+
     // Helpers used throughout this handler
     const PLACEHOLDER = 'unknown manual entry required';
     const PLACEHOLDER_TOKENS = new Set(['unknown', 'manual entry required']);
@@ -51,6 +53,11 @@ export async function GET(req: NextRequest) {
       const val = (fromTopLevel ?? fromSpecs ?? '').toString().trim();
       return val.toLowerCase() === PLACEHOLDER ? '' : val;
     };
+    const getMose = (b: any): string => {
+      const val = (b.specifications?.['Model series (MOSE)'] ?? '').toString().trim();
+      return val.toLowerCase() === PLACEHOLDER ? '' : val;
+    };
+
     const isEbike = (b: any): boolean => {
       if (typeof (b as any).isEbike === 'boolean') {
         return (b as any).isEbike as boolean;
@@ -410,6 +417,7 @@ export async function GET(req: NextRequest) {
           isEbike: repIsE,
           categoryPrgr: getCategory(rep),
           modelljahr: getModelYear(rep as RawBike),
+          mose: getMose(rep),
         };
         aggregatedComputed.push(leanRep);
       }
@@ -488,6 +496,18 @@ export async function GET(req: NextRequest) {
       afterFilters = afterFilters.filter((g: any) => Number((g as any).b2bStockQuantity ?? 0) > 0);
     }
 
+    // Compute Model Series options based on current filters (excluding mose filter itself)
+    const moseOptions = Array.from(new Set(
+      afterFilters
+        .map((b: any) => b.mose)
+        .filter((v: string) => v && v.length > 0)
+    )).sort((a: any, b: any) => a.localeCompare(b, 'cs', { sensitivity: 'base' }));
+
+    // Apply Model Series filter
+    if (moseParam) {
+      afterFilters = afterFilters.filter((b: any) => (b.mose || '').toLowerCase() === moseParam.toLowerCase());
+    }
+
     // Categories should reflect the active filters EXCEPT the selected category
     let categorySource = aggregated;
     if (yearParam !== null) {
@@ -517,6 +537,10 @@ export async function GET(req: NextRequest) {
     if (inStockParam === 'true') {
       categorySource = categorySource.filter((g: any) => Number((g as any).b2bStockQuantity ?? 0) > 0);
     }
+    if (moseParam) {
+      categorySource = categorySource.filter((b: any) => (b.mose || '').toLowerCase() === moseParam.toLowerCase());
+    }
+
     const categoriesForResponse = Array.from(
       new Set(
         categorySource
@@ -539,6 +563,7 @@ export async function GET(req: NextRequest) {
         categories: categoriesForResponse,
         sizeOptions,
         yearOptions: ((globalThis as any).__BT_YEAR_OPTIONS__ as number[] | undefined) || [],
+        moseOptions,
       },
       {
         headers: {
