@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
       // Normalize to Title Case (e.g. "ICONIC EVO" -> "Iconic Evo")
       return val.replace(
         /\w\S*/g,
-        (txt) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase()
+        (txt: string) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase()
       );
     };
 
@@ -254,12 +254,18 @@ export async function GET(req: NextRequest) {
         return null;
       };
       const getFamilyKey = (b: RawBike): string => {
-        // Group by Model Name + Brand to merge colors
+        // Group by Model Name + Brand + Frame Type to merge colors but keep frames separate
         // Fallback to NRLF base if model is missing
         const model = (b.modell ?? '').toString().trim().toLowerCase();
         const brand = (b.marke ?? '').toString().trim().toLowerCase();
+
+        // Extract Frame Type (RTYP)
+        // e.g. "Diamond", "Trapezoid", "Wave"
+        const frameType = (b.specifications?.['Frame type (RTYP)'] ?? '').toString().trim().toLowerCase();
+
         if (model && brand) {
-          return `${brand}|${model}`;
+          // Include frameType in the key so different frames are separate groups
+          return `${brand}|${model}|${frameType}`;
         }
 
         const nr = getNrLf(b);
