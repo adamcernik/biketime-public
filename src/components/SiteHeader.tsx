@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
-import { useAuth } from './AuthProvider';
+
 
 const navItems: { href: string; label: string }[] = [
   { href: '/catalog', label: 'Katalog kol' },
@@ -17,7 +17,7 @@ const navItems: { href: string; label: string }[] = [
 export default function SiteHeader() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const { logout } = useAuth();
+
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
