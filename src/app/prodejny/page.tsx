@@ -11,7 +11,7 @@ export default function PublicShopsPage() {
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
+
 
   useEffect(() => {
     const loadShops = async () => {
@@ -87,7 +87,7 @@ export default function PublicShopsPage() {
             {shops.map((shop) => (
               <div
                 key={shop.id}
-                className={`bg-white rounded-xl shadow-sm border transition-all hover:shadow-md ${selectedShop?.id === shop.id ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-200'}`}
+                className="bg-white rounded-xl shadow-sm border border-gray-200 transition-all hover:shadow-md"
                 id={`shop-${shop.id}`}
               >
                 <div className="p-6">

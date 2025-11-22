@@ -188,7 +188,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
 
       // Compute full battery variants
       const currentSize = bike.nrLf?.match(/(\d{2})$/)?.[1];
-      const variants: any[] = [];
+      const variants: Record<string, unknown>[] = [];
 
       for (const capCode of Object.keys(capacityCodeToWh)) {
         const capWh = capacityCodeToWh[capCode];
