@@ -88,7 +88,7 @@ function AccessoriesContent() {
           <div className="mb-4 flex flex-wrap gap-2">
             <button
               onClick={() => { setGroup(''); setPage(1); }}
-              className={`text-xs px-3 py-1 rounded-full ring-1 ring-gray-300 ${group===''? 'bg-black text-white' : 'bg-white text-gray-800 hover:bg-gray-100'}`}
+              className={`text-xs px-3 py-1 rounded-full ring-1 ring-gray-300 ${group === '' ? 'bg-black text-white' : 'bg-white text-gray-800 hover:bg-gray-100'}`}
               title="Vše"
             >
               Vše
@@ -97,7 +97,7 @@ function AccessoriesContent() {
               <button
                 key={t}
                 onClick={() => { setGroup(t); setPage(1); }}
-                className={`text-xs px-3 py-1 rounded-full ring-1 ring-gray-300 ${group===t? 'bg-black text-white' : 'bg-white text-gray-800 hover:bg-gray-100'}`}
+                className={`text-xs px-3 py-1 rounded-full ring-1 ring-gray-300 ${group === t ? 'bg-black text-white' : 'bg-white text-gray-800 hover:bg-gray-100'}`}
                 title={t}
               >{t}</button>
             ))}
@@ -119,6 +119,7 @@ function AccessoriesContent() {
                       fill
                       sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                       className="object-contain p-4"
+                      unoptimized
                     />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-sm">Bez foto</div>

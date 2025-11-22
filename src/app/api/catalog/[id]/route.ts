@@ -33,7 +33,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       const n = parseFloat(s);
       return Number.isFinite(n) ? n : null;
     };
-    const PRICE_KEYS = ['moc','MOC','mocCzk','mocCZK','priceCzk','priceCZK','price','cena','Cena','uvp','UVP','UPE','uvpCZK'];
+    const PRICE_KEYS = ['moc', 'MOC', 'mocCzk', 'mocCZK', 'priceCzk', 'priceCZK', 'price', 'cena', 'Cena', 'uvp', 'UVP', 'UPE', 'uvpCZK'];
     const getMocCzk = (b: Record<string, unknown>): number | null => {
       for (const k of PRICE_KEYS) {
         const n = toNumberFromMixed(b[k]);
@@ -156,7 +156,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
         const eff = useOurStock ? (Number.isFinite(oursQty) ? oursQty : 0) : (Number.isFinite(b2bQty) ? b2bQty : 0);
         if (eff > 0) sizeToQty[code] = (sizeToQty[code] ?? 0) + eff;
       }
-      bike.stockSizes = Object.entries(sizeToQty).filter(([,q]) => q > 0).map(([s]) => s).sort((a, b) => a.localeCompare(b, 'cs', { numeric: true }));
+      bike.stockSizes = Object.entries(sizeToQty).filter(([, q]) => q > 0).map(([s]) => s).sort((a, b) => a.localeCompare(b, 'cs', { numeric: true }));
       bike.stockQtyBySize = sizeToQty;
 
       // Compute on-the-way sizes (in transit)
@@ -173,7 +173,103 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
           if (tran > 0) sizeToTransit[code] = (sizeToTransit[code] ?? 0) + tran;
         }
       }
-      bike.onTheWaySizes = Object.entries(sizeToTransit).filter(([,q]) => q > 0).map(([s]) => s).sort((a, b) => a.localeCompare(b, 'cs', { numeric: true }));
+      bike.onTheWaySizes = Object.entries(sizeToTransit).filter(([, q]) => q > 0).map(([s]) => s).sort((a, b) => a.localeCompare(b, 'cs', { numeric: true }));
+
+      const sizeToNrLf: Record<string, string> = {};
+      for (const d of list.docs) {
+        const dataDoc = d.data() as Record<string, unknown>;
+        const nrDoc = (((dataDoc.nrLf as string | undefined) ?? (dataDoc.lfSn as string | undefined) ?? '').toString());
+        if (!nrDoc.startsWith(base)) continue;
+        const code = nrDoc.match(/(\d{2})$/)?.[1];
+        if (!code) continue;
+        sizeToNrLf[code] = nrDoc;
+      }
+      bike.sizeToNrLf = sizeToNrLf;
+
+      // Compute full battery variants
+      const currentSize = bike.nrLf?.match(/(\d{2})$/)?.[1];
+      const variants: any[] = [];
+
+      for (const capCode of Object.keys(capacityCodeToWh)) {
+        const capWh = capacityCodeToWh[capCode];
+        // Find all bikes for this capacity
+        const variantDocs = list.docs.filter(d => {
+          const dData = d.data() as Record<string, unknown>;
+          const dNr = (((dData.nrLf as string | undefined) ?? (dData.lfSn as string | undefined) ?? '').toString());
+          if (!dNr.startsWith(family)) return false;
+          const dCode = dNr.charAt(Math.max(0, dNr.length - 3));
+          return dCode === capCode;
+        });
+
+        if (variantDocs.length === 0) continue;
+
+        // Find representative ID (prefer same size)
+        let repDoc = variantDocs.find(d => {
+          const dNr = (((d.data().nrLf as string | undefined) ?? (d.data().lfSn as string | undefined) ?? '').toString());
+          return dNr.endsWith(currentSize || 'XX');
+        });
+        if (!repDoc) repDoc = variantDocs[0];
+
+        const repData = repDoc.data() as Record<string, unknown>;
+
+        // Compute variant-specific data
+        const vSizes: string[] = [];
+        const vStockSizes: string[] = [];
+        const vOnTheWaySizes: string[] = [];
+        const vStockQty: Record<string, number> = {};
+        const vSizeToNrLf: Record<string, string> = {};
+
+        // Compute sizes and stock for this variant
+        for (const d of variantDocs) {
+          const dData = d.data() as Record<string, unknown>;
+          const dNr = (((dData.nrLf as string | undefined) ?? (dData.lfSn as string | undefined) ?? '').toString());
+          const code = dNr.match(/(\d{2})$/)?.[1];
+          if (!code) continue;
+
+          vSizes.push(code);
+          vSizeToNrLf[code] = dNr;
+
+          const ours = nrToStock[dNr];
+          const oursQty = (ours?.stock ?? 0) + (ours?.inTransit ?? 0);
+          const b2bRaw = (dData as Record<string, unknown>)['b2bStockQuantity'];
+          const b2bQty = typeof b2bRaw === 'number' ? b2bRaw : Number(b2bRaw ?? 0);
+          const eff = useOurStock ? (Number.isFinite(oursQty) ? oursQty : 0) : (Number.isFinite(b2bQty) ? b2bQty : 0);
+
+          if (eff > 0) {
+            vStockQty[code] = (vStockQty[code] ?? 0) + eff;
+            vStockSizes.push(code);
+          }
+
+          if (useOurStock && (ours?.inTransit ?? 0) > 0) {
+            vOnTheWaySizes.push(code);
+          }
+        }
+
+        // Sort sizes
+        vSizes.sort((a, b) => a.localeCompare(b, 'cs', { numeric: true }));
+        vStockSizes.sort((a, b) => a.localeCompare(b, 'cs', { numeric: true }));
+        vOnTheWaySizes.sort((a, b) => a.localeCompare(b, 'cs', { numeric: true }));
+
+        // Get Price
+        let vMoc = toNumberFromMixed(repData['mocCzk']);
+        if (vMoc == null) vMoc = getMocCzk(repData);
+
+        variants.push({
+          id: repDoc.id,
+          capacityWh: capWh,
+          akku: repData.akku,
+          nrLf: repData.nrLf,
+          mocCzk: vMoc,
+          sizes: Array.from(new Set(vSizes)),
+          stockSizes: Array.from(new Set(vStockSizes)),
+          onTheWaySizes: Array.from(new Set(vOnTheWaySizes)),
+          stockQtyBySize: vStockQty,
+          sizeToNrLf: vSizeToNrLf,
+          specifications: repData.specifications,
+        });
+      }
+
+      bike.batteryVariants = variants.sort((a, b) => a.capacityWh - b.capacityWh);
     }
 
     return NextResponse.json(bike);

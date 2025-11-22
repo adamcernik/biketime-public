@@ -121,7 +121,7 @@ export async function GET(req: NextRequest) {
       const n = parseFloat(s);
       return Number.isFinite(n) ? n : null;
     };
-    const PRICE_KEYS = ['moc','MOC','mocCzk','mocCZK','priceCzk','priceCZK','price','cena','Cena','uvp','UVP','UPE','uvpCZK'];
+    const PRICE_KEYS = ['moc', 'MOC', 'mocCzk', 'mocCZK', 'priceCzk', 'priceCZK', 'price', 'cena', 'Cena', 'uvp', 'UVP', 'UPE', 'uvpCZK'];
     const getMocCzk = (b: any): number | null => {
       for (const k of PRICE_KEYS) {
         const n = toNumberFromMixed((b as any)[k]);
@@ -155,9 +155,9 @@ export async function GET(req: NextRequest) {
       : null;
 
     if (!CATALOG_CACHE || CATALOG_CACHE.expiresAt < now || refresh) {
-    const bikesRef = collection(db, 'bikes');
-    const q = query(bikesRef, where('isActive', '==', true));
-    const snap = await getDocs(q);
+      const bikesRef = collection(db, 'bikes');
+      const q = query(bikesRef, where('isActive', '==', true));
+      const snap = await getDocs(q);
       const items: RawBike[] = snap.docs.map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) })) as RawBike[];
       // Optionally load our stock list (biketime). If not present, we will fallback to B2B quantities.
       const stockSnap = await getDocs(collection(db, 'stock'));
@@ -180,9 +180,9 @@ export async function GET(req: NextRequest) {
           };
         }
       }
-      const yearOptions = Array.from(new Set(items.map(getModelYear).filter((n): n is number => !!n))).sort((a,b)=>b-a);
+      const yearOptions = Array.from(new Set(items.map(getModelYear).filter((n): n is number => !!n))).sort((a, b) => b - a);
 
-    // Build list of unique categories for UI dropdown
+      // Build list of unique categories for UI dropdown
 
       const categoriesComputed = Array.from(new Set(
         items
@@ -191,7 +191,7 @@ export async function GET(req: NextRequest) {
       ))
         .sort((a, b) => a.localeCompare(b, 'cs', { sensitivity: 'base' }));
 
-    // Note: filtering by search/category happens later on the cached aggregated list
+      // Note: filtering by search/category happens later on the cached aggregated list
 
       // Primary sort by category (Category/Categorie (PRGR)), then by brand and model
       items.sort((a: RawBike, b: RawBike) => {
@@ -208,96 +208,108 @@ export async function GET(req: NextRequest) {
         return aModel.localeCompare(bModel, 'cs', { sensitivity: 'base' });
       });
 
-    // Merge sizes: group by NRLF base (NRLF without last two digits); collect sizes from last two digits
-    const getNrLf = (b: RawBike): string => (b.nrLf ?? b.lfSn ?? (b as any).nrlf ?? (b as any).NRLF ?? '').toString().trim();
-    const getBaseAndSize = (nr: string): { base: string; size?: string } => {
-      const m = nr.match(/^(.*?)(\d{2})$/);
-      if (!m) return { base: nr || '', size: undefined };
-      return { base: m[1], size: m[2] };
-    };
+      // Merge sizes: group by NRLF base (NRLF without last two digits); collect sizes from last two digits
+      const getNrLf = (b: RawBike): string => (b.nrLf ?? b.lfSn ?? (b as any).nrlf ?? (b as any).NRLF ?? '').toString().trim();
+      const getBaseAndSize = (nr: string): { base: string; size?: string } => {
+        const m = nr.match(/^(.*?)(\d{2})$/);
+        if (!m) return { base: nr || '', size: undefined };
+        return { base: m[1], size: m[2] };
+      };
 
-    // Battery capacity helpers
-    const capacityCodeToWh: Record<string, number> = { '9': 900, '8': 800, '7': 750, '6': 600, '5': 500, '4': 400 };
-    const parseCapacityFromText = (text?: unknown): number | null => {
-      const s = (text ?? '').toString();
-      const m = s.match(/(\d{3,4})\s*wh/i);
-      return m ? parseInt(m[1], 10) : null;
-    };
-    const getCapacityWh = (b: RawBike): number | null => {
-      // try from known fields
-      const fromFields =
-        parseCapacityFromText(b.akku) ||
-        parseCapacityFromText(b.specifications?.Akku) ||
-        parseCapacityFromText(b.specifications?.['Akkumodell (AKKU)']) ||
-        parseCapacityFromText(b.specifications?.['Akku (AKKU)']);
-      if (fromFields) return fromFields;
-      // Only infer from NRLF for E-bikes; non‑E bikes should not get capacities
-      if (!isEbike(b)) return null;
-      // fallback to NRLF third digit from right
-      const nr = getNrLf(b);
-      if (nr.length >= 3) {
-        const code = nr.charAt(nr.length - 3);
-        if (capacityCodeToWh[code]) return capacityCodeToWh[code];
-      }
-      return null;
-    };
-    const getFamilyKey = (nr: string): string => {
-      // Group by NRLF base = NRLF without the last two digits (size code)
-      const m = nr.match(/^(.*?)(\d{2})$/);
-      return m ? m[1] : nr;
-    };
+      // Battery capacity helpers
+      const capacityCodeToWh: Record<string, number> = { '9': 900, '8': 800, '7': 750, '6': 600, '5': 500, '4': 400 };
+      const parseCapacityFromText = (text?: unknown): number | null => {
+        const s = (text ?? '').toString();
+        const m = s.match(/(\d{3,4})\s*wh/i);
+        return m ? parseInt(m[1], 10) : null;
+      };
+      const getCapacityWh = (b: RawBike): number | null => {
+        // try from known fields
+        const fromFields =
+          parseCapacityFromText(b.akku) ||
+          parseCapacityFromText(b.specifications?.Akku) ||
+          parseCapacityFromText(b.specifications?.['Akkumodell (AKKU)']) ||
+          parseCapacityFromText(b.specifications?.['Akku (AKKU)']);
+        if (fromFields) return fromFields;
+        // Only infer from NRLF for E-bikes; non‑E bikes should not get capacities
+        if (!isEbike(b)) return null;
+        // fallback to NRLF third digit from right
+        const nr = getNrLf(b);
+        if (nr.length >= 3) {
+          const code = nr.charAt(nr.length - 3);
+          if (capacityCodeToWh[code]) return capacityCodeToWh[code];
+        }
+        return null;
+      };
+      const getFamilyKey = (b: RawBike): string => {
+        const nr = getNrLf(b);
+        // Group by NRLF base = NRLF without the last two digits (size code)
+        const m = nr.match(/^(.*?)(\d{2})$/);
+        if (!m) return nr;
+        const base = m[1];
 
-    const familyToGroup: Record<string, { representative: RawBike; sizes: string[]; capacitiesWh: number[]; items: RawBike[]; stockQty: number; stockSizes: Set<string>; transitQty: number; transitSizes: Set<string> }> = {};
+        // For E-bikes, if the digit before size is a known battery code, strip it too
+        // so that e.g. ...644 (600Wh) and ...744 (750Wh) group together.
+        if (isEbike(b)) {
+          const batteryCode = base.slice(-1);
+          if (capacityCodeToWh[batteryCode]) {
+            return base.slice(0, -1);
+          }
+        }
+        return base;
+      };
+
+      const familyToGroup: Record<string, { representative: RawBike; sizes: string[]; capacitiesWh: number[]; items: RawBike[]; stockQty: number; stockSizes: Set<string>; transitQty: number; transitSizes: Set<string> }> = {};
       for (const it of items) {
-      const nr = getNrLf(it);
-      const { size } = getBaseAndSize(nr);
-      const family = getFamilyKey(nr);
-      if (!familyToGroup[family]) {
-        familyToGroup[family] = { representative: it, sizes: [], capacitiesWh: [], items: [], stockQty: 0, stockSizes: new Set<string>(), transitQty: 0, transitSizes: new Set<string>() };
+        const nr = getNrLf(it);
+        const { size } = getBaseAndSize(nr);
+        const family = getFamilyKey(it);
+        if (!familyToGroup[family]) {
+          familyToGroup[family] = { representative: it, sizes: [], capacitiesWh: [], items: [], stockQty: 0, stockSizes: new Set<string>(), transitQty: 0, transitSizes: new Set<string>() };
+        }
+        familyToGroup[family].items.push(it);
+        if (size) {
+          if (!familyToGroup[family].sizes.includes(size)) familyToGroup[family].sizes.push(size);
+        }
+        // Accumulate stock:
+        // - Prefer OUR stock list when present (stock + inTransit)
+        // - Otherwise fallback to B2B stock only
+        const oursMaybe = useOurStock ? ((nrToStock as any)[nr] as { stock?: number; inTransit?: number } | undefined) : undefined;
+        const oursQty = (oursMaybe?.stock ?? 0) + (oursMaybe?.inTransit ?? 0);
+        const b2bQty = Number((it as any).b2bStockQuantity ?? 0);
+        const effectiveQty = useOurStock ? (Number.isFinite(oursQty) ? oursQty : 0) : (Number.isFinite(b2bQty) ? b2bQty : 0);
+        if (effectiveQty > 0) {
+          familyToGroup[family].stockQty += effectiveQty;
+          if (size) familyToGroup[family].stockSizes.add(size);
+        }
+        // Track in-transit quantities:
+        // - Only from our stock list when present (authoritative)
+        // - Ignore supplier B2B shipping to avoid false positives
+        const oursTransit = useOurStock ? Number(((nrToStock as any)[nr]?.inTransit) ?? 0) : 0;
+        const effectiveTransit = useOurStock ? (Number.isFinite(oursTransit) ? oursTransit : 0) : 0;
+        if (effectiveTransit > 0) {
+          familyToGroup[family].transitQty += effectiveTransit;
+          if (size) familyToGroup[family].transitSizes.add(size);
+        }
+        const cap = getCapacityWh(it);
+        if (cap) {
+          if (!familyToGroup[family].capacitiesWh.includes(cap)) familyToGroup[family].capacitiesWh.push(cap);
+        }
+        // pick representative: prefer having image, then higher capacity
+        const current = familyToGroup[family].representative;
+        const currentCap = getCapacityWh(current) ?? 0;
+        const itCap = cap ?? 0;
+        if ((!current?.bild1 && it.bild1) || itCap > currentCap) {
+          familyToGroup[family].representative = it;
+        }
       }
-      familyToGroup[family].items.push(it);
-      if (size) {
-        if (!familyToGroup[family].sizes.includes(size)) familyToGroup[family].sizes.push(size);
-      }
-      // Accumulate stock:
-      // - Prefer OUR stock list when present (stock + inTransit)
-      // - Otherwise fallback to B2B stock only
-      const oursMaybe = useOurStock ? ((nrToStock as any)[nr] as { stock?: number; inTransit?: number } | undefined) : undefined;
-      const oursQty = (oursMaybe?.stock ?? 0) + (oursMaybe?.inTransit ?? 0);
-      const b2bQty = Number((it as any).b2bStockQuantity ?? 0);
-      const effectiveQty = useOurStock ? (Number.isFinite(oursQty) ? oursQty : 0) : (Number.isFinite(b2bQty) ? b2bQty : 0);
-      if (effectiveQty > 0) {
-        familyToGroup[family].stockQty += effectiveQty;
-        if (size) familyToGroup[family].stockSizes.add(size);
-      }
-      // Track in-transit quantities:
-      // - Only from our stock list when present (authoritative)
-      // - Ignore supplier B2B shipping to avoid false positives
-      const oursTransit = useOurStock ? Number(((nrToStock as any)[nr]?.inTransit) ?? 0) : 0;
-      const effectiveTransit = useOurStock ? (Number.isFinite(oursTransit) ? oursTransit : 0) : 0;
-      if (effectiveTransit > 0) {
-        familyToGroup[family].transitQty += effectiveTransit;
-        if (size) familyToGroup[family].transitSizes.add(size);
-      }
-      const cap = getCapacityWh(it);
-      if (cap) {
-        if (!familyToGroup[family].capacitiesWh.includes(cap)) familyToGroup[family].capacitiesWh.push(cap);
-      }
-      // pick representative: prefer having image, then higher capacity
-      const current = familyToGroup[family].representative;
-      const currentCap = getCapacityWh(current) ?? 0;
-      const itCap = cap ?? 0;
-      if ((!current?.bild1 && it.bild1) || itCap > currentCap) {
-        familyToGroup[family].representative = it;
-      }
-    }
 
       // Build aggregated list preserving previous sort order by mapping to group order
       const seen = new Set<string>();
       const aggregatedComputed: RawBike[] = [];
       for (const it of items) {
         const nr = getNrLf(it);
-        const family = getFamilyKey(nr);
+        const family = getFamilyKey(it);
         const key = family || nr || it.id;
         if (seen.has(key)) continue;
         seen.add(key);
@@ -356,28 +368,28 @@ export async function GET(req: NextRequest) {
           // Ensure non‑E bikes do not show battery capacities
           rep.capacitiesWh = [];
         }
-      // sanitize placeholder titles
-      const clean = (v?: string) => {
-        const s = (v ?? '').toString().trim();
-        const lower = s.toLowerCase();
-        if (lower === PLACEHOLDER) return '';
-        if (PLACEHOLDER_TOKENS.has(lower)) return '';
-        return s;
-      };
-      rep.marke = clean(rep.marke);
-      rep.modell = clean(rep.modell);
-      // Workaround: hide 2022/2023/2024 models unless in stock or in transit
-      const repYear = getModelYear(rep as RawBike);
-      const isOldYear = repYear === 2022 || repYear === 2023 || repYear === 2024;
-      const qty = Number(((rep as any).b2bStockQuantity ?? 0)) || 0;
-      const inTransit = Number(((rep as any).inTransitQty ?? 0)) || 0;
-      if (isOldYear && qty <= 0 && inTransit <= 0) {
-        continue;
-      }
-      // skip entries with no usable title
-      if ((rep.marke ?? '') === '' && (rep.modell ?? '') === '') {
-        continue;
-      }
+        // sanitize placeholder titles
+        const clean = (v?: string) => {
+          const s = (v ?? '').toString().trim();
+          const lower = s.toLowerCase();
+          if (lower === PLACEHOLDER) return '';
+          if (PLACEHOLDER_TOKENS.has(lower)) return '';
+          return s;
+        };
+        rep.marke = clean(rep.marke);
+        rep.modell = clean(rep.modell);
+        // Workaround: hide 2022/2023/2024 models unless in stock or in transit
+        const repYear = getModelYear(rep as RawBike);
+        const isOldYear = repYear === 2022 || repYear === 2023 || repYear === 2024;
+        const qty = Number(((rep as any).b2bStockQuantity ?? 0)) || 0;
+        const inTransit = Number(((rep as any).inTransitQty ?? 0)) || 0;
+        if (isOldYear && qty <= 0 && inTransit <= 0) {
+          continue;
+        }
+        // skip entries with no usable title
+        if ((rep.marke ?? '') === '' && (rep.modell ?? '') === '') {
+          continue;
+        }
         // Create lean payload to reduce response size while preserving needed fields
         const leanRep: any = {
           id: rep.id,
