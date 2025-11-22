@@ -497,8 +497,13 @@ export async function GET(req: NextRequest) {
     }
 
     // Compute Model Series options based on current filters (excluding mose filter itself)
+    // User request: Only show model series from 2025 and 2026.
     const moseOptions = Array.from(new Set(
       afterFilters
+        .filter((b: any) => {
+          const y = Number((b as any).modelljahr ?? 0);
+          return y >= 2025;
+        })
         .map((b: any) => b.mose)
         .filter((v: string) => v && v.length > 0)
     )).sort((a: any, b: any) => a.localeCompare(b, 'cs', { sensitivity: 'base' }));
