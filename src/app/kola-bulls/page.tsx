@@ -1,31 +1,37 @@
 'use client';
 
-import React from 'react';
+
 
 const models = [
   {
     title: 'Vuca EVO',
     description: 'Vuca EVO je špičková řada e-MTB a e-SUV kol s revolučním motorem Pinion integrovaným přímo v převodovce. Díky řemenovému pohonu a volitelné automatické převodovce jde o téměř bezúdržbová kola pro náročné terénní jezdce. Celoodpružené i hardtail modely využívají moderní čtyřčepové zavěšení a nabízejí stabilitu i výkon v jakémkoli terénu. Praktické doplňky jako integrované osvětlení z nich dělají ideální volbu pro dobrodružství i každodenní ježdění.',
+    image: '/images/bulls-models/vuca-evo.jpg',
   },
   {
     title: 'Sonic SX',
     description: 'Lehká sportovní řada e-MTB s karbonovým rámem a motorem Bosch Performance Line SX. Zaměřená na maximálně přirozený pocit z jízdy, nízkou hmotnost a agilitu. Ideální pro sportovní trailové ježdění. Nabízí i verze s nízkým nástupem. Oproti Sonic EVO jde o lehčí, hravější volbu s menší dopomocí.',
+    image: '/images/bulls-models/sonic-sx.jpg',
   },
   {
     title: 'Sonic EVO',
     description: 'Plnohodnotná e-MTB řada pro nejnáročnější terény. Masivní a chytrý rám Sonic E-Power Chassis, posed pro vysokou stabilitu a výkonné motory Bosch Performance Line CX. Určeno pro enduro, trail i XC. Oproti Sonic SX nabízí vyšší výkon, stabilitu a robustnost.',
+    image: '/images/bulls-models/sonic-evo.jpg',
   },
   {
     title: 'Sturmvogel EVO',
     description: 'Stylová městská elektrokola s retro designem. Silný Bosch Performance Line CX, řemenový pohon a minimalistický monokokový rám. Extra široké pláště, přední světlo integrované do rámu (MonkeyLink) a TwinLight zadní světlo pro maximální bezpečnost. Pro jezdce, kteří chtějí styl, pohodlí a výkon.',
+    image: '/images/bulls-models/sturmvogel-evo.jpg',
   },
   {
     title: 'Iconic EVO',
     description: '„SUV“ kategorie elektrokol: robustní, pohodlná a praktická. Silný motor Bosch CX Gen5, široké pláště Schwalbe, odpružení 120 mm a kompletní výbava pro město i terén. K dispozici hardtaily i full-suspension modely. Existují i varianty s karbonem a řemenem. Oproti Cross Lite EVO jsou více terénní a těžší.',
+    image: '/images/bulls-models/iconic-evo.jpg',
   },
   {
     title: 'Copperhead EVO',
     description: 'Výborný poměr cena/výkon v kategorii e-MTB. Výkonný Bosch CX Gen5, kvalitní rám a moderní světla MonkeyLink. Verze jak trail–FS, tak hardtail. Výborné pro jezdce, kteří chtějí špičkovou technologii za dostupnější cenu. Varianta „Street“ nabízí plnou výbavu na silnici.',
+    image: '/images/bulls-models/copperhead-evo.jpg',
   },
   {
     title: 'Cross Lite EVO',
@@ -68,14 +74,24 @@ export default function BullsBikesPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {models.map((model, index) => (
               <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-300 flex flex-col h-full">
-                {/* Image Placeholder */}
-                <div className="h-48 bg-gray-100 flex items-center justify-center border-b border-gray-100">
-                  <div className="text-center text-gray-400">
-                    <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <span className="mt-2 block text-sm font-medium">Foto připravujeme</span>
-                  </div>
+                {/* Image Section */}
+                <div className="bg-gray-100 border-b border-gray-100">
+                  {model.image ? (
+                    <img
+                      src={model.image}
+                      alt={model.title}
+                      className="w-full h-auto block"
+                    />
+                  ) : (
+                    <div className="h-56 flex items-center justify-center">
+                      <div className="text-center text-gray-400">
+                        <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span className="mt-2 block text-sm font-medium">Foto připravujeme</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="p-6 flex-1 flex flex-col">
