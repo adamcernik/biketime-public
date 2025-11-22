@@ -117,7 +117,7 @@ function CatalogContent() {
       const url = next ? `${pathname}?${next}` : pathname;
       router.replace(url, { scroll: false });
     }
-  }, [debouncedSearch, category, size, mose, ebikeOnly, year, inStockOnly, page, viewMode, hydratedFromUrl, pathname, router, searchParams]);
+  }, [debouncedSearch, category, size, mose, ebikeOnly, year, inStockOnly, page, viewMode, hydratedFromUrl]);
 
   // Fetch data (use debouncedSearch)
   useEffect(() => {
