@@ -8,6 +8,7 @@ export interface Shop {
     lat?: number;
     lng?: number;
     isActive?: boolean;
-    updatedAt?: number;
-    updatedBy?: string;
+    updatedAt: number;
+    updatedBy: string;
+    order?: number;
 }

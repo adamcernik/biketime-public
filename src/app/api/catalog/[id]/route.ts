@@ -50,12 +50,29 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
     };
     const price = getMocCzk(data);
     // Helpers to determine e‑bike
-    // const getCategory = (b: Record<string, unknown>): string => {
-    //   const fromTopLevel = (b['Category (PRGR)'] ?? b['Categorie (PRGR)']) as unknown;
-    //   const specs = (b.specifications ?? {}) as Record<string, unknown>;
-    //   const fromSpecs = specs['Category (PRGR)'] ?? specs['Categorie (PRGR)'];
-    //   return (fromTopLevel ?? fromSpecs ?? '').toString();
-    // };
+    const getCategory = (b: Record<string, unknown>): string => {
+      const fromTopLevel = (b['Category (PRGR)'] ?? b['Categorie (PRGR)']) as unknown;
+      const specs = (b.specifications ?? {}) as Record<string, unknown>;
+      const fromSpecs = specs['Category (PRGR)'] ?? specs['Categorie (PRGR)'];
+      return (fromTopLevel ?? fromSpecs ?? '').toString();
+    };
+    const isEbike = (b: Record<string, unknown>): boolean => {
+      if (typeof b.isEbike === 'boolean') return b.isEbike;
+      const cat = getCategory(b).toLowerCase();
+      const spec = (b.specifications ?? {}) as Record<string, unknown>;
+      const drive = (spec['Antriebsart (MOTO)'] ?? '').toString().toLowerCase();
+      const motor = (spec['Motor (MOTM)'] ?? spec['Motor (MOTO)'] ?? b.motor ?? '').toString().toLowerCase();
+      const battery = (spec['Akku (AKKU)'] ?? spec['Akkumodell (AKKU)'] ?? spec['Battery (Wh) (AKLW)'] ?? b.akku ?? '').toString().toLowerCase();
+      const modelName = (b.modell ?? '').toString().toLowerCase();
+      return (
+        cat.startsWith('e-') ||
+        drive.includes('elektro') ||
+        motor.length > 0 ||
+        battery.length > 0 ||
+        modelName.startsWith('e-') ||
+        modelName.includes('e-stream')
+      );
+    };
     // no-op: e‑bike detection not needed in detail for price logic
     // Prefer explicitly stored CZK MOC when present (e.g., after import), regardless of e‑bike detection.
     const explicitMoc = toNumberFromMixed((data as Record<string, unknown>)['mocCzk']);
@@ -89,18 +106,22 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       // Also compute merged battery capacities for this family (third digit from right)
       const capacityCodeToWh: Record<string, number> = { '9': 900, '8': 800, '7': 750, '6': 600, '5': 500, '4': 400 };
       const family = (((data.nrLf as string | undefined) ?? (data.lfSn as string | undefined) ?? '').toString()).replace(/(\d{3})$/, '');
-      const capacities = Array.from(new Set(
-        list.docs
-          .map(d => d.data() as Record<string, unknown>)
-          .filter(b => (((b.nrLf as string | undefined) ?? (b.lfSn as string | undefined) ?? '').toString()).startsWith(family))
-          .map(b => {
-            const nr = (((b.nrLf as string | undefined) ?? (b.lfSn as string | undefined) ?? '').toString());
-            const code = nr.charAt(Math.max(0, nr.length - 3));
-            return capacityCodeToWh[code];
-          })
-          .filter(Boolean) as number[]
-      )).sort((a, b) => a - b);
-      if (capacities.length) bike.capacitiesWh = capacities;
+
+      // ONLY for E-bikes
+      if (isEbike(data)) {
+        const capacities = Array.from(new Set(
+          list.docs
+            .map(d => d.data() as Record<string, unknown>)
+            .filter(b => (((b.nrLf as string | undefined) ?? (b.lfSn as string | undefined) ?? '').toString()).startsWith(family))
+            .map(b => {
+              const nr = (((b.nrLf as string | undefined) ?? (b.lfSn as string | undefined) ?? '').toString());
+              const code = nr.charAt(Math.max(0, nr.length - 3));
+              return capacityCodeToWh[code];
+            })
+            .filter(Boolean) as number[]
+        )).sort((a, b) => a - b);
+        if (capacities.length) bike.capacitiesWh = capacities;
+      }
 
       // If detail bike still has no MOC, try to inherit from any family member (prefer explicit mocCzk)
       if ((bike.mocCzk as unknown) == null) {
@@ -190,90 +211,93 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       const currentSize = bike.nrLf?.match(/(\d{2})$/)?.[1];
       const variants: Record<string, unknown>[] = [];
 
-      for (const capCode of Object.keys(capacityCodeToWh)) {
-        const capWh = capacityCodeToWh[capCode];
-        // Find all bikes for this capacity
-        const variantDocs = list.docs.filter(d => {
-          const dData = d.data() as Record<string, unknown>;
-          const dNr = (((dData.nrLf as string | undefined) ?? (dData.lfSn as string | undefined) ?? '').toString());
-          if (!dNr.startsWith(family)) return false;
-          const dCode = dNr.charAt(Math.max(0, dNr.length - 3));
-          return dCode === capCode;
-        });
+      // ONLY for E-bikes
+      if (isEbike(data)) {
+        for (const capCode of Object.keys(capacityCodeToWh)) {
+          const capWh = capacityCodeToWh[capCode];
+          // Find all bikes for this capacity
+          const variantDocs = list.docs.filter(d => {
+            const dData = d.data() as Record<string, unknown>;
+            const dNr = (((dData.nrLf as string | undefined) ?? (dData.lfSn as string | undefined) ?? '').toString());
+            if (!dNr.startsWith(family)) return false;
+            const dCode = dNr.charAt(Math.max(0, dNr.length - 3));
+            return dCode === capCode;
+          });
 
-        if (variantDocs.length === 0) continue;
+          if (variantDocs.length === 0) continue;
 
-        // Find representative ID (prefer same size)
-        let repDoc = variantDocs.find(d => {
-          const dNr = (((d.data().nrLf as string | undefined) ?? (d.data().lfSn as string | undefined) ?? '').toString());
-          return dNr.endsWith(currentSize || 'XX');
-        });
-        if (!repDoc) repDoc = variantDocs[0];
+          // Find representative ID (prefer same size)
+          let repDoc = variantDocs.find(d => {
+            const dNr = (((d.data().nrLf as string | undefined) ?? (d.data().lfSn as string | undefined) ?? '').toString());
+            return dNr.endsWith(currentSize || 'XX');
+          });
+          if (!repDoc) repDoc = variantDocs[0];
 
-        const repData = repDoc.data() as Record<string, unknown>;
+          const repData = repDoc.data() as Record<string, unknown>;
 
-        // Compute variant-specific data
-        const vSizes: string[] = [];
-        const vStockSizes: string[] = [];
-        const vOnTheWaySizes: string[] = [];
-        const vStockQty: Record<string, number> = {};
-        const vSizeToNrLf: Record<string, string> = {};
+          // Compute variant-specific data
+          const vSizes: string[] = [];
+          const vStockSizes: string[] = [];
+          const vOnTheWaySizes: string[] = [];
+          const vStockQty: Record<string, number> = {};
+          const vSizeToNrLf: Record<string, string> = {};
 
-        // Compute sizes and stock for this variant
-        for (const d of variantDocs) {
-          const dData = d.data() as Record<string, unknown>;
-          const dNr = (((dData.nrLf as string | undefined) ?? (dData.lfSn as string | undefined) ?? '').toString());
-          const code = dNr.match(/(\d{2})$/)?.[1];
-          if (!code) continue;
+          // Compute sizes and stock for this variant
+          for (const d of variantDocs) {
+            const dData = d.data() as Record<string, unknown>;
+            const dNr = (((dData.nrLf as string | undefined) ?? (dData.lfSn as string | undefined) ?? '').toString());
+            const code = dNr.match(/(\d{2})$/)?.[1];
+            if (!code) continue;
 
-          vSizes.push(code);
-          vSizeToNrLf[code] = dNr;
+            vSizes.push(code);
+            vSizeToNrLf[code] = dNr;
 
-          const ours = nrToStock[dNr];
-          const oursQty = (ours?.stock ?? 0) + (ours?.inTransit ?? 0);
-          const b2bRaw = (dData as Record<string, unknown>)['b2bStockQuantity'];
-          const b2bQty = typeof b2bRaw === 'number' ? b2bRaw : Number(b2bRaw ?? 0);
-          const eff = useOurStock ? (Number.isFinite(oursQty) ? oursQty : 0) : (Number.isFinite(b2bQty) ? b2bQty : 0);
+            const ours = nrToStock[dNr];
+            const oursQty = (ours?.stock ?? 0) + (ours?.inTransit ?? 0);
+            const b2bRaw = (dData as Record<string, unknown>)['b2bStockQuantity'];
+            const b2bQty = typeof b2bRaw === 'number' ? b2bRaw : Number(b2bRaw ?? 0);
+            const eff = useOurStock ? (Number.isFinite(oursQty) ? oursQty : 0) : (Number.isFinite(b2bQty) ? b2bQty : 0);
 
-          if (eff > 0) {
-            vStockQty[code] = (vStockQty[code] ?? 0) + eff;
-            vStockSizes.push(code);
+            if (eff > 0) {
+              vStockQty[code] = (vStockQty[code] ?? 0) + eff;
+              vStockSizes.push(code);
+            }
+
+            if (useOurStock && (ours?.inTransit ?? 0) > 0) {
+              vOnTheWaySizes.push(code);
+            }
           }
 
-          if (useOurStock && (ours?.inTransit ?? 0) > 0) {
-            vOnTheWaySizes.push(code);
-          }
+          // Sort sizes
+          vSizes.sort((a, b) => a.localeCompare(b, 'cs', { numeric: true }));
+          vStockSizes.sort((a, b) => a.localeCompare(b, 'cs', { numeric: true }));
+          vOnTheWaySizes.sort((a, b) => a.localeCompare(b, 'cs', { numeric: true }));
+
+          // Get Price
+          let vMoc = toNumberFromMixed(repData['mocCzk']);
+          if (vMoc == null) vMoc = getMocCzk(repData);
+
+          variants.push({
+            id: repDoc.id,
+            capacityWh: capWh,
+            akku: repData.akku,
+            nrLf: repData.nrLf,
+            mocCzk: vMoc,
+            sizes: Array.from(new Set(vSizes)),
+            stockSizes: Array.from(new Set(vStockSizes)),
+            onTheWaySizes: Array.from(new Set(vOnTheWaySizes)),
+            stockQtyBySize: vStockQty,
+            sizeToNrLf: vSizeToNrLf,
+            specifications: repData.specifications,
+          });
         }
 
-        // Sort sizes
-        vSizes.sort((a, b) => a.localeCompare(b, 'cs', { numeric: true }));
-        vStockSizes.sort((a, b) => a.localeCompare(b, 'cs', { numeric: true }));
-        vOnTheWaySizes.sort((a, b) => a.localeCompare(b, 'cs', { numeric: true }));
-
-        // Get Price
-        let vMoc = toNumberFromMixed(repData['mocCzk']);
-        if (vMoc == null) vMoc = getMocCzk(repData);
-
-        variants.push({
-          id: repDoc.id,
-          capacityWh: capWh,
-          akku: repData.akku,
-          nrLf: repData.nrLf,
-          mocCzk: vMoc,
-          sizes: Array.from(new Set(vSizes)),
-          stockSizes: Array.from(new Set(vStockSizes)),
-          onTheWaySizes: Array.from(new Set(vOnTheWaySizes)),
-          stockQtyBySize: vStockQty,
-          sizeToNrLf: vSizeToNrLf,
-          specifications: repData.specifications,
+        bike.batteryVariants = variants.sort((a, b) => {
+          const capA = (a['capacityWh'] as number) || 0;
+          const capB = (b['capacityWh'] as number) || 0;
+          return capA - capB;
         });
       }
-
-      bike.batteryVariants = variants.sort((a, b) => {
-        const capA = (a['capacityWh'] as number) || 0;
-        const capB = (b['capacityWh'] as number) || 0;
-        return capA - capB;
-      });
     }
 
     return NextResponse.json(bike);

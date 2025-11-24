@@ -33,6 +33,7 @@ interface Bike {
   priceLevelsCzk?: Partial<Record<'A' | 'B' | 'C' | 'D' | 'E' | 'F', number>>;
   mose?: string;
   variants?: { id: string; color: string; image: string; nrLf: string }[];
+  frameType?: string;
 }
 
 function CatalogContent() {
@@ -411,6 +412,7 @@ function BikeCard({ bike, viewMode }: { bike: Bike; viewMode: 'grid' | 'list' })
         <Link href={`/catalog/${activeVariantId}`} className="block">
           <h3 className={`font-bold text-zinc-900 group-hover:text-primary transition-colors mb-2 ${viewMode === 'grid' ? 'text-lg leading-tight' : 'text-xl'}`}>
             {sanitize(bike.modell)}
+            {bike.frameType && bike.frameType !== 'Diamond' && <span className="text-zinc-500 font-normal ml-2 text-sm">({bike.frameType})</span>}
           </h3>
         </Link>
 

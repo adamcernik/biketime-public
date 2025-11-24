@@ -1,23 +1,38 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import FeaturedBikes from '@/components/FeaturedBikes';
-import HeroCarousel from '@/components/HeroCarousel';
+import HeroCarousel, { CarouselSlide } from '@/components/HeroCarousel';
 import ShopsMap from '@/components/ShopsMap';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 
-export default function Home() {
+// Revalidate every hour
+export const revalidate = 3600;
+
+async function getSlides() {
+  try {
+    const q = query(collection(db, 'carousel_slides'), where('isVisible', '==', true));
+    const snapshot = await getDocs(q);
+    const slides = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CarouselSlide));
+    // Sort by order (asc) or createdAt (desc) if order is missing
+    return slides.sort((a, b) => {
+      if (a.order !== undefined && b.order !== undefined) {
+        return a.order - b.order;
+      }
+      return (b.createdAt || 0) - (a.createdAt || 0);
+    });
+  } catch (error) {
+    console.error('Error fetching slides:', error);
+    return [];
+  }
+}
+
+export default async function Home() {
+  const slides = await getSlides();
+
   return (
     <main className="min-h-screen bg-white">
-      <HeroCarousel
-        images={[
-          { src: '/ZEG_525900080644_Mode_002.jpg', alt: 'Biketime hero 1' },
-          { src: '/ZEG_525803760447_Mode_001.jpg', alt: 'Biketime hero 2' },
-          { src: '/ZEG_524901240440_mood_7.jpg', alt: 'Biketime hero 3' },
-        ]}
-        title="BULLS SONIC EN-R TEAM"
-        subtitle="Bosch Performance Line CX-RACE GEN5 (Smart System) 25/100 Nm, 600 Wh"
-        ctaHref="/catalog/525900080644"
-        ctaLabel="Zobrazit detail"
-      />
+      <HeroCarousel slides={slides} />
 
       {/* Categories Grid */}
       <section className="py-16 bg-zinc-50">

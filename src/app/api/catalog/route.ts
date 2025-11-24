@@ -156,10 +156,21 @@ export async function GET(req: NextRequest) {
 
     const now = Date.now();
     // Year handling
+    // Year handling
     const getModelYear = (b: RawBike): number | null => {
+      // First try explicit fields
       const y = b.modelljahr ?? b.specifications?.Modelljahr ?? b.specifications?.modelljahr;
       const n = parseInt((y ?? '').toString(), 10);
-      return Number.isFinite(n) ? n : null;
+      if (Number.isFinite(n)) return n;
+
+      // Fallback: Infer from NRLF prefix
+      // 525... -> 2025
+      // 526... -> 2026
+      const nr = (b.nrLf ?? b.lfSn ?? (b as any).nrlf ?? (b as any).NRLF ?? '').toString().trim();
+      if (nr.startsWith('525')) return 2025;
+      if (nr.startsWith('526')) return 2026;
+
+      return null;
     };
     const yearRaw = searchParams.get('year');
     const yearParam = yearRaw && yearRaw.trim() !== '' && !Number.isNaN(parseInt(yearRaw, 10))
@@ -264,8 +275,9 @@ export async function GET(req: NextRequest) {
         const frameType = (b.specifications?.['Frame type (RTYP)'] ?? '').toString().trim().toLowerCase();
 
         if (model && brand) {
-          // Include frameType in the key so different frames are separate groups
-          return `${brand}|${model}|${frameType}`;
+          // Include frameType AND modelYear in the key so different frames/years are separate groups
+          const year = getModelYear(b) ?? 0;
+          return `${brand}|${model}|${frameType}|${year}`;
         }
 
         const nr = getNrLf(b);
@@ -438,6 +450,12 @@ export async function GET(req: NextRequest) {
           const priceFromFamily = group.items.map(getMocCzk).find((p) => p != null);
           if (priceFromFamily != null) (rep as any).mocCzk = priceFromFamily;
         }
+
+        // Attach Frame Type for display
+        const frameType = (representative.specifications?.['Frame type (RTYP)'] ?? '').toString().trim();
+        if (frameType) {
+          (rep as any).frameType = frameType;
+        }
         // Do not attach dealer tiers to public response
         const repIsE = isEbike(rep);
         if (!repIsE) {
@@ -488,6 +506,7 @@ export async function GET(req: NextRequest) {
           modelljahr: getModelYear(rep as RawBike),
           mose: getMose(rep),
           variants: rep.variants,
+          frameType: (rep as any).frameType,
         };
         aggregatedComputed.push(leanRep);
       }
