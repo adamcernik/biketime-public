@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/firebase-server';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
 
 interface RawBike {
   id: string;
@@ -182,6 +182,9 @@ export async function GET(req: NextRequest) {
       const q = query(bikesRef, where('isActive', '==', true));
       const snap = await getDocs(q);
       const items: RawBike[] = snap.docs.map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) })) as RawBike[];
+      console.log(`DEBUG: Fetched ${items.length} items.`);
+      const sonicCount = items.filter(i => (i.specifications?.['Model series (MOSE)'] || '').toString().toLowerCase().includes('sonic')).length;
+      console.log(`DEBUG: Found ${sonicCount} Sonic bikes in raw items.`);
       // Optionally load our stock list (biketime). If not present, we will fallback to B2B quantities.
       const stockSnap = await getDocs(collection(db, 'stock'));
       const rawStock = stockSnap.docs.map(d => ({ id: d.id, ...(d.data() as Record<string, unknown>) }));
@@ -511,21 +514,47 @@ export async function GET(req: NextRequest) {
         aggregatedComputed.push(leanRep);
       }
 
-      // If no specific year or e‑bike filter is requested, prefer showing E‑bikes first,
-      // and within each group prefer 2026 models first.
-      if (yearParam === null && ebikeParam == null) {
-        aggregatedComputed.sort((a: RawBike, b: RawBike) => {
-          const ae = isEbike(a) ? 1 : 0;
-          const be = isEbike(b) ? 1 : 0;
-          if (ae !== be) return be - ae; // E‑bikes first
-          const ya = getModelYear(a);
-          const yb = getModelYear(b);
-          const aIs2026 = ya === 2026 ? 1 : 0;
-          const bIs2026 = yb === 2026 ? 1 : 0;
-          if (aIs2026 !== bIs2026) return bIs2026 - aIs2026; // put 2026 first
-          return 0;
-        });
-      }
+      // Fetch settings for model order
+      const settingsRef = doc(db, 'settings', 'catalog');
+      const settingsSnap = await getDoc(settingsRef);
+      const settingsData = settingsSnap.exists() ? settingsSnap.data() : {};
+      const ebikeOrder = (settingsData.ebikeModelOrder as string[]) || [];
+      const regularOrder = (settingsData.regularModelOrder as string[]) || [];
+
+      const getMoseIndex = (mose: string, isE: boolean) => {
+        const order = isE ? ebikeOrder : regularOrder;
+        const idx = order.indexOf(mose);
+        return idx === -1 ? 9999 : idx;
+      };
+
+      // Sort aggregated list:
+      // 1. E-bikes first (unless filtered later)
+      // 2. Model Series Order (from settings)
+      // 3. Year (descending, 2026 first)
+      // 4. Model Name (alphabetical)
+      aggregatedComputed.sort((a: RawBike, b: RawBike) => {
+        const ae = isEbike(a);
+        const be = isEbike(b);
+
+        // 1. E-bikes vs Regular
+        if (ae !== be) return ae ? -1 : 1; // E-bikes first
+
+        // 2. Model Series Order
+        const moseA = (a as any).mose || '';
+        const moseB = (b as any).mose || '';
+        const idxA = getMoseIndex(moseA, ae);
+        const idxB = getMoseIndex(moseB, be);
+
+        if (idxA !== idxB) return idxA - idxB;
+
+        // 3. Year (descending)
+        const ya = getModelYear(a) || 0;
+        const yb = getModelYear(b) || 0;
+        if (ya !== yb) return yb - ya;
+
+        // 4. Model Name
+        return (a.modell || '').toString().localeCompare((b.modell || '').toString(), 'cs', { sensitivity: 'base' });
+      });
 
       // Compute global size options from aggregated list
       const sizeOptionsComputed = Array.from(

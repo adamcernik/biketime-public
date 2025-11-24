@@ -18,12 +18,28 @@ export default function PublicShopsPage() {
   const [userLocationCoords, setUserLocationCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [isNearestMode, setIsNearestMode] = useState(false);
+  const resultsRef = React.useRef<HTMLDivElement>(null);
 
   const { isLoaded } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
     libraries: LIBRARIES
   });
+
+  // Auto-scroll to results when nearest mode is active
+  useEffect(() => {
+    if (isNearestMode && resultsRef.current) {
+      // Small timeout to ensure DOM is ready and animation has started
+      setTimeout(() => {
+        const yOffset = -100; // Offset for header
+        const element = resultsRef.current;
+        if (element) {
+          const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        }
+      }, 100);
+    }
+  }, [isNearestMode, shops]);
 
   useEffect(() => {
     const loadShops = async () => {
@@ -191,13 +207,13 @@ export default function PublicShopsPage() {
 
           {/* Closest Shops Highlight */}
           {isNearestMode && shops.length > 0 && (
-            <div className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div ref={resultsRef} className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
               <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Nejbližší prodejny</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {shops.slice(0, 3).map((shop, index) => (
                   <div
                     key={shop.id}
-                    className="bg-white rounded-xl shadow-lg border-2 border-primary relative overflow-hidden transform hover:scale-105 transition-all duration-300"
+                    className="bg-white rounded-xl shadow-lg border-2 border-primary relative overflow-hidden transition-all duration-300"
                   >
                     <div className="absolute top-0 right-0 bg-primary text-white text-xs font-bold px-3 py-1 rounded-bl-lg z-10">
                       #{index + 1} NEJBLIŽŠÍ

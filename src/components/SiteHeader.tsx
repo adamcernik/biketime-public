@@ -1,4 +1,5 @@
 'use client';
+// Re-trigger build
 
 import Link from 'next/link';
 import Image from 'next/image';
@@ -44,8 +45,10 @@ export default function SiteHeader() {
               +420 604 263 221
             </a>
           </div>
-          <div className="hidden sm:block opacity-80">
-            Přímý prodej pouze pro smluvní odběratele
+          <div className="hidden sm:block">
+            <Link href="/prodejny" className="hover:text-white transition-colors">
+              Prodej možný v prodejnách uvedených zde
+            </Link>
           </div>
         </div>
       </div>
