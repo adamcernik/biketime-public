@@ -60,7 +60,6 @@ export default function ShopsMap({ className = '', height = '500px', shops: prop
     // Auto-zoom to fit user location and top 3 shops
     useEffect(() => {
         if (isNearestMode && map && isLoaded && userLocationCoords && shopsToRender.length > 0) {
-            console.log('Fitting bounds with:', { userLocationCoords, topShops: shopsToRender.slice(0, 3) });
             const bounds = new window.google.maps.LatLngBounds();
 
             // Add user location
@@ -77,9 +76,6 @@ export default function ShopsMap({ className = '', height = '500px', shops: prop
                     }
                 }
             });
-
-            console.log('Bounds empty?', bounds.isEmpty());
-            console.log('Bounds center:', bounds.getCenter().toString());
 
             map.fitBounds(bounds);
 

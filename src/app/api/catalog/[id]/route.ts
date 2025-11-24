@@ -189,7 +189,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
         const code = nrDoc.match(/(\d{2})$/)?.[1];
         if (!code) continue;
         if (useOurStock) {
-          const ours = nrToStock[nrDoc];
+          const ours = (nrToStock as Record<string, { inTransit: number }>)[nrDoc];
           const tran = (ours?.inTransit ?? 0);
           if (tran > 0) sizeToTransit[code] = (sizeToTransit[code] ?? 0) + tran;
         }
