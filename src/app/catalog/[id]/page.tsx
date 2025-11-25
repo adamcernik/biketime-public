@@ -259,7 +259,7 @@ export default function DetailPage() {
 
                       // Determine state for UI
                       const isAvailable = inStock || onWay;
-                      const isSelected = false; // We don't have a 'selectedSize' state yet, but we can add it or just show availability on hover/click.
+
                       // Actually, let's just show the buttons.
 
                       return (

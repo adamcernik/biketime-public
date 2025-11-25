@@ -52,7 +52,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
     const price = getMocCzk(data);
 
     // Helpers to determine e‑bike
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const getCategory = (bike: any): string => {
       const fromTopLevel =
         bike['Category (PRGR)'] ?? bike['Categorie (PRGR)'] ?? bike.categoryPrgr ?? bike.categoriePrgr;
@@ -185,7 +185,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
           .map((d: any) => d.data() as Record<string, unknown>)
           .filter((b: any) => (((b.nrLf as string | undefined) ?? (b.lfSn as string | undefined) ?? '').toString()).startsWith(base));
         const explicitFromFamily = (familyDocs
-          .map((b) => toNumberFromMixed((b as Record<string, unknown>)['mocCzk'])) as Array<number | null>)
+          .map((b: Record<string, unknown>) => toNumberFromMixed(b['mocCzk'])) as Array<number | null>)
           .find((v): v is number => v != null);
         if (explicitFromFamily != null) {
           bike.mocCzk = explicitFromFamily;
