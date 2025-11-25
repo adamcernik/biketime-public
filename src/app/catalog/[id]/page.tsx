@@ -25,6 +25,7 @@ export default function DetailPage() {
     marke?: string;
     modell?: string;
     bild1?: string;
+    variants?: { id: string; image?: string; color?: string }[];
     farbe?: string;
     motor?: string;
     akku?: string;
@@ -151,13 +152,13 @@ export default function DetailPage() {
             </div>
 
             {/* Color Variants */}
-            {!!(activeBike as any).variants?.length && (activeBike as any).variants.length > 1 && (
+            {!!activeBike.variants?.length && activeBike.variants.length > 1 && (
               <div className="bg-white rounded-2xl border border-zinc-100 p-6 shadow-sm">
                 <h3 className="text-sm font-semibold text-zinc-900 uppercase tracking-wide mb-4">Barevné varianty</h3>
                 <div className="flex flex-wrap gap-3">
-                  {(activeBike as any).variants.map((v: any) => {
+                  {activeBike.variants?.map((v) => {
                     const isActive = activeBike.id === v.id;
-                    const hasImage = v.image && v.image.length > 0;
+                    const hasImage = typeof v.image === 'string' && v.image.length > 0;
 
                     return (
                       <button
@@ -169,12 +170,12 @@ export default function DetailPage() {
                           ? 'border-primary ring-2 ring-primary ring-offset-2'
                           : 'border-zinc-200 hover:border-zinc-300'
                           }`}
-                        title={v.color}
+                        title={v.color ?? ''}
                       >
                         {hasImage ? (
                           <Image
-                            src={v.image}
-                            alt={v.color}
+                            src={v.image as string}
+                            alt={v.color ?? ''}
                             fill
                             className="object-contain p-1 mix-blend-multiply"
                             sizes="80px"
