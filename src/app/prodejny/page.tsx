@@ -132,8 +132,25 @@ export default function PublicShopsPage() {
       },
       (error) => {
         console.error('Geolocation error:', error);
-        alert('Nepodařilo se získat vaši polohu. Zkontrolujte prosím nastavení prohlížeče.');
+        let msg = 'Nepodařilo se získat vaši polohu.';
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            msg = 'Přístup k poloze byl zamítnut. Povolte prosím polohové služby pro tento web v nastavení prohlížeče (Nastavení > Soukromí > Polohové služby).';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            msg = 'Informace o poloze nejsou momentálně dostupné.';
+            break;
+          case error.TIMEOUT:
+            msg = 'Vypršel časový limit pro získání polohy. Zkuste to prosím znovu.';
+            break;
+        }
+        alert(msg);
         setIsLocating(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
       }
     );
   };
