@@ -42,7 +42,7 @@ export function FilterSidebar({
     setYear,
     setEbikeOnly,
     setInStockOnly,
-    total
+    // total // unused
 }: FilterSidebarProps) {
     return (
         <div className="space-y-8">

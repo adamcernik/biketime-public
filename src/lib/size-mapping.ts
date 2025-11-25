@@ -52,6 +52,7 @@ export const getSizeLabel = (cm: number, category: BikeCategory = 'default'): st
     return '';
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const detectCategory = (bike: any): BikeCategory => {
     const cat = ((bike.categoryPrgr ?? bike['Category (PRGR)'] ?? bike['Categorie (PRGR)'] ?? '').toString()).toLowerCase();
     const model = ((bike.modell ?? '').toString()).toLowerCase();

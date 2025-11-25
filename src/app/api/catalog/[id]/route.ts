@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/firebase-server';
 import { doc, getDoc, collection, getDocs, query, where } from 'firebase/firestore';
@@ -49,11 +50,17 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       return null;
     };
     const price = getMocCzk(data);
+
     // Helpers to determine e‑bike
-    const getCategory = (b: Record<string, unknown>): string => {
-      const fromTopLevel = (b['Category (PRGR)'] ?? b['Categorie (PRGR)']) as unknown;
-      const specs = (b.specifications ?? {}) as Record<string, unknown>;
-      const fromSpecs = specs['Category (PRGR)'] ?? specs['Categorie (PRGR)'];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const getCategory = (bike: any): string => {
+      const fromTopLevel =
+        bike['Category (PRGR)'] ?? bike['Categorie (PRGR)'] ?? bike.categoryPrgr ?? bike.categoriePrgr;
+      const fromSpecs =
+        bike.specifications?.['Category (PRGR)'] ??
+        bike.specifications?.['Categorie (PRGR)'] ??
+        bike.specifications?.categoryPrgr ??
+        bike.specifications?.categoriePrgr;
       return (fromTopLevel ?? fromSpecs ?? '').toString();
     };
     const isEbike = (b: Record<string, unknown>): boolean => {
@@ -142,11 +149,14 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
         }
       }
 
+      const relatedSnap = list; // Assuming 'list' contains the relevant documents for related bikes
+      const related = (relatedSnap.docs.map((d: any) => ({ id: d.id, ...d.data() })) as any[])
+        .filter((b: any) => b.id !== id);
+
       const sizes = Array.from(new Set(
-        list.docs
-          .map(d => d.data() as Record<string, unknown>)
-          .filter(b => (((b.nrLf as string | undefined) ?? (b.lfSn as string | undefined) ?? '').toString()).startsWith(base))
-          .map(b => (((b.nrLf as string | undefined) ?? (b.lfSn as string | undefined) ?? '').toString().match(/(\d{2})$/)?.[1]))
+        related
+          .filter((b: any) => (((b.nrLf as string | undefined) ?? (b.lfSn as string | undefined) ?? '').toString()).startsWith(base))
+          .map((b: any) => (((b.nrLf as string | undefined) ?? (b.lfSn as string | undefined) ?? '').toString().match(/(\d{2})$/)?.[1]))
           .filter(Boolean) as string[]
       )).sort((a, b) => a.localeCompare(b, 'cs', { numeric: true }));
       bike.sizes = sizes;
@@ -159,9 +169,9 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       if (isEbike(data)) {
         const capacities = Array.from(new Set(
           list.docs
-            .map(d => d.data() as Record<string, unknown>)
-            .filter(b => (((b.nrLf as string | undefined) ?? (b.lfSn as string | undefined) ?? '').toString()).startsWith(family))
-            .map(b => {
+            .map((d: any) => d.data() as Record<string, unknown>)
+            .filter((b: any) => (((b.nrLf as string | undefined) ?? (b.lfSn as string | undefined) ?? '').toString()).startsWith(family))
+            .map((b: any) => {
               const nr = (((b.nrLf as string | undefined) ?? (b.lfSn as string | undefined) ?? '').toString());
               const code = nr.charAt(Math.max(0, nr.length - 3));
               return capacityCodeToWh[code];
@@ -174,11 +184,11 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       // If detail bike still has no MOC, try to inherit from any family member (prefer explicit mocCzk)
       if ((bike.mocCzk as unknown) == null) {
         const familyDocs = list.docs
-          .map(d => d.data() as Record<string, unknown>)
-          .filter(b => ((((b.nrLf as string | undefined) ?? (b.lfSn as string | undefined) ?? '').toString())).startsWith(base));
+          .map((d: any) => d.data() as Record<string, unknown>)
+          .filter((b: any) => (((b.nrLf as string | undefined) ?? (b.lfSn as string | undefined) ?? '').toString()).startsWith(base));
         const explicitFromFamily = familyDocs
-          .map((b) => toNumberFromMixed((b as Record<string, unknown>)['mocCzk']))
-          .find((v) => v != null);
+          .map((b: any) => toNumberFromMixed((b as Record<string, unknown>)['mocCzk']))
+          .find((v: any) => v != null);
         if (explicitFromFamily != null) {
           bike.mocCzk = explicitFromFamily;
         } else {
@@ -198,7 +208,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       // OPTIMIZATION: Instead of fetching ALL stock (expensive), fetch only stock for the relevant NRLFs.
       // We collect all NRLFs from the 'list' (which contains all variants/sizes for this model).
       const relevantNrLfs = new Set<string>();
-      list.docs.forEach(d => {
+      list.docs.forEach((d: any) => {
         const dataDoc = d.data() as Record<string, unknown>;
         const nr = ((dataDoc.nrLf as string | undefined) ?? (dataDoc.lfSn as string | undefined) ?? '').toString();
         if (nr) relevantNrLfs.add(nr);
@@ -243,8 +253,8 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
           const snapshots = await Promise.all(stockPromises);
           snapshots.forEach(snap => {
             if (!snap.empty) useOurStock = true;
-            snap.docs.forEach(d => {
-              const data = d.data();
+            snap.docs.forEach((d: any) => {
+              const data = d.data() as any;
               // We trust the query matched the NRLF, but let's store it by the NRLF we searched for (or the one in doc)
               const key = ((data.nrLf as string) ?? (data.nrlf as string) ?? d.id).toString().trim();
               const sd = data as { stock?: unknown; qty?: unknown; onHand?: unknown; inTransit?: unknown; in_transit?: unknown; incoming?: unknown };
@@ -261,7 +271,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
 
       const sizeToQty: Record<string, number> = {};
       for (const d of list.docs) {
-        const dataDoc = d.data() as Record<string, unknown>;
+        const dataDoc = (d as any).data() as Record<string, unknown>;
         const nrDoc = (((dataDoc.nrLf as string | undefined) ?? (dataDoc.lfSn as string | undefined) ?? '').toString());
         if (!nrDoc.startsWith(base)) continue;
         const code = nrDoc.match(/(\d{2})$/)?.[1];
@@ -308,7 +318,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       // Compute on-the-way sizes (in transit)
       const sizeToTransit: Record<string, number> = {};
       for (const d of list.docs) {
-        const dataDoc = d.data() as Record<string, unknown>;
+        const dataDoc = (d as any).data() as Record<string, unknown>;
         const nrDoc = (((dataDoc.nrLf as string | undefined) ?? (dataDoc.lfSn as string | undefined) ?? '').toString());
         if (!nrDoc.startsWith(base)) continue;
         const code = nrDoc.match(/(\d{2})$/)?.[1];
@@ -323,7 +333,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
 
       const sizeToNrLf: Record<string, string> = {};
       for (const d of list.docs) {
-        const dataDoc = d.data() as Record<string, unknown>;
+        const dataDoc = (d as any).data() as Record<string, unknown>;
         const nrDoc = (((dataDoc.nrLf as string | undefined) ?? (dataDoc.lfSn as string | undefined) ?? '').toString());
         if (!nrDoc.startsWith(base)) continue;
         const code = nrDoc.match(/(\d{2})$/)?.[1];
@@ -341,7 +351,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
         for (const capCode of Object.keys(capacityCodeToWh)) {
           const capWh = capacityCodeToWh[capCode];
           // Find all bikes for this capacity
-          const variantDocs = list.docs.filter(d => {
+          const variantDocs = list.docs.filter((d: any) => {
             const dData = d.data() as Record<string, unknown>;
             const dNr = (((dData.nrLf as string | undefined) ?? (dData.lfSn as string | undefined) ?? '').toString());
             if (!dNr.startsWith(family)) return false;
@@ -352,7 +362,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
           if (variantDocs.length === 0) continue;
 
           // Find representative ID (prefer same size)
-          let repDoc = variantDocs.find(d => {
+          let repDoc = variantDocs.find((d: any) => {
             const dNr = (((d.data().nrLf as string | undefined) ?? (d.data().lfSn as string | undefined) ?? '').toString());
             return dNr.endsWith(currentSize || 'XX');
           });
@@ -369,7 +379,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
 
           // Compute sizes and stock for this variant
           for (const d of variantDocs) {
-            const dData = d.data() as Record<string, unknown>;
+            const dData = (d as any).data() as Record<string, unknown>;
             const dNr = (((dData.nrLf as string | undefined) ?? (dData.lfSn as string | undefined) ?? '').toString());
             const code = dNr.match(/(\d{2})$/)?.[1];
             if (!code) continue;
@@ -417,7 +427,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
           });
         }
 
-        bike.batteryVariants = variants.sort((a, b) => {
+        (bike as any).batteryVariants = variants.sort((a: any, b: any) => {
           const capA = (a['capacityWh'] as number) || 0;
           const capB = (b['capacityWh'] as number) || 0;
           return capA - capB;
@@ -455,7 +465,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       const colorVariants = new Map<string, { id: string; color: string; image: string; nrLf: string }>();
 
       for (const d of list.docs) {
-        const b = d.data() as Record<string, unknown>;
+        const b = (d as any).data() as any;
         const bBrand = (b.marke ?? '').toString().trim().toLowerCase();
         const bModel = (b.modell ?? '').toString().trim().toLowerCase();
         const bFrameType = ((b.specifications as any)?.['Frame type (RTYP)'] ?? '').toString().trim().toLowerCase();
@@ -506,11 +516,8 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
     }
 
     return NextResponse.json(bike);
-  } catch (e) {
+  } catch (e: any) {
     console.error(e);
     return NextResponse.json({ error: 'Failed to load' }, { status: 500 });
   }
 }
-
-
-
