@@ -82,7 +82,7 @@ export default function SiteFooter() {
             © {new Date().getFullYear()} Biketime. Všechna práva vyhrazena.
           </div>
           <div className="flex gap-6">
-            <a href="#" className="hover:text-white transition-colors">Ochrana osobních údajů</a>
+            <Link href="/ochrana-osobnich-udaju" className="hover:text-white transition-colors">Ochrana osobních údajů</Link>
             <a href="#" className="hover:text-white transition-colors">Cookies</a>
             <a href="#" className="hover:text-white transition-colors">Obchodní podmínky</a>
           </div>
