@@ -312,6 +312,18 @@ export async function GET(req: NextRequest) {
         variants: Map<string, { id: string; color: string; image: string; nrLf: string }>;
       }> = {};
 
+      const getMotorBrand = (b: any): string => {
+        const spec = (b.specifications ?? {}) as Record<string, unknown>;
+        const motor = (spec['Motor (MOTM)'] ?? spec['Motor (MOTO)'] ?? b.motor ?? '').toString().toLowerCase();
+        if (motor.includes('bosch')) return 'Bosch';
+        if (motor.includes('brose')) return 'Brose';
+        if (motor.includes('pinion')) return 'Pinion';
+        if (motor.includes('bafang')) return 'Bafang';
+        if (motor.includes('shimano')) return 'Shimano';
+        return 'Other';
+      };
+      const MOTOR_PRIORITY = ['Bosch', 'Brose', 'Pinion', 'Bafang', 'Shimano', 'Other'];
+
       for (const it of items) {
         const nr = getNrLf(it);
         const { size } = getBaseAndSize(nr);
@@ -508,11 +520,14 @@ export async function GET(req: NextRequest) {
           categoryPrgr: getCategory(rep),
           modelljahr: getModelYear(rep as RawBike),
           mose: getMose(rep),
+          motorBrand: getMotorBrand(rep),
           variants: rep.variants,
           frameType: (rep as any).frameType,
         };
         aggregatedComputed.push(leanRep);
       }
+
+
 
       // Fetch settings for model order
       const settingsRef = doc(db, 'settings', 'catalog');
@@ -528,10 +543,11 @@ export async function GET(req: NextRequest) {
       };
 
       // Sort aggregated list:
-      // 1. E-bikes first (unless filtered later)
-      // 2. Model Series Order (from settings)
-      // 3. Year (descending, 2026 first)
-      // 4. Model Name (alphabetical)
+      // 1. E-bikes vs Regular
+      // 2. Motor Brand (E-bikes only)
+      // 3. Model Series Order (from settings)
+      // 4. Year (descending, 2026 first)
+      // 5. Model Name (alphabetical)
       aggregatedComputed.sort((a: RawBike, b: RawBike) => {
         const ae = isEbike(a);
         const be = isEbike(b);
@@ -539,7 +555,21 @@ export async function GET(req: NextRequest) {
         // 1. E-bikes vs Regular
         if (ae !== be) return ae ? -1 : 1; // E-bikes first
 
-        // 2. Model Series Order
+        // 2. Motor Brand (E-bikes only)
+        if (ae) {
+          const brandA = (a as any).motorBrand || 'Other';
+          const brandB = (b as any).motorBrand || 'Other';
+          const idxA = MOTOR_PRIORITY.indexOf(brandA);
+          const idxB = MOTOR_PRIORITY.indexOf(brandB);
+          // If both are found in priority list, sort by index
+          // If one is not found (shouldn't happen with 'Other' fallback), put it last
+          const safeIdxA = idxA === -1 ? 999 : idxA;
+          const safeIdxB = idxB === -1 ? 999 : idxB;
+
+          if (safeIdxA !== safeIdxB) return safeIdxA - safeIdxB;
+        }
+
+        // 3. Model Series Order
         const moseA = (a as any).mose || '';
         const moseB = (b as any).mose || '';
         const idxA = getMoseIndex(moseA, ae);
@@ -547,12 +577,12 @@ export async function GET(req: NextRequest) {
 
         if (idxA !== idxB) return idxA - idxB;
 
-        // 3. Year (descending)
+        // 4. Year (descending)
         const ya = getModelYear(a) || 0;
         const yb = getModelYear(b) || 0;
         if (ya !== yb) return yb - ya;
 
-        // 4. Model Name
+        // 5. Model Name
         return (a.modell || '').toString().localeCompare((b.modell || '').toString(), 'cs', { sensitivity: 'base' });
       });
 

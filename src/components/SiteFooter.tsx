@@ -8,12 +8,12 @@ export default function SiteFooter() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
           {/* Brand Column */}
           <div className="space-y-4">
-            <Link href="/" className="block relative h-8 w-[140px] logo-link brightness-0 invert opacity-80">
+            <Link href="/" className="block relative h-8 w-[120px] logo-link">
               <Image
-                src="/biketime-logo.png"
+                src="/biketime-logo-white.png"
                 alt="Biketime Logo"
                 fill
-                sizes="140px"
+                sizes="120px"
                 className="object-contain logo-image"
               />
             </Link>

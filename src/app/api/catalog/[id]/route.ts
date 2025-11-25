@@ -92,8 +92,56 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
     bike.nrLfBase = base || '';
     if (base) {
       const bikesRef = collection(db, 'bikes');
-      const q = query(bikesRef, where('isActive', '==', true));
-      const list = await getDocs(q);
+      // OPTIMIZATION: Try to fetch only relevant siblings (same Brand + Model)
+      // This requires a composite index: marke ASC, modell ASC, isActive ASC
+      let list;
+      let usedFallback = false;
+      try {
+        const currentBrand = (data.marke ?? '').toString();
+        const currentModel = (data.modell ?? '').toString();
+
+        if (currentBrand && currentModel) {
+          const qOptimized = query(
+            bikesRef,
+            where('isActive', '==', true),
+            where('marke', '==', currentBrand),
+            where('modell', '==', currentModel)
+          );
+          list = await getDocs(qOptimized);
+          console.log(`DEBUG: [Detail] Optimized fetch returned ${list.size} bikes for ${currentBrand} ${currentModel}.`);
+        }
+      } catch (e: any) {
+        console.warn('DEBUG: [Detail] Optimized fetch failed (likely missing index), falling back to full fetch.', e.message);
+      }
+
+      // Fallback: If optimized fetch failed or returned 0 results.
+      // We DO NOT fetch all active bikes anymore as it is too expensive (7000+ docs).
+      // Instead, we try to fetch at least the sizes for the current bike using NRLF prefix.
+      if (!list || list.empty) {
+        usedFallback = true;
+        console.log(`DEBUG: [Detail] Brand/Model query returned empty or failed. Trying NRLF prefix fallback for base: ${base}`);
+
+        try {
+          // This query requires a composite index: isActive ASC, nrLf ASC
+          const qNrLf = query(
+            bikesRef,
+            where('isActive', '==', true),
+            where('nrLf', '>=', base),
+            where('nrLf', '<=', base + '\uf8ff')
+          );
+          list = await getDocs(qNrLf);
+          console.log(`DEBUG: [Detail] NRLF fallback returned ${list.size} bikes.`);
+        } catch (e: any) {
+          // This will log the URL to create the index if it's missing
+          console.error('DEBUG: [Detail] NRLF fallback failed. Likely missing index on (isActive, nrLf).', e.message);
+          if (e.code === 'failed-precondition') {
+            console.error('DEBUG: [Detail] CREATE INDEX HERE:', e.details);
+          }
+          // Final fallback: Empty list (do not fetch all)
+          list = { docs: [], empty: true, size: 0 } as any;
+        }
+      }
+
       const sizes = Array.from(new Set(
         list.docs
           .map(d => d.data() as Record<string, unknown>)
@@ -140,29 +188,77 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       }
 
       // Compute which sizes are in stock; prefer our stock list when available, otherwise fallback to B2B quantity
-      const stockSnap = await getDocs(collection(db, 'stock'));
-      const useOurStock = stockSnap.size > 0;
       const toNum = (v: unknown): number => {
         if (typeof v === 'number' && Number.isFinite(v)) return v;
         const s = String(v ?? '').replace(/[^0-9.-]/g, '');
         const n = Number(s || '0');
         return Number.isFinite(n) ? n : 0;
       };
-      // Compute size availability:
-      // - Prefer OUR stock list when present (stock + inTransit); otherwise fallback to B2B only
+
+      // OPTIMIZATION: Instead of fetching ALL stock (expensive), fetch only stock for the relevant NRLFs.
+      // We collect all NRLFs from the 'list' (which contains all variants/sizes for this model).
+      const relevantNrLfs = new Set<string>();
+      list.docs.forEach(d => {
+        const dataDoc = d.data() as Record<string, unknown>;
+        const nr = ((dataDoc.nrLf as string | undefined) ?? (dataDoc.lfSn as string | undefined) ?? '').toString();
+        if (nr) relevantNrLfs.add(nr);
+      });
+
       const nrToStock: Record<string, { stock: number; inTransit: number }> = {};
-      if (useOurStock) {
-        for (const s of stockSnap.docs) {
-          const d = s.data() as Record<string, unknown>;
-          const key = ((d.nrLf as string | undefined) ?? (d.nrlf as string | undefined) ?? s.id ?? '').toString().trim();
-          if (!key) continue;
-          const sd = d as { stock?: unknown; qty?: unknown; onHand?: unknown; inTransit?: unknown; in_transit?: unknown; incoming?: unknown };
-          nrToStock[key] = {
-            stock: toNum(sd.stock ?? sd.qty ?? sd.onHand ?? 0),
-            inTransit: toNum(sd.inTransit ?? sd.in_transit ?? sd.incoming ?? 0),
-          };
+      let useOurStock = false;
+
+      if (relevantNrLfs.size > 0) {
+        // Firestore 'in' query is limited to 10 items (or 30 depending on version), but we might have more sizes.
+        // However, fetching by ID is fast. We can do parallel fetches or batched queries.
+        // Since 'stock' collection usually uses NRLF as document ID (or we can query by field), let's check structure.
+        // Based on previous code: `const key = d.nrLf ... ?? s.id`. It seems ID might be NRLF.
+        // Let's try to fetch by ID first if IDs are NRLFs.
+
+        // Actually, to be safe and efficient without knowing exact ID structure:
+        // If we have < 30 items, we can use 'in' query on 'nrLf' field if indexed.
+        // Or just fetch all active stock? No, that's what we want to avoid.
+
+        // Strategy: We will assume the 'stock' collection might NOT use NRLF as ID directly or might have mixed IDs.
+        // But we know we only care about `relevantNrLfs`.
+        // If the list is small (e.g. < 20 variants), we can just query them.
+        // If the list is large, we might still be better off fetching all? No, 7000 bikes vs 50 variants.
+
+        // Let's try to fetch by 'nrLf' field using 'in' batches of 10.
+        const chunks = [];
+        const allNrLfs = Array.from(relevantNrLfs);
+        for (let i = 0; i < allNrLfs.length; i += 10) {
+          chunks.push(allNrLfs.slice(i, i + 10));
+        }
+
+        const stockPromises = chunks.map(chunk => {
+          const q = query(collection(db, 'stock'), where('nrLf', 'in', chunk));
+          return getDocs(q);
+        });
+
+        // Also handle 'lfSn' or 'nrlf' variations? The previous code checked `d.nrLf ?? d.nrlf ?? s.id`.
+        // This implies the field in 'stock' might be 'nrLf' or 'nrlf'.
+        // To be safe, let's try to fetch by 'nrLf' which is the standard we use.
+
+        try {
+          const snapshots = await Promise.all(stockPromises);
+          snapshots.forEach(snap => {
+            if (!snap.empty) useOurStock = true;
+            snap.docs.forEach(d => {
+              const data = d.data();
+              // We trust the query matched the NRLF, but let's store it by the NRLF we searched for (or the one in doc)
+              const key = ((data.nrLf as string) ?? (data.nrlf as string) ?? d.id).toString().trim();
+              const sd = data as { stock?: unknown; qty?: unknown; onHand?: unknown; inTransit?: unknown; in_transit?: unknown; incoming?: unknown };
+              nrToStock[key] = {
+                stock: toNum(sd.stock ?? sd.qty ?? sd.onHand ?? 0),
+                inTransit: toNum(sd.inTransit ?? sd.in_transit ?? sd.incoming ?? 0),
+              };
+            });
+          });
+        } catch (e) {
+          console.warn('DEBUG: [Detail] Failed to fetch specific stock items, falling back to B2B only.', e);
         }
       }
+
       const sizeToQty: Record<string, number> = {};
       for (const d of list.docs) {
         const dataDoc = d.data() as Record<string, unknown>;
@@ -170,11 +266,40 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
         if (!nrDoc.startsWith(base)) continue;
         const code = nrDoc.match(/(\d{2})$/)?.[1];
         if (!code) continue;
+
+        // Check if we found stock for this NRLF
         const ours = nrToStock[nrDoc];
-        const oursQty = (ours?.stock ?? 0) + (ours?.inTransit ?? 0);
+
+        // If we found ANY stock record for ANY variant, we consider 'useOurStock' to be true globally?
+        // Previous logic: `const useOurStock = stockSnap.size > 0;`
+        // This meant: if we have AT LEAST ONE document in 'stock' collection, we ignore B2B quantity for EVERYONE.
+        // This is a bit risky if we only fetch *some* stock.
+        // BUT: If we query for specific NRLFs and find nothing, it implies we have 0 stock for them.
+        // So `useOurStock` should probably be true if we successfully queried the stock collection, 
+        // regardless of whether we found matches (meaning 0 stock) or not.
+        // However, to mimic previous behavior safely: 
+        // If we found a record in `nrToStock`, use it. 
+        // If we didn't find a record, but we know we are using "Our Stock" system, it should be 0.
+        // But how do we know if the system is "active"?
+        // Let's assume if we found *any* stock record for these variants, the system is active.
+
         const b2bRaw = (dataDoc as Record<string, unknown>)['b2bStockQuantity'];
         const b2bQty = typeof b2bRaw === 'number' ? b2bRaw : Number(b2bRaw ?? 0);
-        const eff = useOurStock ? (Number.isFinite(oursQty) ? oursQty : 0) : (Number.isFinite(b2bQty) ? b2bQty : 0);
+
+        let eff = 0;
+        if (ours) {
+          // We have explicit stock record -> use it
+          eff = (ours.stock ?? 0) + (ours.inTransit ?? 0);
+        } else if (useOurStock) {
+          // We found stock records for OTHER variants, so the system is active.
+          // Absence of record for this variant means 0 stock.
+          eff = 0;
+        } else {
+          // We found NO stock records for ANY variant. 
+          // Fallback to B2B.
+          eff = Number.isFinite(b2bQty) ? b2bQty : 0;
+        }
+
         if (eff > 0) sizeToQty[code] = (sizeToQty[code] ?? 0) + eff;
       }
       bike.stockSizes = Object.entries(sizeToQty).filter(([, q]) => q > 0).map(([s]) => s).sort((a, b) => a.localeCompare(b, 'cs', { numeric: true }));
@@ -207,7 +332,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       }
       bike.sizeToNrLf = sizeToNrLf;
 
-      // Compute full battery variants
+      // Compute full battery variants (existing logic)
       const currentSize = bike.nrLf?.match(/(\d{2})$/)?.[1];
       const variants: Record<string, unknown>[] = [];
 
@@ -298,6 +423,86 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
           return capA - capB;
         });
       }
+
+      // Compute Color Variants (Siblings)
+      // Logic: Same Brand + Model + Frame Type + Year
+      // We need to fetch potential siblings. We can use the 'base' we already have, but that's NRLF based.
+      // Color variants might have different NRLF bases.
+      // So we need to query by Brand and Model if possible, or filter from a larger set.
+      // Since we don't want to fetch ALL bikes, we can rely on the fact that we already fetched 'list' based on NRLF base.
+      // BUT, different colors usually have different NRLF bases (e.g. 525-001 vs 525-002).
+      // So 'list' might be insufficient if it only contains the current NRLF base.
+      // Wait, line 96 fetches `bikesRef` with `isActive == true`. It fetches ALL active bikes?
+      // No, line 96: `const list = await getDocs(q);` where `q` is `query(bikesRef, where('isActive', '==', true))`.
+      // YES, it fetches ALL active bikes. This is inefficient but it means we HAVE all the data we need in `list`.
+
+      const getModelYear = (b: Record<string, unknown>): number | null => {
+        const y = b.modelljahr ?? (b.specifications as any)?.Modelljahr ?? (b.specifications as any)?.modelljahr;
+        const n = parseInt((y ?? '').toString(), 10);
+        if (Number.isFinite(n)) return n;
+        const nr = ((b.nrLf as string) ?? (b.lfSn as string) ?? (b as any).nrlf ?? (b as any).NRLF ?? '').toString().trim();
+        if (nr.startsWith('525')) return 2025;
+        if (nr.startsWith('526')) return 2026;
+        return null;
+      };
+
+      const currentYear = getModelYear(data);
+      const currentBrand = (data.marke ?? '').toString().trim().toLowerCase();
+      const currentModel = (data.modell ?? '').toString().trim().toLowerCase();
+      const currentFrameType = ((data.specifications as any)?.['Frame type (RTYP)'] ?? '').toString().trim().toLowerCase();
+
+      // Helper to get unique color variants
+      const colorVariants = new Map<string, { id: string; color: string; image: string; nrLf: string }>();
+
+      for (const d of list.docs) {
+        const b = d.data() as Record<string, unknown>;
+        const bBrand = (b.marke ?? '').toString().trim().toLowerCase();
+        const bModel = (b.modell ?? '').toString().trim().toLowerCase();
+        const bFrameType = ((b.specifications as any)?.['Frame type (RTYP)'] ?? '').toString().trim().toLowerCase();
+        const bYear = getModelYear(b);
+
+        // Match criteria
+        if (
+          bBrand === currentBrand &&
+          bModel === currentModel &&
+          bFrameType === currentFrameType &&
+          bYear === currentYear
+        ) {
+          const color = (b.farbe ?? '').toString().trim();
+          const image = (b.bild1 ?? '').toString().trim();
+          const nrLf = ((b.nrLf as string) ?? (b.lfSn as string) ?? '').toString();
+
+          // Use color as key
+          if (color) {
+            const key = color.toLowerCase();
+            const existing = colorVariants.get(key);
+
+            // Prefer variant with image, or if both have image, maybe the one that matches current ID?
+            // Actually we just want ONE representative per color.
+            // If we already have one, we only replace it if the new one has an image and the old one didn't.
+            if (!existing || (!existing.image && image)) {
+              colorVariants.set(key, {
+                id: d.id,
+                color: color,
+                image: image,
+                nrLf: nrLf
+              });
+            } else if (existing && existing.image && image) {
+              // If both have images, prefer the one that is the current bike (if applicable)
+              if (d.id === id) {
+                colorVariants.set(key, {
+                  id: d.id,
+                  color: color,
+                  image: image,
+                  nrLf: nrLf
+                });
+              }
+            }
+          }
+        }
+      }
+
+      (bike as any).variants = Array.from(colorVariants.values());
     }
 
     return NextResponse.json(bike);

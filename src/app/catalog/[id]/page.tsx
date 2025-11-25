@@ -1,9 +1,10 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { detectCategory, getSizeLabel } from '@/lib/size-mapping';
 
 const sanitize = (v?: string) => {
   const s = (v ?? '').toString().trim();
@@ -16,6 +17,7 @@ const sanitize = (v?: string) => {
 
 export default function DetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   type Bike = {
     id?: string;
     nrLf?: string;
@@ -40,11 +42,14 @@ export default function DetailPage() {
   const [bike, setBike] = useState<Bike | null>(null);
   const [activeBike, setActiveBike] = useState<Bike | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const load = async () => {
-      setLoading(true);
+      if (!bike) setLoading(true);
+      else setIsUpdating(true);
+
       try {
         const res = await fetch(`/api/catalog/${id}`);
         if (!res.ok) throw new Error('Failed to fetch');
@@ -55,6 +60,7 @@ export default function DetailPage() {
         console.error(e);
       } finally {
         setLoading(false);
+        setIsUpdating(false);
       }
     };
     if (id) load();
@@ -96,7 +102,7 @@ export default function DetailPage() {
   const fullName = [brand, model].filter(Boolean).join(' ');
 
   return (
-    <main className="min-h-screen bg-zinc-50 pb-20">
+    <main className={`min-h-screen bg-zinc-50 pb-20 transition-opacity duration-200 ${isUpdating ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
       {/* Breadcrumbs */}
       <div className="bg-white border-b border-zinc-200">
         <div className="container-custom py-3">
@@ -143,6 +149,51 @@ export default function DetailPage() {
                 </div>
               )}
             </div>
+
+            {/* Color Variants */}
+            {!!(activeBike as any).variants?.length && (activeBike as any).variants.length > 1 && (
+              <div className="bg-white rounded-2xl border border-zinc-100 p-6 shadow-sm">
+                <h3 className="text-sm font-semibold text-zinc-900 uppercase tracking-wide mb-4">Barevné varianty</h3>
+                <div className="flex flex-wrap gap-3">
+                  {(activeBike as any).variants.map((v: any) => {
+                    const isActive = activeBike.id === v.id;
+                    const hasImage = v.image && v.image.length > 0;
+
+                    return (
+                      <button
+                        key={v.id}
+                        onClick={() => {
+                          router.push(`/catalog/${v.id}`);
+                        }}
+                        className={`group relative w-20 h-20 rounded-lg border overflow-hidden transition-all ${isActive
+                          ? 'border-primary ring-2 ring-primary ring-offset-2'
+                          : 'border-zinc-200 hover:border-zinc-300'
+                          }`}
+                        title={v.color}
+                      >
+                        {hasImage ? (
+                          <Image
+                            src={v.image}
+                            alt={v.color}
+                            fill
+                            className="object-contain p-1 mix-blend-multiply"
+                            sizes="80px"
+                            unoptimized
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-zinc-50 text-xs text-zinc-400 p-1 text-center">
+                            {v.color}
+                          </div>
+                        )}
+                        {isActive && (
+                          <div className="absolute inset-0 bg-primary/5 pointer-events-none" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Details Section */}
@@ -181,47 +232,80 @@ export default function DetailPage() {
             </div>
 
             <div className="bg-white rounded-2xl border border-zinc-100 p-6 shadow-sm mb-8">
-              <h3 className="text-sm font-semibold text-zinc-900 uppercase tracking-wide mb-4">Dostupnost</h3>
-              {!!activeBike.sizes?.length ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {activeBike.sizes.map((s) => {
-                    const inStock = (activeBike.stockSizes ?? []).includes(s);
-                    const onWay = !inStock && (activeBike.onTheWaySizes ?? []).includes(s);
-                    const qty = Number((activeBike.stockQtyBySize ?? {})[s] ?? 0);
-                    const nrLf = (activeBike.sizeToNrLf ?? {})[s] ?? '';
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-zinc-900 uppercase tracking-wide">Velikost rámu</h3>
+                <Link href="/size-guide" target="_blank" className="text-sm text-primary hover:underline flex items-center">
+                  <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                  Tabulka velikostí
+                </Link>
+              </div>
 
-                    return (
-                      <div
-                        key={s}
-                        className={`flex flex-col justify-between p-3 rounded-lg border ${inStock ? 'border-green-200 bg-green-50/50' :
-                          onWay ? 'border-orange-200 bg-orange-50/50' :
-                            'border-zinc-100 bg-zinc-50'
-                          }`}
-                      >
-                        <div className="flex items-center justify-between w-full mb-1">
-                          <span className="font-medium text-zinc-900">Velikost {s}</span>
-                          {inStock ? (
-                            <span className="flex items-center text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded">
-                              <span className="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
-                              SKLADEM {qty > 0 ? `(${qty} ks)` : ''}
-                            </span>
-                          ) : onWay ? (
-                            <span className="flex items-center text-xs font-bold text-orange-700 bg-orange-100 px-2 py-1 rounded">
-                              <span className="w-2 h-2 rounded-full bg-orange-500 mr-2"></span>
-                              NA CESTĚ
-                            </span>
-                          ) : (
-                            <span className="text-xs font-medium text-zinc-400">Na objednávku</span>
+              {!!activeBike.sizes?.length ? (
+                <div>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {activeBike.sizes.map((s) => {
+                      const inStock = (activeBike.stockSizes ?? []).includes(s);
+                      const onWay = !inStock && (activeBike.onTheWaySizes ?? []).includes(s);
+                      const qty = Number((activeBike.stockQtyBySize ?? {})[s] ?? 0);
+
+                      // Size Mapping
+                      const cm = parseInt(s, 10);
+                      const category = detectCategory(activeBike);
+                      const label = getSizeLabel(cm, category);
+                      const displayLabel = label ? `${label} (${s} cm)` : `${s} cm`;
+
+                      // Determine state for UI
+                      const isAvailable = inStock || onWay;
+                      const isSelected = false; // We don't have a 'selectedSize' state yet, but we can add it or just show availability on hover/click.
+                      // Actually, let's just show the buttons.
+
+                      return (
+                        <div key={s} className="relative group">
+                          <button
+                            className={`h-12 px-4 rounded-lg border text-sm font-medium transition-all flex items-center gap-2
+                              ${inStock
+                                ? 'border-zinc-200 bg-white text-zinc-900 hover:border-zinc-300 hover:shadow-sm'
+                                : onWay
+                                  ? 'border-orange-200 bg-orange-50/50 text-zinc-900 hover:border-orange-300'
+                                  : 'border-zinc-100 bg-zinc-50 text-zinc-400 cursor-not-allowed'
+                              }
+                            `}
+                            disabled={!isAvailable}
+                            title={inStock ? `Skladem: ${qty} ks` : onWay ? 'Na cestě' : 'Nedostupné'}
+                          >
+                            <span>{displayLabel}</span>
+                            {inStock && <span className="w-2 h-2 rounded-full bg-green-500"></span>}
+                            {onWay && <span className="w-2 h-2 rounded-full bg-orange-500"></span>}
+                          </button>
+
+                          {/* Tooltip for availability details */}
+                          {isAvailable && (
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-zinc-900 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                              {inStock ? `Skladem (${qty} ks)` : 'Na cestě k nám'}
+                              <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-zinc-900"></div>
+                            </div>
                           )}
                         </div>
-                        {nrLf && (
-                          <div className="text-[10px] font-light text-zinc-400">
-                            {nrLf}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
+
+                  <div className="flex items-center gap-4 text-xs text-zinc-500">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                      <span>Skladem</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                      <span>Na cestě</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-zinc-300"></span>
+                      <span>Vyprodáno</span>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="text-zinc-500 text-sm">Informace o velikostech nejsou k dispozici.</div>
@@ -239,10 +323,6 @@ export default function DetailPage() {
                       <button
                         key={v.capacityWh}
                         onClick={() => {
-                          // Merge variant data into active bike
-                          // We need to be careful to preserve fields that might not be in variant if they are shared
-                          // But our API returns full details for variant now (except maybe images/specs if they are same)
-                          // Actually, API returns a subset. We should merge.
                           const newBike = { ...activeBike, ...v };
                           setActiveBike(newBike as Bike);
                           window.history.replaceState(null, '', `/catalog/${v.id}`);
@@ -259,6 +339,8 @@ export default function DetailPage() {
                 </div>
               </div>
             )}
+
+
 
             <div className="prose prose-zinc max-w-none">
               <h3 className="text-lg font-bold text-zinc-900 mb-4">Specifikace</h3>
