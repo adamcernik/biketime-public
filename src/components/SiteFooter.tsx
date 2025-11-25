@@ -83,8 +83,8 @@ export default function SiteFooter() {
           </div>
           <div className="flex gap-6">
             <Link href="/ochrana-osobnich-udaju" className="hover:text-white transition-colors">Ochrana osobních údajů</Link>
-            <a href="#" className="hover:text-white transition-colors">Cookies</a>
-            <a href="#" className="hover:text-white transition-colors">Obchodní podmínky</a>
+            <Link href="/ochrana-osobnich-udaju" className="hover:text-white transition-colors">Cookies</Link>
+            <Link href="/podminky-uziti" className="hover:text-white transition-colors">Podmínky užití</Link>
           </div>
         </div>
       </div>
