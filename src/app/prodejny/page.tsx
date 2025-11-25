@@ -155,47 +155,7 @@ export default function PublicShopsPage() {
     );
   };
 
-  const handleManualSearch = async (queryStr: string) => {
-    if (!queryStr.trim()) return;
-    setIsLocating(true);
-    setError(null);
 
-    if (isLoaded && window.google) {
-      try {
-        const geocoder = new window.google.maps.Geocoder();
-        const response = await geocoder.geocode({ address: queryStr });
-
-        if (response.results[0]) {
-          const { lat, lng } = response.results[0].geometry.location;
-          const latitude = lat();
-          const longitude = lng();
-
-          setUserLocationCoords({ lat: latitude, lng: longitude });
-          setUserLocation(response.results[0].formatted_address);
-
-          // Sort shops by distance
-          const sortedShops = [...shops].sort((a, b) => {
-            if (!a.lat || !a.lng) return 1;
-            if (!b.lat || !b.lng) return -1;
-            const distA = calculateDistance(latitude, longitude, a.lat, a.lng);
-            const distB = calculateDistance(latitude, longitude, b.lat, b.lng);
-            return distA - distB;
-          });
-
-          setShops(sortedShops);
-          setIsNearestMode(true);
-        } else {
-          alert('Nepodařilo se nalézt zadanou adresu.');
-        }
-      } catch (error) {
-        console.error('Geocoding error:', error);
-        alert('Chyba při vyhledávání adresy.');
-      }
-    } else {
-      alert('Google Maps API není načteno.');
-    }
-    setIsLocating(false);
-  };
 
   if (loading) {
     return (
@@ -263,33 +223,7 @@ export default function PublicShopsPage() {
               </p>
             )}
 
-            {/* Manual Search Fallback */}
-            <div className="mt-8 max-w-md mx-auto">
-              <div className="relative flex items-center">
-                <input
-                  type="text"
-                  placeholder="Nebo zadejte město / PSČ..."
-                  className="block w-full rounded-full border-gray-300 pr-12 shadow-sm focus:border-primary focus:ring-primary sm:text-sm py-3 px-6"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const val = (e.target as HTMLInputElement).value;
-                      if (val) handleManualSearch(val);
-                    }
-                  }}
-                />
-                <button
-                  onClick={(e) => {
-                    const input = e.currentTarget.previousElementSibling as HTMLInputElement;
-                    if (input.value) handleManualSearch(input.value);
-                  }}
-                  className="absolute right-2 p-2 text-gray-400 hover:text-primary transition-colors"
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </button>
-              </div>
-            </div>
+
           </div>
 
           {/* Closest Shops Highlight */}
