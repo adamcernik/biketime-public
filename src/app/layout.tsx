@@ -4,6 +4,7 @@ import "./globals.css";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import AuthProvider from "@/components/AuthProvider";
+import CookieBanner from "@/components/CookieBanner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,6 +35,7 @@ export default function RootLayout({
           <SiteHeader />
           {children}
           <SiteFooter />
+          <CookieBanner />
         </AuthProvider>
       </body>
     </html>
