@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
-
+import logoImage from '@/assets/biketime-logo.png';
 
 const navItems: { href: string; label: string }[] = [
   { href: '/catalog', label: 'Katalog kol' },
@@ -18,7 +18,6 @@ const navItems: { href: string; label: string }[] = [
 export default function SiteHeader() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -57,7 +56,7 @@ export default function SiteHeader() {
       <div className="container-custom py-4 flex items-center justify-between">
         <Link href="/" className="relative h-10 w-[160px] logo-link z-50">
           <Image
-            src="/biketime-logo.png"
+            src={logoImage}
             alt="Biketime Logo"
             fill
             sizes="160px"
@@ -116,5 +115,3 @@ export default function SiteHeader() {
     </header>
   );
 }
-
-

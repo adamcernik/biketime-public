@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import logoWhiteImage from '@/assets/biketime-logo-white.png';
 
 export default function SiteFooter() {
   return (
@@ -10,7 +11,7 @@ export default function SiteFooter() {
           <div className="space-y-4">
             <Link href="/" className="block relative h-8 w-[120px] logo-link">
               <Image
-                src="/biketime-logo-white.png"
+                src={logoWhiteImage}
                 alt="Biketime Logo"
                 fill
                 sizes="120px"
@@ -90,6 +91,3 @@ export default function SiteFooter() {
     </footer>
   );
 }
-
-
-
