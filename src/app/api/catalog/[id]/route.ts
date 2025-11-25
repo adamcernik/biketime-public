@@ -102,7 +102,6 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       // OPTIMIZATION: Try to fetch only relevant siblings (same Brand + Model)
       // This requires a composite index: marke ASC, modell ASC, isActive ASC
       let list;
-      let usedFallback = false;
       try {
         const currentBrand = (data.marke ?? '').toString();
         const currentModel = (data.modell ?? '').toString();
@@ -125,7 +124,6 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       // We DO NOT fetch all active bikes anymore as it is too expensive (7000+ docs).
       // Instead, we try to fetch at least the sizes for the current bike using NRLF prefix.
       if (!list || list.empty) {
-        usedFallback = true;
         console.log(`DEBUG: [Detail] Brand/Model query returned empty or failed. Trying NRLF prefix fallback for base: ${base}`);
 
         try {
@@ -186,13 +184,13 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
         const familyDocs = list.docs
           .map((d: any) => d.data() as Record<string, unknown>)
           .filter((b: any) => (((b.nrLf as string | undefined) ?? (b.lfSn as string | undefined) ?? '').toString()).startsWith(base));
-        const explicitFromFamily = familyDocs
-          .map((b: any) => toNumberFromMixed((b as Record<string, unknown>)['mocCzk']))
-          .find((v: any) => v != null);
+        const explicitFromFamily = (familyDocs
+          .map((b) => toNumberFromMixed((b as Record<string, unknown>)['mocCzk'])) as Array<number | null>)
+          .find((v): v is number => v != null);
         if (explicitFromFamily != null) {
           bike.mocCzk = explicitFromFamily;
         } else {
-          const derivedFromFamily = familyDocs.map(getMocCzk).find((v) => v != null);
+          const derivedFromFamily = (familyDocs.map(getMocCzk) as Array<number | null>).find((v): v is number => v != null);
           if (derivedFromFamily != null) bike.mocCzk = derivedFromFamily;
         }
       }
