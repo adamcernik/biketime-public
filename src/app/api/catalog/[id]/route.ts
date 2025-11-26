@@ -19,9 +19,23 @@ interface BikeFields {
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await ctx.params;
-    const ref = doc(db, 'bikes', id);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    let ref = doc(db, 'bikes', id);
+    let snap = await getDoc(ref);
+
+    // Fallback: Try to find by nrLf (Article Number) if ID lookup fails
+    if (!snap.exists()) {
+      const q = query(collection(db, 'bikes'), where('nrLf', '==', id));
+      const querySnap = await getDocs(q);
+      if (!querySnap.empty) {
+        snap = querySnap.docs[0];
+        ref = snap.ref;
+      } else {
+        // Try with hyphens if input has none? Or vice versa?
+        // For now just return 404
+        return NextResponse.json({ error: 'Not found' }, { status: 404 });
+      }
+    }
+
     const data = snap.data() as Record<string, unknown>;
     const bike: BikeFields & { id: string; sizes?: string[]; capacitiesWh?: number[] } = { ...(data as BikeFields), id: snap.id };
 
