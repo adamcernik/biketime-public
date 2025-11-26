@@ -1,24 +1,29 @@
+'use client';
+
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { Bike } from '@/components/catalog/BikeCard';
 
 export default function AbsArticlePage() {
     return (
         <main className="min-h-screen bg-white">
-            {/* Hero Section */}
             <section className="relative h-[60vh] min-h-[400px] flex items-center justify-center overflow-hidden">
                 <div className="absolute inset-0 bg-zinc-900">
-                    {/* Placeholder for Hero Image */}
-                    <div className="w-full h-full bg-zinc-800 flex items-center justify-center text-zinc-600">
-                        <span className="text-xl">Hero Image: Bosch ABS / TRP Brakes Action Shot</span>
-                    </div>
+                    <Image
+                        src="https://firebasestorage.googleapis.com/v0/b/btb2b-90b2f.firebasestorage.app/o/articles%2Fabs1.jpg?alt=media&token=948570a7-8577-420b-be99-beec0ca519a2"
+                        alt="Bosch ABS / TRP Brakes Action Shot"
+                        fill
+                        className="object-cover opacity-80"
+                        priority
+                    />
                 </div>
-                <div className="absolute inset-0 bg-black/50" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                 <div className="container-custom relative z-10 text-center text-white">
-                    <h1 className="text-4xl md:text-6xl font-bold mb-6">
+                    <h1 className="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg">
                         Brzdy TRP AMS na elektrokolech BULLS
                     </h1>
-                    <p className="text-xl md:text-2xl text-zinc-200 max-w-3xl mx-auto">
+                    <p className="text-xl md:text-2xl text-zinc-200 max-w-3xl mx-auto drop-shadow-md">
                         Síla a kontrola pro moderní e-MTB
                     </p>
                 </div>
@@ -52,9 +57,13 @@ export default function AbsArticlePage() {
                             </div>
                         </div>
 
-                        <div className="my-12 relative aspect-video bg-zinc-100 rounded-2xl overflow-hidden flex items-center justify-center text-zinc-400">
-                            {/* Placeholder for Detail Image */}
-                            <span>Image: Detail of TRP Caliper / Rotor</span>
+                        <div className="my-12 relative aspect-video bg-zinc-100 rounded-2xl overflow-hidden shadow-lg">
+                            <Image
+                                src="https://firebasestorage.googleapis.com/v0/b/btb2b-90b2f.firebasestorage.app/o/articles%2Fabs2.jpg?alt=media&token=189e9f9c-7038-4e56-946f-d65297370335"
+                                alt="Detail of TRP Caliper / Rotor"
+                                fill
+                                className="object-cover"
+                            />
                         </div>
 
                         <p>
@@ -66,9 +75,13 @@ export default function AbsArticlePage() {
                             Na špičkových modelech BULLS vybavených systémem Bosch Smart System jsou brzdy TRP často integrovány se <strong>Systémem ABS (Anti-lock Braking System) pro elektrokola od Bosch</strong>. Právě zde by označení jako „AMS“ mohlo mít největší význam, protože by poukazovalo na kompletní, vysoce výkonné brzdné řešení:
                         </p>
 
-                        <div className="my-12 relative aspect-video bg-zinc-100 rounded-2xl overflow-hidden flex items-center justify-center text-zinc-400">
-                            {/* Placeholder for ABS Diagram/System Image */}
-                            <span>Image: Bosch ABS System Diagram</span>
+                        <div className="my-12 relative aspect-video bg-zinc-100 rounded-2xl overflow-hidden shadow-lg">
+                            <Image
+                                src="https://firebasestorage.googleapis.com/v0/b/btb2b-90b2f.firebasestorage.app/o/articles%2Fabs3.jpg?alt=media&token=85573489-0268-450f-901e-c04519965823"
+                                alt="Bosch ABS System Diagram"
+                                fill
+                                className="object-cover"
+                            />
                         </div>
 
                         <ul className="space-y-4">
@@ -100,9 +113,78 @@ export default function AbsArticlePage() {
                                 Prohlédnout e-biky s ABS
                             </Link>
                         </div>
+
+                        {/* Featured ABS Bikes */}
+                        <div className="mt-24 not-prose">
+                            <h2 className="text-3xl font-bold text-zinc-900 mb-8 text-center">Modely s Bosch ABS</h2>
+                            <FeaturedBikesList bikeIds={['5259002808', '5248016407', '5259003608']} />
+                        </div>
                     </div>
                 </div>
             </section>
-        </main>
+        </main >
+    );
+}
+
+// Mini component to fetch and display specific bikes
+function FeaturedBikesList({ bikeIds }: { bikeIds: string[] }) {
+    const [bikes, setBikes] = React.useState<Bike[]>([]);
+    const [loading, setLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        const load = async () => {
+            try {
+                // Fetch all bikes and filter (not optimal but simple for now without a specific ID endpoint)
+                // Or better: use the catalog API with specific IDs if supported, or just fetch all and find.
+                // Since we don't have a multi-ID endpoint, we'll fetch them one by one or filter from a larger set.
+                // Let's try fetching by ID if the API supports it, otherwise we might need to fetch a larger list.
+                // Actually, the catalog API supports filtering. Let's try to fetch them individually.
+
+                const promises = bikeIds.map(id =>
+                    fetch(`/api/catalog/${id}`).then(r => r.ok ? r.json() : null)
+                );
+
+                const results = await Promise.all(promises);
+                const foundBikes = results.filter(b => b !== null);
+                setBikes(foundBikes);
+            } catch (e) {
+                console.error('Error loading ABS bikes', e);
+            } finally {
+                setLoading(false);
+            }
+        };
+        load();
+    }, [bikeIds]);
+
+    if (loading) return <div className="text-center py-8">Načítám kola...</div>;
+
+    if (bikes.length === 0) return null;
+
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {bikes.map(bike => (
+                <Link key={bike.id} href={`/catalog/${bike.id}`} className="group block bg-zinc-50 rounded-2xl overflow-hidden border border-zinc-100 hover:shadow-lg transition-all">
+                    <div className="aspect-[4/3] relative bg-white p-4">
+                        <Image
+                            src={bike.bild1 || '/placeholder-bike.png'}
+                            alt={bike.modell || 'Bike'}
+                            fill
+                            className="object-contain group-hover:scale-105 transition-transform duration-500"
+                        />
+                    </div>
+                    <div className="p-6">
+                        <h3 className="font-bold text-lg text-zinc-900 mb-2 group-hover:text-primary transition-colors">{bike.modell}</h3>
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm text-zinc-500">{bike.marke}</span>
+                            {bike.mocCzk && (
+                                <span className="font-bold text-zinc-900">
+                                    {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(bike.mocCzk)}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                </Link>
+            ))}
+        </div>
     );
 }
