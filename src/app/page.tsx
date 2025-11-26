@@ -38,7 +38,7 @@ export default async function Home() {
       <section className="py-16 bg-zinc-50">
         <div className="container-custom">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Link href="/catalog?type=emtb" className="group relative h-[300px] rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300">
+            <Link href="/catalog?category=Celopéra&ebike=true" className="group relative h-[300px] rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300">
               <Image src="/ZEG_525900080644_Mode_002.jpg" alt="E-MTB" fill className="object-cover group-hover:scale-105 transition-transform duration-700" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
               <div className="absolute bottom-0 left-0 p-8">
@@ -51,7 +51,7 @@ export default async function Home() {
                 </span>
               </div>
             </Link>
-            <Link href="/catalog?type=gravel" className="group relative h-[300px] rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300">
+            <Link href="/catalog?category=Gravel" className="group relative h-[300px] rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300">
               <Image src="/ZEG_525803760447_Mode_001.jpg" alt="Gravel" fill className="object-cover group-hover:scale-105 transition-transform duration-700" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
               <div className="absolute bottom-0 left-0 p-8">
