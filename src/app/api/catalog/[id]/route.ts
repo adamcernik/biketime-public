@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/firebase-server';
-import { doc, getDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs, query, where, limit } from 'firebase/firestore';
 
 interface BikeFields {
   nrLf?: string;
@@ -24,14 +24,36 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
 
     // Fallback: Try to find by nrLf (Article Number) if ID lookup fails
     if (!snap.exists()) {
-      const q = query(collection(db, 'bikes'), where('nrLf', '==', id));
-      const querySnap = await getDocs(q);
+      // Try string match first
+      let q = query(collection(db, 'bikes'), where('nrLf', '==', id));
+      let querySnap = await getDocs(q);
+
+      // If not found and ID is numeric, try number match
+      if (querySnap.empty && /^\d+$/.test(id)) {
+        console.log(`DEBUG: Trying numeric match for: ${Number(id)}`);
+        q = query(collection(db, 'bikes'), where('nrLf', '==', Number(id)));
+        querySnap = await getDocs(q);
+      }
+
+      // Try stripping hyphens (e.g. 525-90-028 -> 52590028)
+      if (querySnap.empty && id.includes('-')) {
+        const cleanId = id.replace(/-/g, '');
+
+        // Try clean string
+        q = query(collection(db, 'bikes'), where('nrLf', '==', cleanId));
+        querySnap = await getDocs(q);
+
+        // Try clean number
+        if (querySnap.empty && /^\d+$/.test(cleanId)) {
+          q = query(collection(db, 'bikes'), where('nrLf', '==', Number(cleanId)));
+          querySnap = await getDocs(q);
+        }
+      }
+
       if (!querySnap.empty) {
         snap = querySnap.docs[0];
         ref = snap.ref;
       } else {
-        // Try with hyphens if input has none? Or vice versa?
-        // For now just return 404
         return NextResponse.json({ error: 'Not found' }, { status: 404 });
       }
     }

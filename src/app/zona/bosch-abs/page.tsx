@@ -4,6 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Bike } from '@/components/catalog/BikeCard';
+import SimpleBikeCard from '@/components/SimpleBikeCard';
 
 export default function AbsArticlePage() {
     return (
@@ -11,11 +12,12 @@ export default function AbsArticlePage() {
             <section className="relative h-[60vh] min-h-[400px] flex items-center justify-center overflow-hidden">
                 <div className="absolute inset-0 bg-zinc-900">
                     <Image
-                        src="https://firebasestorage.googleapis.com/v0/b/btb2b-90b2f.firebasestorage.app/o/articles%2Fabs1.jpg?alt=media&token=948570a7-8577-420b-be99-beec0ca519a2"
+                        src="https://firebasestorage.googleapis.com/v0/b/btb2b-90b2f.firebasestorage.app/o/gallery%2F1764166323295_abs1.jpg?alt=media&token=253a0fc1-897f-4549-9e42-f70eaa83585b"
                         alt="Bosch ABS / TRP Brakes Action Shot"
                         fill
                         className="object-cover opacity-80"
                         priority
+                        unoptimized
                     />
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
@@ -34,7 +36,7 @@ export default function AbsArticlePage() {
                 <div className="container-custom max-w-4xl">
                     <div className="prose prose-lg prose-zinc mx-auto">
                         <p className="lead text-xl text-zinc-600 mb-12">
-                            TRP (Tektro Racing Products) se stala klíčovým hráčem na trhu s komponenty pro elektrokola a její brzdy jsou často k vidění na vysoce výkonných elektrických horských kolech značky <strong>BULLS</strong>. Zatímco přesné modelové označení „AMS“ (pravděpodobně zkratka pro All-Mountain System) není tak běžné jako jiné modely TRP, velmi pravděpodobně se jedná o označení pro jejich specializovaný brzdový systém, často model <strong>TRP Trail EVO</strong> a jeho integraci se systémem <strong>Bosch eBike ABS</strong> na některých eMTB od BULLS.
+                            <strong>TRP (Tektro Racing Products)</strong> se v posledních letech etablovala jako přední dodavatel brzdových systémů, které jsou specificky navrženy pro vysoké nároky elektrokol. Na vysoce výkonných e-MTB modelech, zejména od značky <strong>BULLS</strong>, je často integrován systém označený jako <strong>TRP AMS</strong>. Ačkoli „AMS“ není standardní modelové označení, v kontextu BULLS e-biků zpravidla odkazuje na specializovanou konfiguraci, která kombinuje robustní brzdy <strong>TRP Trail EVO</strong> s pokročilým systémem <strong>Bosch eBike ABS</strong>. Tento článek se zaměří na technologie a výhody, které tento výkonný brzdný komplet nabízí.
                         </p>
 
                         <h2 className="text-3xl font-bold mt-16 mb-8">Optimalizovaný Brzdný Výkon pro E-MTB</h2>
@@ -59,10 +61,11 @@ export default function AbsArticlePage() {
 
                         <div className="my-12 relative aspect-video bg-zinc-100 rounded-2xl overflow-hidden shadow-lg">
                             <Image
-                                src="https://firebasestorage.googleapis.com/v0/b/btb2b-90b2f.firebasestorage.app/o/articles%2Fabs2.jpg?alt=media&token=189e9f9c-7038-4e56-946f-d65297370335"
+                                src="https://firebasestorage.googleapis.com/v0/b/btb2b-90b2f.firebasestorage.app/o/gallery%2F1764166333246_abs2.jpg?alt=media&token=903368e1-e9a5-4b95-b70a-11bf378fae77"
                                 alt="Detail of TRP Caliper / Rotor"
                                 fill
                                 className="object-cover"
+                                unoptimized
                             />
                         </div>
 
@@ -77,10 +80,11 @@ export default function AbsArticlePage() {
 
                         <div className="my-12 relative aspect-video bg-zinc-100 rounded-2xl overflow-hidden shadow-lg">
                             <Image
-                                src="https://firebasestorage.googleapis.com/v0/b/btb2b-90b2f.firebasestorage.app/o/articles%2Fabs3.jpg?alt=media&token=85573489-0268-450f-901e-c04519965823"
+                                src="https://firebasestorage.googleapis.com/v0/b/btb2b-90b2f.firebasestorage.app/o/gallery%2F1764166337211_abs3.jpg?alt=media&token=8005fd22-15ae-462d-b150-ed7119695474"
                                 alt="Bosch ABS System Diagram"
                                 fill
                                 className="object-cover"
+                                unoptimized
                             />
                         </div>
 
@@ -115,9 +119,9 @@ export default function AbsArticlePage() {
                         </div>
 
                         {/* Featured ABS Bikes */}
-                        <div className="mt-24 not-prose">
-                            <h2 className="text-3xl font-bold text-zinc-900 mb-8 text-center">Modely s Bosch ABS</h2>
-                            <FeaturedBikesList bikeIds={['5259002808', '5248016407', '5259003608']} />
+                        <div className="mt-12">
+                            <h2 className="text-3xl font-bold mb-8">Modely s Bosch ABS</h2>
+                            <FeaturedBikesList bikeIds={['525004609941', '524801640741', '525900360841']} />
                         </div>
                     </div>
                 </div>
@@ -134,12 +138,6 @@ function FeaturedBikesList({ bikeIds }: { bikeIds: string[] }) {
     React.useEffect(() => {
         const load = async () => {
             try {
-                // Fetch all bikes and filter (not optimal but simple for now without a specific ID endpoint)
-                // Or better: use the catalog API with specific IDs if supported, or just fetch all and find.
-                // Since we don't have a multi-ID endpoint, we'll fetch them one by one or filter from a larger set.
-                // Let's try fetching by ID if the API supports it, otherwise we might need to fetch a larger list.
-                // Actually, the catalog API supports filtering. Let's try to fetch them individually.
-
                 const promises = bikeIds.map(id =>
                     fetch(`/api/catalog/${id}`).then(r => r.ok ? r.json() : null)
                 );
@@ -163,27 +161,7 @@ function FeaturedBikesList({ bikeIds }: { bikeIds: string[] }) {
     return (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {bikes.map(bike => (
-                <Link key={bike.id} href={`/catalog/${bike.id}`} className="group block bg-zinc-50 rounded-2xl overflow-hidden border border-zinc-100 hover:shadow-lg transition-all">
-                    <div className="aspect-[4/3] relative bg-white p-4">
-                        <Image
-                            src={bike.bild1 || '/placeholder-bike.png'}
-                            alt={bike.modell || 'Bike'}
-                            fill
-                            className="object-contain group-hover:scale-105 transition-transform duration-500"
-                        />
-                    </div>
-                    <div className="p-6">
-                        <h3 className="font-bold text-lg text-zinc-900 mb-2 group-hover:text-primary transition-colors">{bike.modell}</h3>
-                        <div className="flex justify-between items-center">
-                            <span className="text-sm text-zinc-500">{bike.marke}</span>
-                            {bike.mocCzk && (
-                                <span className="font-bold text-zinc-900">
-                                    {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(bike.mocCzk)}
-                                </span>
-                            )}
-                        </div>
-                    </div>
-                </Link>
+                <SimpleBikeCard key={bike.id} bike={bike} />
             ))}
         </div>
     );

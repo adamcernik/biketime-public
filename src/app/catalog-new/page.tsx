@@ -16,27 +16,50 @@ function CatalogNewContent() {
 
     // Active filters state
     const [selectedCategory, setSelectedCategory] = useState<string>('');
-    const [selectedBrand, setSelectedBrand] = useState<string>('');
-    const [selectedYear, setSelectedYear] = useState<string>('');
+    // const [selectedYear, setSelectedYear] = useState<string>(''); // Removed year filter
+    const [selectedMose, setSelectedMose] = useState<string>('');
+    const [ebikeOnly, setEbikeOnly] = useState<'all' | 'ebike' | 'non'>('ebike');
+    const [inStockOnly, setInStockOnly] = useState(false);
+    const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
 
     // UI State
     const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
     const [total, setTotal] = useState(0);
+    const [totalPages, setTotalPages] = useState(1);
+
+    // Debounce search
+    const [debouncedSearch, setDebouncedSearch] = useState(search);
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedSearch(search), 500);
+        return () => clearTimeout(timer);
+    }, [search]);
 
     // Initialize from URL
     useEffect(() => {
         if (!searchParams) return;
         setSelectedCategory(searchParams.get('category') || '');
-        setSelectedBrand(searchParams.get('brand') || '');
-        setSelectedYear(searchParams.get('year') || '');
+        // setSelectedYear(searchParams.get('year') || ''); // Removed year filter
+        setSelectedMose(searchParams.get('mose') || '');
+        setInStockOnly(searchParams.get('inStock') === 'true');
+        setSearch(searchParams.get('search') || '');
+        setPage(Number(searchParams.get('page')) || 1);
+
+        const qEbike = searchParams.get('ebike');
+        setEbikeOnly(qEbike === 'true' ? 'ebike' : (qEbike === 'false' ? 'non' : 'all'));
     }, [searchParams]);
 
     // Update URL on filter change
     useEffect(() => {
         const params = new URLSearchParams();
         if (selectedCategory) params.set('category', selectedCategory);
-        if (selectedBrand) params.set('brand', selectedBrand);
-        if (selectedYear) params.set('year', selectedYear);
+        // if (selectedYear) params.set('year', selectedYear); // Removed year filter
+        if (selectedMose) params.set('mose', selectedMose);
+        if (inStockOnly) params.set('inStock', 'true');
+        if (ebikeOnly === 'ebike') params.set('ebike', 'true');
+        if (ebikeOnly === 'non') params.set('ebike', 'false');
+        if (debouncedSearch) params.set('search', debouncedSearch);
+        if (page > 1) params.set('page', String(page));
 
         const next = params.toString();
         const current = searchParams?.toString() || '';
@@ -44,7 +67,16 @@ function CatalogNewContent() {
         if (next !== current) {
             router.replace(`${pathname}?${next}`, { scroll: false });
         }
-    }, [selectedCategory, selectedBrand, selectedYear, pathname, router, searchParams]);
+    // Removed searchParams, pathname, router from dependency array to prevent infinite loops
+    // This effect is now strictly for synchronizing STATE -> URL
+    // The other effect handles URL -> STATE
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedCategory, selectedMose, inStockOnly, ebikeOnly, debouncedSearch, page]);
+
+    // Reset page on filter change (except pagination itself)
+    useEffect(() => {
+        setPage(1);
+    }, [selectedCategory, selectedMose, inStockOnly, ebikeOnly, debouncedSearch]);
 
     // Fetch Data
     useEffect(() => {
@@ -53,8 +85,13 @@ function CatalogNewContent() {
             try {
                 const params = new URLSearchParams();
                 if (selectedCategory) params.set('category', selectedCategory);
-                if (selectedBrand) params.set('brand', selectedBrand);
-                if (selectedYear) params.set('year', selectedYear);
+                // if (selectedYear) params.set('year', selectedYear); // Removed year filter
+                if (selectedMose) params.set('mose', selectedMose);
+                if (inStockOnly) params.set('inStock', 'true');
+                if (ebikeOnly === 'ebike') params.set('ebike', 'true');
+                if (ebikeOnly === 'non') params.set('ebike', 'false');
+                if (debouncedSearch) params.set('search', debouncedSearch);
+                params.set('page', String(page));
 
                 const res = await fetch(`/api/catalog-v2?${params.toString()}`);
                 const data = await res.json();
@@ -64,22 +101,25 @@ function CatalogNewContent() {
                     setProducts([]);
                     setFilters({});
                     setTotal(0);
+                    setTotalPages(1);
                 } else {
                     setProducts(data.products || []);
                     setFilters(data.filters || {});
                     setTotal(data.pagination?.total || 0);
+                    setTotalPages(data.pagination?.totalPages || 1);
                 }
             } catch (e) {
                 console.error(e);
                 setProducts([]);
                 setFilters({});
                 setTotal(0);
+                setTotalPages(1);
             } finally {
                 setLoading(false);
             }
         };
         load();
-    }, [selectedCategory, selectedBrand, selectedYear]);
+    }, [selectedCategory, selectedMose, inStockOnly, ebikeOnly, debouncedSearch, page]);
 
     return (
         <main className="min-h-screen bg-zinc-50 pb-20">
@@ -109,14 +149,15 @@ function CatalogNewContent() {
                     <div className="flex-1 overflow-y-auto p-6">
                         <FilterSidebarV2
                             categories={filters.categories || []}
-                            brands={filters.brands || []}
-                            years={filters.years || []}
+                            moseOptions={filters.moseOptions || []}
                             selectedCategory={selectedCategory}
-                            selectedBrand={selectedBrand}
-                            selectedYear={selectedYear}
+                            selectedMose={selectedMose}
+                            ebikeOnly={ebikeOnly}
+                            inStockOnly={inStockOnly}
                             setCategory={setSelectedCategory}
-                            setBrand={setSelectedBrand}
-                            setYear={setSelectedYear}
+                            setMose={setSelectedMose}
+                            setEbikeOnly={setEbikeOnly}
+                            setInStockOnly={setInStockOnly}
                             total={total}
                         />
                     </div>
@@ -139,14 +180,15 @@ function CatalogNewContent() {
                         <div className="sticky top-24 max-h-[calc(100vh-120px)] overflow-y-auto pr-2 custom-scrollbar pb-10">
                             <FilterSidebarV2
                                 categories={filters.categories || []}
-                                brands={filters.brands || []}
-                                years={filters.years || []}
+                                moseOptions={filters.moseOptions || []}
                                 selectedCategory={selectedCategory}
-                                selectedBrand={selectedBrand}
-                                selectedYear={selectedYear}
+                                selectedMose={selectedMose}
+                                ebikeOnly={ebikeOnly}
+                                inStockOnly={inStockOnly}
                                 setCategory={setSelectedCategory}
-                                setBrand={setSelectedBrand}
-                                setYear={setSelectedYear}
+                                setMose={setSelectedMose}
+                                setEbikeOnly={setEbikeOnly}
+                                setInStockOnly={setInStockOnly}
                                 total={total}
                             />
                         </div>
@@ -154,8 +196,21 @@ function CatalogNewContent() {
 
                     {/* Main Content */}
                     <div className="flex-1">
-                        <div className="flex items-center justify-between mb-6">
-                            <h1 className="text-2xl font-bold text-zinc-900">Katalog 2026</h1>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                            <div className="relative flex-1 max-w-md">
+                                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                    <svg className="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                </div>
+                                <input
+                                    type="text"
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="bg-white border border-zinc-200 text-zinc-900 text-sm rounded-xl focus:ring-primary focus:border-primary block w-full pl-10 p-3 shadow-sm"
+                                    placeholder="Hledat model, barvu, kód..."
+                                />
+                            </div>
                             <span className="text-sm text-zinc-500">{total} produktů</span>
                         </div>
 
@@ -171,18 +226,49 @@ function CatalogNewContent() {
                                     <div className="text-center py-24 bg-white rounded-3xl border border-dashed border-zinc-200">
                                         <p className="text-zinc-400 text-lg">Nebyly nalezeny žádné produkty.</p>
                                         <button
-                                            onClick={() => { setSelectedBrand(''); setSelectedCategory(''); setSelectedYear(''); }}
+                                            onClick={() => {
+                                                setSelectedCategory('');
+                                                setSelectedMose('');
+                                                setInStockOnly(false);
+                                                setEbikeOnly('ebike');
+                                                setSearch('');
+                                            }}
                                             className="mt-4 text-primary font-medium hover:underline"
                                         >
                                             Vymazat filtry
                                         </button>
                                     </div>
                                 ) : (
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        {products.map(product => (
-                                            <ProductCardV2 key={product.id} product={product} />
-                                        ))}
-                                    </div>
+                                    <>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                            {products.map(product => (
+                                                <ProductCardV2 key={product.id} product={product} />
+                                            ))}
+                                        </div>
+
+                                        {/* Pagination */}
+                                        {totalPages > 1 && (
+                                            <div className="flex justify-center gap-2">
+                                                <button
+                                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                                    disabled={page === 1}
+                                                    className="px-4 py-2 border border-zinc-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-50"
+                                                >
+                                                    Předchozí
+                                                </button>
+                                                <span className="px-4 py-2 text-sm text-zinc-600 flex items-center">
+                                                    Strana {page} z {totalPages}
+                                                </span>
+                                                <button
+                                                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                                    disabled={page === totalPages}
+                                                    className="px-4 py-2 border border-zinc-200 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-zinc-50"
+                                                >
+                                                    Další
+                                                </button>
+                                            </div>
+                                        )}
+                                    </>
                                 )}
                             </>
                         )}

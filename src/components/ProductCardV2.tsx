@@ -21,6 +21,10 @@ interface ProductV2 {
         frameMaterial?: string;
         wheelSize?: string;
     };
+    hasStock?: boolean;
+    sizes?: string[];
+    stockSizes?: string[];
+    onTheWaySizes?: string[];
 }
 
 export default function ProductCardV2({ product }: { product: ProductV2 }) {
@@ -38,6 +42,8 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
     const priceDisplay = product.minPrice === product.maxPrice
         ? formatPrice(product.minPrice)
         : `${formatPrice(product.minPrice)} – ${formatPrice(product.maxPrice)}`;
+
+    const hasStock = product.hasStock || (product.stockSizes && product.stockSizes.length > 0);
 
     return (
         <Link href={`/catalog-new/${product.id}`} className="group block h-full">
@@ -76,7 +82,11 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
 
                     {/* Badges */}
                     <div className="absolute top-4 left-4 flex flex-col gap-2">
-                        {/* Badges removed as requested */}
+                        {hasStock && (
+                            <span className="text-[10px] font-bold px-2 py-1 rounded bg-green-100 text-green-700 border border-green-200 uppercase">
+                                Skladem
+                            </span>
+                        )}
                     </div>
                 </div>
 
@@ -91,6 +101,27 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
                     <h3 className="text-lg font-bold text-zinc-900 mb-2 group-hover:text-primary transition-colors line-clamp-2">
                         {product.model}
                     </h3>
+
+                    {/* Sizes */}
+                    {product.sizes && product.sizes.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-3">
+                            {product.sizes.map(size => {
+                                const inStock = (product.stockSizes || []).includes(size);
+                                return (
+                                    <span
+                                        key={size}
+                                        className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${
+                                            inStock
+                                                ? 'bg-green-100 text-green-700 border-green-200'
+                                                : 'bg-zinc-50 text-zinc-400 border-zinc-100'
+                                        }`}
+                                    >
+                                        {size}
+                                    </span>
+                                );
+                            })}
+                        </div>
+                    )}
 
                     {/* Specs Grid */}
                     <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs text-zinc-500 mb-4 mt-auto">
