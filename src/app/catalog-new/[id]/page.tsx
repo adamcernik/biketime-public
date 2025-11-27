@@ -336,101 +336,164 @@ export default function DetailPageV2() {
                         <div className="prose prose-zinc max-w-none">
                             <h3 className="text-lg font-bold text-zinc-900 mb-4">Specifikace</h3>
 
-                            <div className="bg-white rounded-xl border border-zinc-100 overflow-hidden">
-                                <div className="divide-y divide-zinc-50">
-                                    {Object.entries(product.specs).map(([key, value]) => {
-                                        if (!value) return null;
-                                        // Map keys to readable labels if possible
-                                        const labels: Record<string, string> = {
-                                            // Motor & Battery
-                                            motorManufacturer: 'Výrobce motoru',
-                                            motor: 'Motor',
-                                            motorType: 'Typ motoru',
-                                            motorPower: 'Výkon motoru',
-                                            motorTorque: 'Točivý moment',
-                                            motorSupport: 'Podpora motoru',
-                                            batteryManufacturer: 'Výrobce baterie',
-                                            battery: 'Baterie',
-                                            capacity: 'Kapacita baterie',
-                                            batteryType: 'Typ baterie',
-                                            charger: 'Nabíječka',
-                                            display: 'Displej',
-                                            remote: 'Ovládání',
+                            <div className="space-y-8">
+                                {[
+                                    {
+                                        title: 'E-bike systém',
+                                        keys: [
+                                            'motor', 'motorManufacturer', 'motorType', 'motorPower', 'motorTorque', 'motorSupport',
+                                            'battery', 'batteryManufacturer', 'capacity', 'batteryType', 'charger',
+                                            'display', 'remote'
+                                        ]
+                                    },
+                                    {
+                                        title: 'Rám a odpružení',
+                                        keys: [
+                                            'frame', 'frameMaterial', 'fork', 'travelFork', 'rearSuspension', 'travelRear', 'headset'
+                                        ]
+                                    },
+                                    {
+                                        title: 'Pohon',
+                                        keys: [
+                                            'gears', 'derailleurType', 'rearDerailleur', 'frontDerailleur', 'shifter',
+                                            'crankset', 'cassette', 'chain', 'pedals'
+                                        ]
+                                    },
+                                    {
+                                        title: 'Brzdy',
+                                        keys: [
+                                            'brakes', 'brakeLever', 'brakeFront', 'brakeRear',
+                                            'brakeDiscFront', 'brakeDiscRear', 'coasterBrake'
+                                        ]
+                                    },
+                                    {
+                                        title: 'Kola',
+                                        keys: [
+                                            'wheelSize', 'tireSize', 'tireSizeInch', 'tires',
+                                            'rims', 'wheelset', 'hubFront', 'hubRear'
+                                        ]
+                                    },
+                                    {
+                                        title: 'Komponenty',
+                                        keys: [
+                                            'handlebar', 'stem', 'grips', 'saddle', 'seatpost',
+                                            'frontLight', 'rearLight', 'carrier', 'mudguards',
+                                            'stand', 'lock', 'gps', 'monkeyLink', 'monkeyLoad'
+                                        ]
+                                    },
+                                    {
+                                        title: 'Ostatní',
+                                        keys: [
+                                            'weight', 'weightNoBattery', 'maxWeight', 'intendedUse', 'fieldOfApplication'
+                                        ]
+                                    }
+                                ].map((section) => {
+                                    // Filter keys that have values
+                                    const sectionSpecs = section.keys.filter(key => product.specs[key]);
 
-                                            // Frame & Fork
-                                            frame: 'Rám',
-                                            frameMaterial: 'Materiál rámu',
-                                            fork: 'Vidlice',
-                                            travelFork: 'Zdvih vidlice',
-                                            rearSuspension: 'Tlumič',
-                                            travelRear: 'Zdvih tlumiče',
-                                            headset: 'Hlavové složení',
+                                    if (sectionSpecs.length === 0) return null;
 
-                                            // Wheels
-                                            wheelSize: 'Velikost kol',
-                                            tireSize: 'Pláště (ETRTO)',
-                                            tireSizeInch: 'Pláště (palce)',
-                                            tires: 'Pláště',
-                                            rims: 'Ráfky',
-                                            wheelset: 'Zapletená kola',
-                                            hubFront: 'Přední náboj',
-                                            hubRear: 'Zadní náboj',
-
-                                            // Drivetrain
-                                            gears: 'Počet převodů',
-                                            derailleurType: 'Typ řazení',
-                                            rearDerailleur: 'Přehazovačka',
-                                            frontDerailleur: 'Přesmykač',
-                                            shifter: 'Řazení',
-                                            crankset: 'Kliky',
-                                            cassette: 'Kazeta',
-                                            chain: 'Řetěz',
-                                            pedals: 'Pedály',
-
-                                            // Brakes
-                                            brakes: 'Brzdy',
-                                            brakeLever: 'Brzdové páky',
-                                            brakeFront: 'Přední brzda',
-                                            brakeRear: 'Zadní brzda',
-                                            brakeDiscFront: 'Přední kotouč',
-                                            brakeDiscRear: 'Zadní kotouč',
-                                            coasterBrake: 'Protišlapná brzda',
-
-                                            // Cockpit
-                                            handlebar: 'Řidítka',
-                                            stem: 'Představec',
-                                            grips: 'Gripy',
-                                            saddle: 'Sedlo',
-                                            seatpost: 'Sedlovka',
-
-                                            // Accessories
-                                            frontLight: 'Přední světlo',
-                                            rearLight: 'Zadní světlo',
-                                            carrier: 'Nosič',
-                                            mudguards: 'Blatníky',
-                                            stand: 'Stojánek',
-                                            lock: 'Zámek',
-                                            gps: 'GPS',
-                                            monkeyLink: 'MonkeyLink',
-                                            monkeyLoad: 'MonkeyLoad',
-
-                                            // Other
-                                            weight: 'Hmotnost',
-                                            weightNoBattery: 'Hmotnost bez baterie',
-                                            maxWeight: 'Nosnost',
-                                            intendedUse: 'Určení',
-                                            fieldOfApplication: 'Oblast použití'
-                                        };
-                                        const label = labels[key] || key;
-
-                                        return (
-                                            <div key={key} className="grid grid-cols-3 gap-4 px-4 py-3 text-sm">
-                                                <div className="col-span-1 text-zinc-500 capitalize">{label}</div>
-                                                <div className="col-span-2 text-zinc-900 font-medium">{String(value)}</div>
+                                    return (
+                                        <div key={section.title} className="bg-white rounded-xl border border-zinc-100 overflow-hidden">
+                                            <div className="bg-zinc-50 px-4 py-2 border-b border-zinc-100 font-semibold text-zinc-900">
+                                                {section.title}
                                             </div>
-                                        );
-                                    })}
-                                </div>
+                                            <div className="divide-y divide-zinc-50">
+                                                {sectionSpecs.map(key => {
+                                                    const value = product.specs[key];
+                                                    const labels: Record<string, string> = {
+                                                        // Motor & Battery
+                                                        motorManufacturer: 'Výrobce motoru',
+                                                        motor: 'Motor',
+                                                        motorType: 'Typ motoru',
+                                                        motorPower: 'Výkon motoru',
+                                                        motorTorque: 'Točivý moment',
+                                                        motorSupport: 'Podpora motoru',
+                                                        batteryManufacturer: 'Výrobce baterie',
+                                                        battery: 'Baterie',
+                                                        capacity: 'Kapacita baterie',
+                                                        batteryType: 'Typ baterie',
+                                                        charger: 'Nabíječka',
+                                                        display: 'Displej',
+                                                        remote: 'Ovládání',
+
+                                                        // Frame & Fork
+                                                        frame: 'Rám',
+                                                        frameMaterial: 'Materiál rámu',
+                                                        fork: 'Vidlice',
+                                                        travelFork: 'Zdvih vidlice',
+                                                        rearSuspension: 'Tlumič',
+                                                        travelRear: 'Zdvih tlumiče',
+                                                        headset: 'Hlavové složení',
+
+                                                        // Wheels
+                                                        wheelSize: 'Velikost kol',
+                                                        tireSize: 'Pláště (ETRTO)',
+                                                        tireSizeInch: 'Pláště (palce)',
+                                                        tires: 'Pláště',
+                                                        rims: 'Ráfky',
+                                                        wheelset: 'Zapletená kola',
+                                                        hubFront: 'Přední náboj',
+                                                        hubRear: 'Zadní náboj',
+
+                                                        // Drivetrain
+                                                        gears: 'Počet převodů',
+                                                        derailleurType: 'Typ řazení',
+                                                        rearDerailleur: 'Přehazovačka',
+                                                        frontDerailleur: 'Přesmykač',
+                                                        shifter: 'Řazení',
+                                                        crankset: 'Kliky',
+                                                        cassette: 'Kazeta',
+                                                        chain: 'Řetěz',
+                                                        pedals: 'Pedály',
+
+                                                        // Brakes
+                                                        brakes: 'Brzdy',
+                                                        brakeLever: 'Brzdové páky',
+                                                        brakeFront: 'Přední brzda',
+                                                        brakeRear: 'Zadní brzda',
+                                                        brakeDiscFront: 'Přední kotouč',
+                                                        brakeDiscRear: 'Zadní kotouč',
+                                                        coasterBrake: 'Protišlapná brzda',
+
+                                                        // Cockpit
+                                                        handlebar: 'Řidítka',
+                                                        stem: 'Představec',
+                                                        grips: 'Gripy',
+                                                        saddle: 'Sedlo',
+                                                        seatpost: 'Sedlovka',
+
+                                                        // Accessories
+                                                        frontLight: 'Přední světlo',
+                                                        rearLight: 'Zadní světlo',
+                                                        carrier: 'Nosič',
+                                                        mudguards: 'Blatníky',
+                                                        stand: 'Stojánek',
+                                                        lock: 'Zámek',
+                                                        gps: 'GPS',
+                                                        monkeyLink: 'MonkeyLink',
+                                                        monkeyLoad: 'MonkeyLoad',
+
+                                                        // Other
+                                                        weight: 'Hmotnost',
+                                                        weightNoBattery: 'Hmotnost bez baterie',
+                                                        maxWeight: 'Nosnost',
+                                                        intendedUse: 'Určení',
+                                                        fieldOfApplication: 'Oblast použití'
+                                                    };
+                                                    const label = labels[key] || key;
+
+                                                    return (
+                                                        <div key={key} className="grid grid-cols-3 gap-4 px-4 py-3 text-sm">
+                                                            <div className="col-span-1 text-zinc-500">{label}</div>
+                                                            <div className="col-span-2 text-zinc-900 font-medium">{String(value)}</div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>
