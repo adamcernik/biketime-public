@@ -76,14 +76,7 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
 
                     {/* Badges */}
                     <div className="absolute top-4 left-4 flex flex-col gap-2">
-                        {product.year === 2026 && (
-                            <span className="bg-black text-white text-xs font-bold px-2 py-1 rounded">NOVINKA 2026</span>
-                        )}
-                        {product.specs.motor && (
-                            <span className="bg-white/90 backdrop-blur text-zinc-700 text-xs font-medium px-2 py-1 rounded border border-zinc-200 shadow-sm">
-                                {product.specs.motor.replace('Elektro-Motor', '').trim()}
-                            </span>
-                        )}
+                        {/* Badges removed as requested */}
                     </div>
                 </div>
 
