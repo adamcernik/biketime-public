@@ -9,11 +9,18 @@ import Link from 'next/link';
 interface Variant {
     id: string;
     ean: string;
+    nrLf?: string;
     size: string;
     color: string;
     frameShape: string;
     price: number;
     images: string[];
+    stock?: number;
+    onHand?: number;
+    qty?: number;
+    b2bStockQuantity?: number;
+    inTransit?: number;
+    onTheWay?: number;
 }
 
 interface Product {
@@ -37,6 +44,7 @@ export default function DetailPageV2() {
     const [loading, setLoading] = useState(true);
     const [selectedColor, setSelectedColor] = useState<string>('');
     const [selectedFrameShape, setSelectedFrameShape] = useState<string>('');
+    const [selectedSize, setSelectedSize] = useState<string>('');
     // Unused state for battery selection
     // const [selectedBattery, setSelectedBattery] = useState<string>('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -216,6 +224,7 @@ export default function DetailPageV2() {
                                                     // Actually, useEffect or logic above handles it, but explicit is better
                                                     const vars = product.variants.filter(v => v.color === color);
                                                     if (vars.length > 0) setSelectedFrameShape(vars[0].frameShape);
+                                                    setSelectedSize(''); // Reset size
                                                 }}
                                                 className={`group relative w-20 h-20 rounded-lg border overflow-hidden transition-all ${isActive
                                                     ? 'border-primary ring-2 ring-primary ring-offset-2'
@@ -294,7 +303,10 @@ export default function DetailPageV2() {
                                         {frameShapes.map(shape => (
                                             <button
                                                 key={shape}
-                                                onClick={() => setSelectedFrameShape(shape)}
+                                                onClick={() => {
+                                                    setSelectedFrameShape(shape);
+                                                    setSelectedSize(''); // Reset size
+                                                }}
                                                 className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all ${activeFrameShape === shape
                                                     ? 'border-zinc-900 bg-zinc-900 text-white'
                                                     : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300'
@@ -318,20 +330,52 @@ export default function DetailPageV2() {
                             </div>
 
                             <div className="flex flex-wrap gap-2 mb-4">
-                                {availableSizes.map((size) => (
-                                    <div key={size} className="relative group">
-                                        <button
-                                            className="h-12 px-4 rounded-lg border border-zinc-200 bg-white text-zinc-900 hover:border-zinc-300 hover:shadow-sm text-sm font-medium transition-all flex items-center gap-2"
-                                        >
-                                            <span>{size}</span>
-                                        </button>
-                                    </div>
-                                ))}
+                                {availableSizes.map((size) => {
+                                    const variant = variantsInFrame.find(v => v.size === size);
+                                    const stock = Number(variant?.stock) || Number(variant?.onHand) || Number(variant?.qty) || Number(variant?.b2bStockQuantity) || 0;
+                                    const inStock = stock > 0;
+                                    const isSelected = selectedSize === size;
+
+                                    return (
+                                        <div key={size} className="relative group">
+                                            <button
+                                                onClick={() => setSelectedSize(size)}
+                                                className={`h-12 px-4 rounded-lg border text-sm font-medium transition-all flex items-center gap-2
+                                                    ${isSelected
+                                                        ? 'border-primary ring-2 ring-primary ring-offset-2 bg-primary/5 text-primary'
+                                                        : inStock
+                                                            ? 'border-green-200 bg-green-50 text-green-800 hover:border-green-300'
+                                                            : 'border-zinc-200 bg-white text-zinc-900 hover:border-zinc-300 hover:shadow-sm'
+                                                    }
+                                                `}
+                                            >
+                                                <span>{size}</span>
+                                                {inStock && (
+                                                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                                                )}
+                                            </button>
+                                        </div>
+                                    );
+                                })}
                             </div>
 
                             <div className="text-xs text-zinc-400 mt-2 space-y-1">
                                 <div>Vybraná barva: <span className="font-medium text-zinc-700">{selectedColor}</span></div>
                                 {activeFrameShape && <div>Vybraný rám: <span className="font-medium text-zinc-700">{activeFrameShape}</span></div>}
+                                {selectedSize && <div>Vybraná velikost: <span className="font-medium text-zinc-700">{selectedSize}</span></div>}
+                                
+                                {(() => {
+                                    if (!selectedSize) return null;
+                                    const selectedVariant = variantsInFrame.find(v => v.size === selectedSize);
+                                    if (selectedVariant && selectedVariant.nrLf) {
+                                        return (
+                                            <div className="pt-2 mt-2 border-t border-zinc-100">
+                                                ID produktu (NRLF): <span className="font-mono font-medium text-zinc-700">{selectedVariant.nrLf}</span>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                })()}
                             </div>
                         </div>
 
