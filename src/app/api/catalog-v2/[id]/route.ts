@@ -4,9 +4,9 @@ import { doc, getDoc } from 'firebase/firestore';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const { id } = params;
+        const { id } = await params;
         const docRef = doc(db, 'products_v2', id);
         const snapshot = await getDoc(docRef);
 

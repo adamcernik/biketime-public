@@ -53,7 +53,6 @@ export async function GET(req: NextRequest) {
     const batch = writeBatch(db);
     for (const r of chunk) {
       const idRef = doc(db, 'bikes', r.nrLf);
-      // eslint-disable-next-line no-await-in-loop
       const idSnap = await getDoc(idRef);
       let targetDocRef: ReturnType<typeof doc> | null = null;
       let targetData: Record<string, unknown> | null = null;
@@ -61,14 +60,12 @@ export async function GET(req: NextRequest) {
         targetDocRef = idRef;
         targetData = idSnap.data() as Record<string, unknown>;
       } else {
-        // eslint-disable-next-line no-await-in-loop
         const byNr = await getDocs(query(bikesRef, where('nrLf', '==', r.nrLf)));
         if (!byNr.empty) {
           const d = byNr.docs[0]!;
           targetDocRef = doc(db, 'bikes', d.id);
           targetData = d.data() as Record<string, unknown>;
         } else {
-          // eslint-disable-next-line no-await-in-loop
           const byLfSn = await getDocs(query(bikesRef, where('lfSn', '==', r.nrLf)));
           if (!byLfSn.empty) {
             const d = byLfSn.docs[0]!;
@@ -92,7 +89,6 @@ export async function GET(req: NextRequest) {
       updated += 1;
     }
     if (!dry) {
-      // eslint-disable-next-line no-await-in-loop
       await batch.commit();
     }
   }

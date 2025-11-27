@@ -65,6 +65,7 @@ export default function DetailPage() {
       }
     };
     if (id) load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {

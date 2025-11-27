@@ -98,7 +98,7 @@ export default function ShopsMap({ className = '', height = '500px', shops: prop
         setMap(map);
     }, []);
 
-    const onUnmount = React.useCallback(function callback(map: google.maps.Map) {
+    const onUnmount = React.useCallback(function callback() {
         setMap(null);
     }, []);
 

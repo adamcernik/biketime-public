@@ -404,7 +404,6 @@ export async function GET(req: NextRequest) {
       const seen = new Set<string>();
       const aggregatedComputed: RawBike[] = [];
       for (const it of items) {
-        const nr = getNrLf(it);
         const family = getFamilyKey(it);
         // If we grouped by model, 'family' is the key.
         // If we fell back to NRLF, 'family' is the key.

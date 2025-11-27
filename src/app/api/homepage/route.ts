@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { db } from '@/lib/firebase-server';
 import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   try {
     // Prefer settings/homepage (public readable per rules); fallback to legacy site/homepage
     let cfgSnap = await getDoc(doc(db, 'settings', 'homepage'));

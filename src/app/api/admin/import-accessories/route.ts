@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { db } from '@/lib/firebase-server';
 import { collection, doc, writeBatch } from 'firebase/firestore';
 import fs from 'fs';
@@ -131,7 +131,7 @@ function mapRow(header: string[], row: string[]): AccessoryRow {
   };
 }
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   if (process.env.VERCEL === '1' || process.env.NODE_ENV === 'production') {
     return NextResponse.json({ error: 'Disabled in production' }, { status: 403 });
   }
@@ -171,7 +171,6 @@ export async function GET(_req: NextRequest) {
       batch.set(doc(db, accessoriesRef.path, docId), payload, { merge: true });
       upserted += 1;
     }
-    // eslint-disable-next-line no-await-in-loop
     await batch.commit();
   }
 

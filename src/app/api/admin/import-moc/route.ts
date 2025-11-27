@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { db } from '@/lib/firebase-server';
-import { collection, doc, getDoc, getDocs, query, updateDoc, where, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where, writeBatch } from 'firebase/firestore';
 import fs from 'fs';
 import path from 'path';
 
@@ -26,7 +26,7 @@ function parseCsv(content: string): CsvRow[] {
   return rows;
 }
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   // Safety: do not allow on production Vercel
   if (process.env.VERCEL === '1' || process.env.NODE_ENV === 'production') {
     return NextResponse.json({ error: 'Disabled in production' }, { status: 403 });
@@ -54,7 +54,6 @@ export async function GET(_req: NextRequest) {
     // For each row, try by doc id, otherwise query by nrLf/lfSn
     for (const r of chunk) {
       const idRef = doc(db, 'bikes', r.nrLf);
-      // eslint-disable-next-line no-await-in-loop
       const idSnap = await getDoc(idRef);
       let targetDocRef: ReturnType<typeof doc> | null = null;
       let targetData: Record<string, unknown> | null = null;
@@ -62,14 +61,12 @@ export async function GET(_req: NextRequest) {
         targetDocRef = idRef;
         targetData = idSnap.data() as Record<string, unknown>;
       } else {
-        // eslint-disable-next-line no-await-in-loop
         const byNr = await getDocs(query(bikesRef, where('nrLf', '==', r.nrLf)));
         if (!byNr.empty) {
           const d = byNr.docs[0]!;
           targetDocRef = doc(db, 'bikes', d.id);
           targetData = d.data() as Record<string, unknown>;
         } else {
-          // eslint-disable-next-line no-await-in-loop
           const byLfSn = await getDocs(query(bikesRef, where('lfSn', '==', r.nrLf)));
           if (!byLfSn.empty) {
             const d = byLfSn.docs[0]!;
@@ -91,7 +88,6 @@ export async function GET(_req: NextRequest) {
       batch.update(targetDocRef, { mocCzk: r.mocCzk });
       updated += 1;
     }
-    // eslint-disable-next-line no-await-in-loop
     await batch.commit();
   }
 
