@@ -1,4 +1,4 @@
-import { getSizeLabel } from '@/lib/size-mapping';
+// import { getSizeLabel } from '@/lib/size-mapping';
 
 interface FilterSidebarV2Props {
     categories: string[];

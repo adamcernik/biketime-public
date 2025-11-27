@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
@@ -30,13 +31,14 @@ interface Product {
 
 export default function DetailPageV2() {
     const { id } = useParams<{ id: string }>();
-    const router = useRouter();
+    // const router = useRouter(); // Unused variable removed
 
     const [product, setProduct] = useState<Product | null>(null);
     const [loading, setLoading] = useState(true);
     const [selectedColor, setSelectedColor] = useState<string>('');
     const [selectedFrameShape, setSelectedFrameShape] = useState<string>('');
-    const [selectedBattery, setSelectedBattery] = useState<string>('');
+    // Unused state for battery selection
+    // const [selectedBattery, setSelectedBattery] = useState<string>('');
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {

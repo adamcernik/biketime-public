@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/firebase-server';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
@@ -95,7 +96,7 @@ export async function GET(req: NextRequest) {
             const mappedCategory = mapRawToTag(rawCategory, isE);
 
             // Try to find mose (Model Series)
-            let mose = product.mose || product.specs?.['Model series (MOSE)'] || '';
+            const mose = product.mose || product.specs?.['Model series (MOSE)'] || '';
             
             // Stock and Size calculation
             const variants = (product.variants && Array.isArray(product.variants)) ? product.variants : [];
