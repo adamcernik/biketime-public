@@ -14,7 +14,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             return NextResponse.json({ error: 'Product not found' }, { status: 404 });
         }
 
-        const product = { id: snapshot.id, ...snapshot.data() };
+        const productData = snapshot.data();
+        
+        // Ensure variants have nrLf or fallback to ID if possible?
+        // In products_v2, variants usually look like { id: '...', size: '...', nrLf: '...' }
+        // If nrLf is missing in variant, we might need to ensure it is passed if available.
+        // Let's check the data structure.
+        
+        const product = { id: snapshot.id, ...productData };
         return NextResponse.json(product);
 
     } catch (error) {

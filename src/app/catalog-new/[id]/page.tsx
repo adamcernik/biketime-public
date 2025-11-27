@@ -342,7 +342,7 @@ export default function DetailPageV2() {
                                                 onClick={() => setSelectedSize(size)}
                                                 className={`h-12 px-4 rounded-lg border text-sm font-medium transition-all flex items-center gap-2
                                                     ${isSelected
-                                                        ? 'border-primary ring-2 ring-primary ring-offset-2 bg-primary/5 text-primary'
+                                                        ? 'border-zinc-900 bg-zinc-900 text-white'
                                                         : inStock
                                                             ? 'border-green-200 bg-green-50 text-green-800 hover:border-green-300'
                                                             : 'border-zinc-200 bg-white text-zinc-900 hover:border-zinc-300 hover:shadow-sm'
@@ -350,7 +350,7 @@ export default function DetailPageV2() {
                                                 `}
                                             >
                                                 <span>{size}</span>
-                                                {inStock && (
+                                                {inStock && !isSelected && (
                                                     <span className="w-2 h-2 rounded-full bg-green-500"></span>
                                                 )}
                                             </button>
@@ -367,10 +367,23 @@ export default function DetailPageV2() {
                                 {(() => {
                                     if (!selectedSize) return null;
                                     const selectedVariant = variantsInFrame.find(v => v.size === selectedSize);
-                                    if (selectedVariant && selectedVariant.nrLf) {
+                                    
+                                    // Debugging
+                                    // console.log('Selected Size:', selectedSize);
+                                    // console.log('Selected Variant:', selectedVariant);
+                                    // console.log('NRLF:', selectedVariant?.nrLf);
+
+                                    // Fallback if nrLf is missing on variant but present on product top level if it's the same
+                                    // Actually, nrLf is specific to the variant (size/color). 
+                                    // If it's missing in the variant object, we can't show it accurately.
+                                    // However, let's check if we are mapping it correctly in the API or interface.
+                                    
+                                    const nrLfToShow = selectedVariant?.nrLf || selectedVariant?.id; // Fallback to ID if NRLF missing? Usually ID is NRLF.
+
+                                    if (nrLfToShow) {
                                         return (
                                             <div className="pt-2 mt-2 border-t border-zinc-100">
-                                                ID produktu (NRLF): <span className="font-mono font-medium text-zinc-700">{selectedVariant.nrLf}</span>
+                                                ID produktu (NRLF): <span className="font-mono font-medium text-zinc-700">{nrLfToShow}</span>
                                             </div>
                                         );
                                     }
