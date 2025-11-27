@@ -294,8 +294,8 @@ export default function DetailPageV2() {
                                                 key={shape}
                                                 onClick={() => setSelectedFrameShape(shape)}
                                                 className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all ${activeFrameShape === shape
-                                                        ? 'border-zinc-900 bg-zinc-900 text-white'
-                                                        : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300'
+                                                    ? 'border-zinc-900 bg-zinc-900 text-white'
+                                                    : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300'
                                                     }`}
                                             >
                                                 {shape}
@@ -342,15 +342,84 @@ export default function DetailPageV2() {
                                         if (!value) return null;
                                         // Map keys to readable labels if possible
                                         const labels: Record<string, string> = {
+                                            // Motor & Battery
+                                            motorManufacturer: 'Výrobce motoru',
                                             motor: 'Motor',
+                                            motorType: 'Typ motoru',
+                                            motorPower: 'Výkon motoru',
+                                            motorTorque: 'Točivý moment',
+                                            motorSupport: 'Podpora motoru',
+                                            batteryManufacturer: 'Výrobce baterie',
                                             battery: 'Baterie',
-                                            capacity: 'Kapacita',
+                                            capacity: 'Kapacita baterie',
+                                            batteryType: 'Typ baterie',
+                                            charger: 'Nabíječka',
+                                            display: 'Displej',
+                                            remote: 'Ovládání',
+
+                                            // Frame & Fork
+                                            frame: 'Rám',
                                             frameMaterial: 'Materiál rámu',
-                                            wheelSize: 'Velikost kol',
-                                            tireSize: 'Pláště',
                                             fork: 'Vidlice',
+                                            travelFork: 'Zdvih vidlice',
+                                            rearSuspension: 'Tlumič',
+                                            travelRear: 'Zdvih tlumiče',
+                                            headset: 'Hlavové složení',
+
+                                            // Wheels
+                                            wheelSize: 'Velikost kol',
+                                            tireSize: 'Pláště (ETRTO)',
+                                            tireSizeInch: 'Pláště (palce)',
+                                            tires: 'Pláště',
+                                            rims: 'Ráfky',
+                                            wheelset: 'Zapletená kola',
+                                            hubFront: 'Přední náboj',
+                                            hubRear: 'Zadní náboj',
+
+                                            // Drivetrain
+                                            gears: 'Počet převodů',
+                                            derailleurType: 'Typ řazení',
+                                            rearDerailleur: 'Přehazovačka',
+                                            frontDerailleur: 'Přesmykač',
+                                            shifter: 'Řazení',
+                                            crankset: 'Kliky',
+                                            cassette: 'Kazeta',
+                                            chain: 'Řetěz',
+                                            pedals: 'Pedály',
+
+                                            // Brakes
                                             brakes: 'Brzdy',
-                                            derailleur: 'Přehazovačka'
+                                            brakeLever: 'Brzdové páky',
+                                            brakeFront: 'Přední brzda',
+                                            brakeRear: 'Zadní brzda',
+                                            brakeDiscFront: 'Přední kotouč',
+                                            brakeDiscRear: 'Zadní kotouč',
+                                            coasterBrake: 'Protišlapná brzda',
+
+                                            // Cockpit
+                                            handlebar: 'Řidítka',
+                                            stem: 'Představec',
+                                            grips: 'Gripy',
+                                            saddle: 'Sedlo',
+                                            seatpost: 'Sedlovka',
+
+                                            // Accessories
+                                            frontLight: 'Přední světlo',
+                                            rearLight: 'Zadní světlo',
+                                            carrier: 'Nosič',
+                                            mudguards: 'Blatníky',
+                                            stand: 'Stojánek',
+                                            lock: 'Zámek',
+                                            gps: 'GPS',
+                                            monkeyLink: 'MonkeyLink',
+                                            monkeyLoad: 'MonkeyLoad',
+
+                                            // Other
+                                            weight: 'Hmotnost',
+                                            weightNoBattery: 'Hmotnost bez baterie',
+                                            maxWeight: 'Nosnost',
+                                            intendedUse: 'Určení',
+                                            fieldOfApplication: 'Oblast použití'
                                         };
                                         const label = labels[key] || key;
 
