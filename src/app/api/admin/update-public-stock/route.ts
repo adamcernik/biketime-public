@@ -121,7 +121,7 @@ export async function POST(request: Request) {
                         if (dryRun) {
                             updates.push({
                                 productTitle: `${product.brand} ${product.model}`,
-                                variantId: variantId,
+                                variantId: variantId || v.ean || 'unknown',
                                 size: v.size,
                                 oldStock: currentStock,
                                 newStock: newStock,
