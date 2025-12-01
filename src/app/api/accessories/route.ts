@@ -56,9 +56,9 @@ export async function GET(req: NextRequest) {
     };
 
     // Compute global list of unique product types (for fixed chips)
-    const allTypes = Array.from(
-      new Set(all.map((a) => a.productType).filter(Boolean))
-    ) as string[];
+    // const allTypes = Array.from(
+    //   new Set(all.map((a) => a.productType).filter(Boolean))
+    // ) as string[];
 
     const mapToGroup = (a: AccessoryDoc): string => {
       const t = (a.productType ?? '').toLowerCase();

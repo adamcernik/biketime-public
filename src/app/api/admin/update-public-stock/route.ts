@@ -1,6 +1,37 @@
 import { NextResponse } from 'next/server';
 import { db } from '../../../../lib/firebase';
-import { collection, getDocs, doc, updateDoc, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
+
+// Define interfaces for better type safety
+interface StockBike {
+    id?: string;
+    nrLf?: string;
+    ean?: string;
+    b2bStockQuantity?: number;
+    b2bShipQuantity?: number;
+    [key: string]: any;
+}
+
+interface ProductVariant {
+    id?: string;
+    nrLf?: string;
+    ean?: string;
+    size?: string;
+    stock?: number;
+    inTransit?: number;
+    onTheWay?: number;
+    onHand?: number;
+    qty?: number;
+    [key: string]: any;
+}
+
+interface Product {
+    id: string;
+    brand?: string;
+    model?: string;
+    variants?: ProductVariant[];
+    [key: string]: any;
+}
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*', // Replace with specific origin in production if needed
@@ -29,20 +60,22 @@ export async function POST(request: Request) {
 
         // 1. Fetch all products_v2
         const productsSnapshot = await getDocs(collection(db, 'products_v2'));
-        const products: any[] = [];
+        const products: Product[] = [];
         productsSnapshot.forEach(doc => {
-            products.push({ id: doc.id, ...doc.data() });
+            products.push({ id: doc.id, ...doc.data() } as Product);
         });
 
         // 2. Create a map of stock bikes for faster lookup
         // Key: nrLf (or id if nrLf is missing)
-        const stockMap = new Map<string, any>();
-        stockData.forEach((bike: any) => {
+        const stockMap = new Map<string, StockBike>();
+        stockData.forEach((bike: StockBike) => {
             if (bike.nrLf) {
                 stockMap.set(bike.nrLf, bike);
             }
             // Also map by ID just in case
-            stockMap.set(bike.id, bike);
+            if (bike.id) {
+                stockMap.set(bike.id, bike);
+            }
             // And EAN
             if (bike.ean) {
                 stockMap.set(bike.ean, bike);
@@ -58,10 +91,10 @@ export async function POST(request: Request) {
             if (!product.variants || !Array.isArray(product.variants)) continue;
 
             let productChanged = false;
-            const updatedVariants = product.variants.map((v: any) => {
+            const updatedVariants = product.variants.map((v: ProductVariant) => {
                 // Try to match by nrLf, then id, then ean
                 const variantId = v.nrLf || v.id;
-                const stockBike = stockMap.get(variantId) || (v.ean ? stockMap.get(v.ean) : undefined);
+                const stockBike = (variantId ? stockMap.get(variantId) : undefined) || (v.ean ? stockMap.get(v.ean) : undefined);
 
                 if (stockBike) {
                     const newStock = stockBike.b2bStockQuantity || 0;
@@ -105,12 +138,12 @@ export async function POST(request: Request) {
                 try {
                     // Recalculate top-level fields
                     const stockSizes = updatedVariants
-                        .filter((v: any) => v.stock > 0)
-                        .map((v: any) => v.size);
+                        .filter((v: ProductVariant) => (v.stock || 0) > 0)
+                        .map((v: ProductVariant) => v.size);
 
                     const onTheWaySizes = updatedVariants
-                        .filter((v: any) => v.stock === 0 && v.inTransit > 0)
-                        .map((v: any) => v.size);
+                        .filter((v: ProductVariant) => (v.stock || 0) === 0 && (v.inTransit || 0) > 0)
+                        .map((v: ProductVariant) => v.size);
 
                     const hasStock = stockSizes.length > 0;
 

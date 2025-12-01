@@ -54,14 +54,7 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
 
     const sortedSizes = Object.values(displaySizes).sort((a, b) => sortSizes(a.label, b.label));
 
-    // Format price
-    const formatPrice = (price: number) => {
-        return new Intl.NumberFormat('cs-CZ', {
-            style: 'currency',
-            currency: 'CZK',
-            maximumFractionDigits: 0,
-        }).format(price);
-    };
+    // Format price removed as it was unused and causing lint error
 
     const hasStock = product.hasStock || (product.stockSizes && product.stockSizes.length > 0);
     const hasOnTheWay = !hasStock && (product.onTheWaySizes && product.onTheWaySizes.length > 0);
