@@ -1,4 +1,5 @@
 
+// Re-trigger build
 export type BikeCategory = 'mtb' | 'gravel' | 'road' | 'trekking' | 'city' | 'junior' | 'default';
 
 export interface SizeMapping {
@@ -64,4 +65,58 @@ export const detectCategory = (bike: any): BikeCategory => {
     if (cat.includes('trekking') || cat.includes('city') || model.includes('urban') || model.includes('cross')) return 'trekking';
 
     return 'default';
+};
+
+export const SIZE_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL'];
+
+export const sortSizes = (a: string, b: string) => {
+    const aUpper = a.toUpperCase();
+    const bUpper = b.toUpperCase();
+
+    const aIndex = SIZE_ORDER.indexOf(aUpper);
+    const bIndex = SIZE_ORDER.indexOf(bUpper);
+
+    // Both are standard sizes
+    if (aIndex !== -1 && bIndex !== -1) {
+        return aIndex - bIndex;
+    }
+
+    // One is standard, one is not
+    if (aIndex !== -1) return -1;
+    if (bIndex !== -1) return 1;
+
+    // Numeric comparison
+    const aNum = parseFloat(a);
+    const bNum = parseFloat(b);
+
+    if (!isNaN(aNum) && !isNaN(bNum)) {
+        return aNum - bNum;
+    }
+
+    // Fallback to alphanumeric
+    return a.localeCompare(b, 'cs', { numeric: true });
+};
+
+export const standardizeSize = (size: string, category: BikeCategory = 'default'): string => {
+    if (!size) return '';
+
+    // If it's already a standard letter size, return it
+    const upper = size.toUpperCase().trim();
+    if (SIZE_ORDER.includes(upper)) return upper;
+
+    // Try to parse number
+    // Handle "41 cm", "41", "41cm"
+    const num = parseInt(size.replace(/[^0-9]/g, ''));
+
+    // Sanity check: frame sizes are usually between 20 and 70 cm
+    // Kids bikes might be smaller (12-24 inch wheels, but frame size is different)
+    // If it's too small (e.g. 1, 2, 3), it might be a different metric or just an index.
+    // But let's assume valid frame sizes for now.
+
+    if (!isNaN(num) && num > 20 && num < 80) {
+        const label = getSizeLabel(num, category);
+        if (label) return label;
+    }
+
+    return size; // Return original if no mapping found
 };

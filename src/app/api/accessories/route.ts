@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+// Re-trigger build
 import { db } from '@/lib/firebase-server';
 import { collection, getDocs } from 'firebase/firestore';
 
@@ -124,13 +125,32 @@ export async function GET(req: NextRequest) {
     const end = Math.min(total, start + pageSize);
     const items = filtered.slice(start, end);
 
+    // Compute available filters from ALL visible items (not just filtered ones, or maybe filtered ones? usually base set)
+    // Let's return filters based on the current search context but ignoring the specific filter being applied?
+    // For simplicity, let's return all available options from the global set for now, or maybe from the search result set (faceted search).
+    // Let's go with faceted search from the *filtered* set (but we need to be careful not to hide options when one is selected).
+    // Actually, standard practice is:
+    // 1. Categories: derived from all items (or all items matching search query)
+    // 2. Brands: derived from all items (or all items matching search query)
+
+    // Let's derive from 'all' visible items for now to keep it simple and stable.
+    const visibleItems = all.filter(isVisible);
+
+    const brands = Array.from(new Set(visibleItems.map(a => a.marke).filter(Boolean))).sort();
+
+    // Use the mapToGroup function to get unique groups
+    const categories = Array.from(new Set(visibleItems.map(mapToGroup).filter(Boolean))).sort();
+
     return NextResponse.json({
       items,
       total,
       page,
       pageSize,
       totalPages: Math.max(1, Math.ceil(total / pageSize)),
-      types: allTypes,
+      filters: {
+        brands,
+        categories
+      }
     });
   } catch (error) {
     console.error('Error in GET /api/accessories:', error);

@@ -3,16 +3,19 @@
 interface FilterSidebarV2Props {
     categories: string[];
     moseOptions: string[];
+    moheOptions: string[];
 
     // Current Filters
     selectedCategory: string;
     selectedMose: string;
+    selectedMohe: string;
     ebikeOnly: 'all' | 'ebike' | 'non';
     inStockOnly: boolean;
 
     // Setters
     setCategory: (v: string) => void;
     setMose: (v: string) => void;
+    setMohe: (v: string) => void;
     setEbikeOnly: (v: 'all' | 'ebike' | 'non') => void;
     setInStockOnly: (v: boolean) => void;
 
@@ -22,12 +25,15 @@ interface FilterSidebarV2Props {
 export function FilterSidebarV2({
     categories,
     moseOptions,
+    moheOptions,
     selectedCategory,
     selectedMose,
+    selectedMohe,
     ebikeOnly,
     inStockOnly,
     setCategory,
     setMose,
+    setMohe,
     setEbikeOnly,
     setInStockOnly,
 }: FilterSidebarV2Props) {
@@ -79,8 +85,8 @@ export function FilterSidebarV2({
                 <h3 className="text-sm font-bold text-zinc-900 mb-3 uppercase tracking-wider">Kategorie</h3>
                 <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                     {categories.map(cat => (
-                        <div 
-                            key={cat} 
+                        <div
+                            key={cat}
                             onClick={() => setCategory(selectedCategory === cat ? '' : cat)}
                             className="flex items-center gap-3 cursor-pointer group"
                         >
@@ -92,6 +98,29 @@ export function FilterSidebarV2({
                     ))}
                 </div>
             </div>
+
+            {(ebikeOnly === 'ebike' || ebikeOnly === 'all') && (
+                <>
+                    <hr className="border-zinc-100" />
+                    <div>
+                        <h3 className="text-sm font-bold text-zinc-900 mb-3 uppercase tracking-wider">Motor</h3>
+                        <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                            {moheOptions.map(m => (
+                                <div
+                                    key={m}
+                                    onClick={() => setMohe(selectedMohe === m ? '' : m)}
+                                    className="flex items-center gap-3 cursor-pointer group"
+                                >
+                                    <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${selectedMohe === m ? 'bg-zinc-900 border-zinc-900' : 'bg-white border-zinc-300 group-hover:border-zinc-400'}`}>
+                                        {selectedMohe === m && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                                    </div>
+                                    <span className={`text-sm ${selectedMohe === m ? 'text-zinc-900 font-medium' : 'text-zinc-600'}`}>{m}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </>
+            )}
 
             <hr className="border-zinc-100" />
 
