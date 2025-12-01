@@ -9,7 +9,7 @@ interface StockBike {
     ean?: string;
     b2bStockQuantity?: number;
     b2bShipQuantity?: number;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 interface ProductVariant {
@@ -22,7 +22,7 @@ interface ProductVariant {
     onTheWay?: number;
     onHand?: number;
     qty?: number;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 interface Product {
@@ -30,7 +30,7 @@ interface Product {
     brand?: string;
     model?: string;
     variants?: ProductVariant[];
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 const corsHeaders = {
@@ -82,7 +82,18 @@ export async function POST(request: Request) {
             }
         });
 
-        const updates: any[] = [];
+        interface UpdateRecord {
+            productTitle: string;
+            variantId: string;
+            size?: string;
+            oldStock: number;
+            newStock: number;
+            oldTransit: number;
+            newTransit: number;
+            productId: string;
+        }
+
+        const updates: UpdateRecord[] = [];
         const results: string[] = [];
         const errors: string[] = [];
 
