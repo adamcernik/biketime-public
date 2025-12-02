@@ -242,9 +242,15 @@ export async function GET(req: NextRequest) {
                 const nrLf = (p.nrLf || '').toLowerCase(); // assuming nrLf exists
                 const category = (p.category || '').toLowerCase();
 
-                // Check if any variant matches the search code
+                // Check if any variant matches the search code (nrLf, lfSn, id, ean)
                 const hasMatchingVariant = p.variants && Array.isArray(p.variants)
-                    ? p.variants.some((v: any) => (v.nrLf || '').toLowerCase().includes(s))
+                    ? p.variants.some((v: any) => {
+                        const code1 = (v.nrLf || '').toLowerCase();
+                        const code2 = (v.lfSn || '').toLowerCase();
+                        const code3 = (v.id || '').toLowerCase();
+                        const code4 = (v.ean || '').toLowerCase();
+                        return code1.includes(s) || code2.includes(s) || code3.includes(s) || code4.includes(s);
+                    })
                     : false;
 
                 return brand.includes(s) ||
