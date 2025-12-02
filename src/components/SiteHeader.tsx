@@ -11,7 +11,7 @@ const navItems: { href: string; label: string }[] = [
   { href: '/prislusenstvi', label: 'Příslušenství' },
   { href: '/prodejny', label: 'Prodejny' },
   { href: '/kola-bulls', label: 'Kola Bulls' },
-  { href: '/ke-stazeni', label: 'Ke stažení' },
+
   { href: '/kontakt', label: 'Kontakt' },
 ];
 

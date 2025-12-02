@@ -7,7 +7,7 @@ import { db } from '@/lib/firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 
 // Revalidate every hour
-export const revalidate = 3600;
+export const revalidate = 60;
 
 async function getSlides() {
   try {
