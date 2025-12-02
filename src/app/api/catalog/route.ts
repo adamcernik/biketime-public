@@ -206,6 +206,16 @@ export async function GET(req: NextRequest) {
             baseProducts = baseProducts.filter(p => p.hasStock);
         }
 
+        // Rule: Hide 2022-2024 models if they are not in stock
+        // We want to keep the catalog fresh, so older models are only visible if we actually have them.
+        baseProducts = baseProducts.filter(p => {
+            const y = Number(p.year);
+            if (y >= 2022 && y <= 2024) {
+                return p.hasStock;
+            }
+            return true;
+        });
+
         // 2. Extract Options from Base Set
         const categories = Array.from(new Set(baseProducts.map(p => p.category).filter(Boolean))).sort();
         // brands removed
