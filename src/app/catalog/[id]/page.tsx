@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { sortSizes, standardizeSize, detectCategory } from '@/lib/size-mapping';
+import { getOptimizedImageUrl } from '@/lib/imageUtils';
 
 interface Variant {
     id: string;
@@ -213,7 +214,7 @@ export default function DetailPageV2() {
                             {mainImage ? (
                                 <>
                                     <Image
-                                        src={mainImage}
+                                        src={getOptimizedImageUrl(mainImage, 'large', product.brand)}
                                         alt={`${product.brand} ${product.model}`}
                                         fill
                                         sizes="(min-width: 1024px) 50vw, 100vw"
@@ -277,7 +278,7 @@ export default function DetailPageV2() {
                                             >
                                                 {image ? (
                                                     <Image
-                                                        src={image}
+                                                        src={getOptimizedImageUrl(image, 'thumbnail', product.brand)}
                                                         alt={color}
                                                         fill
                                                         className="object-contain p-1 mix-blend-multiply"
@@ -699,7 +700,7 @@ export default function DetailPageV2() {
                     </div>
                     <div className="relative w-[95vw] h-[90vh]" onClick={(e) => e.stopPropagation()}>
                         <Image
-                            src={mainImage}
+                            src={getOptimizedImageUrl(mainImage, 'large', product.brand)}
                             alt={`${product.brand} ${product.model}`}
                             fill
                             className="object-contain"
