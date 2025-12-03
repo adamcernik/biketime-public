@@ -17,12 +17,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Biketime",
-  description: "Biketime – kola Bulls v ČR",
+  title: "Kola a elektrokola BULLS – Oficiální distribuce | Biketime.cz",
+  description: "Objevte špičková německá kola BULLS. Biketime zajišťuje velkoobchodní prodej a technickou podporu pro partnery. Najděte nejnovější modely Sonic, Vuca a další.",
   metadataBase: new URL('https://biketime.cz'),
   openGraph: {
-    title: "Biketime – kola Bulls v ČR",
-    description: "Objevte kompletní nabídku kol Bulls. E-bikes, horská kola, trekingová kola a další.",
+    title: "Kola a elektrokola BULLS – Oficiální distribuce | Biketime.cz",
+    description: "Objevte špičková německá kola BULLS. Biketime zajišťuje velkoobchodní prodej a technickou podporu pro partnery. Najděte nejnovější modely Sonic, Vuca a další.",
     url: 'https://biketime.cz',
     siteName: 'Biketime',
     // Explicitly add image to ensure it's picked up by all platforms
@@ -40,8 +40,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: "Biketime – kola Bulls v ČR",
-    description: "Objevte kompletní nabídku kol Bulls. E-bikes, horská kola, trekingová kola a další.",
+    title: "Kola a elektrokola BULLS – Oficiální distribuce | Biketime.cz",
+    description: "Objevte špičková německá kola BULLS. Biketime zajišťuje velkoobchodní prodej a technickou podporu pro partnery. Najděte nejnovější modely Sonic, Vuca a další.",
     images: ['/opengraph-image.png'],
   },
 };
