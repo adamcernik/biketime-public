@@ -4,6 +4,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { standardizeSize, detectCategory, sortSizes } from '@/lib/size-mapping';
+import { getOptimizedImageUrl } from '@/lib/imageUtils';
 
 interface ProductV2 {
     id: string;
@@ -69,7 +70,7 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
                     {/* Main Image */}
                     {product.images[0] ? (
                         <Image
-                            src={product.images[0]}
+                            src={getOptimizedImageUrl(product.images[0], 'small', product.brand)}
                             alt={`${product.brand} ${product.model}`}
                             fill
                             className="object-contain mix-blend-multiply transition-transform duration-500 group-hover:scale-95"

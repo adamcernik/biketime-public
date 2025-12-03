@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
+import { getOptimizedImageUrl } from '@/lib/imageUtils';
 
 // Types (copied from page.tsx for now, ideally should be in a types file)
 export interface Bike {
@@ -66,6 +67,9 @@ export function BikeCard({ bike, viewMode }: { bike: Bike; viewMode: 'grid' | 'l
     // Determine display image: variant image > bike image
     const displayImage = activeVariant.image || bike.bild1;
 
+    // Get optimized image URL (use 'small' size for cards - 460x307px)
+    const optimizedImage = getOptimizedImageUrl(displayImage, 'small', bike.marke);
+
     // Determine display NRLF
     const displayNrLf = activeVariant.nrLf || bike.nrLf;
 
@@ -76,7 +80,7 @@ export function BikeCard({ bike, viewMode }: { bike: Bike; viewMode: 'grid' | 'l
                 <div className={`relative bg-zinc-50 group-hover:bg-zinc-100 transition-colors ${viewMode === 'grid' ? 'aspect-[4/3] p-6' : 'w-48 h-32 shrink-0 rounded-lg'}`}>
                     {displayImage ? (
                         <Image
-                            src={displayImage}
+                            src={optimizedImage}
                             alt={`${sanitize(bike.marke)} ${sanitize(bike.modell)}`.trim()}
                             fill
                             sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"

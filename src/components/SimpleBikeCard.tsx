@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { getOptimizedImageUrl } from '@/lib/imageUtils';
 
 export type SimpleBikeCardProps = {
     id: string;
@@ -22,7 +23,7 @@ export default function SimpleBikeCard({ bike }: { bike: SimpleBikeCardProps }) 
                 <div className="aspect-[4/3] relative bg-zinc-50 p-6 group-hover:bg-zinc-100 transition-colors">
                     {bike.bild1 ? (
                         <Image
-                            src={bike.bild1}
+                            src={getOptimizedImageUrl(bike.bild1, 'small', bike.marke)}
                             alt={`${sanitize(bike.marke)} ${sanitize(bike.modell)}`}
                             fill
                             className="object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
