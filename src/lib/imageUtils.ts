@@ -55,9 +55,34 @@ function extractFilename(url: string): string | null {
 }
 
 /**
- * Gets the brand CDN ID for a given brand name
+ * Extracts Brand ID from standard ZEG image URL
+ * Pattern: https://assets.zeg.de/{brandId}/hub_main/...
  */
-function getBrandCdnId(brandName?: string): string {
+function extractBrandId(url: string): string | null {
+    if (!url) return null;
+
+    const match = url.match(/assets\.zeg\.de\/(\d+)\//i);
+    if (match) {
+        return match[1];
+    }
+
+    return null;
+}
+
+/**
+ * Gets the brand CDN ID for a given brand name or URL
+ * First tries to extract from URL, then falls back to brand name mapping
+ */
+function getBrandCdnId(brandName?: string, originalUrl?: string): string {
+    // Try to extract Brand ID directly from the URL first
+    if (originalUrl) {
+        const extractedId = extractBrandId(originalUrl);
+        if (extractedId) {
+            return extractedId;
+        }
+    }
+
+    // Fall back to brand name mapping
     if (!brandName) return DEFAULT_BRAND_ID;
     return BRAND_CDN_IDS[brandName] || DEFAULT_BRAND_ID;
 }
@@ -99,8 +124,8 @@ export function getOptimizedImageUrl(
         return originalUrl;
     }
 
-    // Get brand CDN ID
-    const brandId = getBrandCdnId(brandName);
+    // Get brand CDN ID (extracts from URL if available, falls back to brand name)
+    const brandId = getBrandCdnId(brandName, originalUrl);
 
     // Get size configuration
     const sizeConfig = IMAGE_SIZES[size];

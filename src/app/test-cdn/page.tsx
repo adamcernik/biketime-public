@@ -27,6 +27,16 @@ export default function TestCDNPage() {
         return null;
     };
 
+    // Extract Brand ID from URL
+    const extractBrandId = (url: string): string | null => {
+        // Pattern: https://assets.zeg.de/{brandId}/hub_main/...
+        const match = url.match(/assets\.zeg\.de\/(\d+)\//i);
+        if (match) {
+            return match[1];
+        }
+        return null;
+    };
+
     // Generate CDN URL for specific size
     const generateCdnUrl = (brandId: string, filename: string, sizePath: string): string => {
         return `https://cdn-assets.zeg.de/brands/${brandId}/${sizePath}/${filename}`;
@@ -34,10 +44,19 @@ export default function TestCDNPage() {
 
     const handleTestUrl = () => {
         const extracted = extractFilename(testUrl);
+        const extractedBrandId = extractBrandId(testUrl);
+
         if (extracted) {
             setFilename(extracted);
         } else {
             alert('Could not extract filename from URL');
+            return;
+        }
+
+        if (extractedBrandId) {
+            setBrandId(extractedBrandId);
+        } else {
+            alert('Could not extract Brand ID from URL - using default');
         }
     };
 
