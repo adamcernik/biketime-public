@@ -25,6 +25,7 @@ function CatalogNewContent() {
     const [inStockOnly, setInStockOnly] = useState(false);
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
+    const [initialized, setInitialized] = useState(false);
 
     // UI State
     const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -38,9 +39,9 @@ function CatalogNewContent() {
         return () => clearTimeout(timer);
     }, [search]);
 
-    // Initialize from URL
+    // Initialize from URL (runs once on mount)
     useEffect(() => {
-        if (!searchParams) return;
+        if (!searchParams || initialized) return;
         setSelectedCategory(searchParams.get('category') || '');
         setSelectedYear(searchParams.get('year') || '');
         setSelectedMose(searchParams.get('mose') || '');
@@ -51,11 +52,15 @@ function CatalogNewContent() {
         setPage(Number(searchParams.get('page')) || 1);
 
         const qEbike = searchParams.get('ebike');
-        setEbikeOnly(qEbike === 'true' ? 'ebike' : (qEbike === 'false' ? 'non' : 'all'));
-    }, [searchParams]);
+        setEbikeOnly(qEbike === 'true' ? 'ebike' : (qEbike === 'false' ? 'non' : 'ebike'));
 
-    // Update URL on filter change
+        setInitialized(true);
+    }, [searchParams, initialized]);
+
+    // Update URL on filter change (only after initialization)
     useEffect(() => {
+        if (!initialized) return; // Don't sync to URL until we've read from URL first
+
         const params = new URLSearchParams();
         if (selectedCategory) params.set('category', selectedCategory);
         if (selectedYear) params.set('year', selectedYear);
@@ -78,7 +83,7 @@ function CatalogNewContent() {
         // This effect is now strictly for synchronizing STATE -> URL
         // The other effect handles URL -> STATE
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [selectedCategory, selectedMose, selectedMohe, selectedYear, selectedSize, inStockOnly, ebikeOnly, debouncedSearch, page]);
+    }, [initialized, selectedCategory, selectedMose, selectedMohe, selectedYear, selectedSize, inStockOnly, ebikeOnly, debouncedSearch, page]);
 
     // Reset page on filter change (except pagination itself)
     useEffect(() => {
