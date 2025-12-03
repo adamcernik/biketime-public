@@ -261,7 +261,10 @@ function CatalogNewContent() {
                                     <>
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                                             {products.map(product => (
-                                                <ProductCardV2 key={product.id} product={product} />
+                                                <ProductCardV2
+                                                    key={product._uniqueKey || product.id}
+                                                    product={product}
+                                                />
                                             ))}
                                         </div>
 

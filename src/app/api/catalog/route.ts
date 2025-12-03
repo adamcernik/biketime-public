@@ -258,7 +258,8 @@ export async function GET(req: NextRequest) {
                         _isExpanded: true,
                         _displayColor: stockColor,
                         // Keep original product ID for detail page lookup
-                        // The ProductCardV2 will use primaryVariantId for linking if available
+                        // Add unique key for React (combines product ID + color)
+                        _uniqueKey: `${product.id}_${stockColor.replace(/\s+/g, '_').toLowerCase()}`,
                     });
                 });
             }
