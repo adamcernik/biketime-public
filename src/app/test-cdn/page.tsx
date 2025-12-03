@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 
 export default function TestCDNPage() {
     // Example product from your data
@@ -181,7 +180,7 @@ export default function TestCDNPage() {
                     <h3 className="text-lg font-semibold text-blue-900 mb-2">How to Test:</h3>
                     <ol className="list-decimal list-inside space-y-2 text-blue-800">
                         <li>Paste a product image URL from your database</li>
-                        <li>Click "Extract Filename" to parse it</li>
+                        <li>Click &quot;Extract Filename&quot; to parse it</li>
                         <li>Try different Brand IDs (1319839, or try extracting from your current URLs)</li>
                         <li>Check browser console to see which images load successfully</li>
                         <li>Open failed URLs in new tab to see error messages</li>
