@@ -107,13 +107,6 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
                                 Na cestě
                             </span>
                         ) : null}
-
-                        {/* Color badge for expanded variants */}
-                        {product._displayColor && (
-                            <span className="text-[10px] font-bold px-2 py-1 rounded bg-blue-100 text-blue-700 border border-blue-200">
-                                {product._displayColor}
-                            </span>
-                        )}
                     </div>
                 </div>
 

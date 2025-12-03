@@ -69,16 +69,31 @@ export default function DetailPageV2() {
                 const data = await res.json();
                 setProduct(data);
 
+                // Check if color is specified in URL parameters
+                const urlParams = new URLSearchParams(window.location.search);
+                const urlColor = urlParams.get('color');
+
                 // Default Selections
                 if (data.variants && data.variants.length > 0) {
-                    const firstVariant = data.variants[0];
-                    setSelectedColor(firstVariant.color);
-                    setSelectedFrameShape(firstVariant.frameShape);
+                    // Try to find variant matching URL color parameter
+                    let initialVariant = data.variants[0];
+
+                    if (urlColor) {
+                        const matchingVariant = data.variants.find((v: any) =>
+                            v.color && v.color.toLowerCase() === urlColor.toLowerCase()
+                        );
+                        if (matchingVariant) {
+                            initialVariant = matchingVariant;
+                        }
+                    }
+
+                    setSelectedColor(initialVariant.color);
+                    setSelectedFrameShape(initialVariant.frameShape);
 
                     // Pre-select capacity
                     const relevantVariants = data.variants.filter((v: any) =>
-                        v.color === firstVariant.color &&
-                        v.frameShape === firstVariant.frameShape
+                        v.color === initialVariant.color &&
+                        v.frameShape === initialVariant.frameShape
                     );
                     const capacities = Array.from(new Set(relevantVariants.map((v: any) => v.capacity)))
                         .filter(Boolean)
