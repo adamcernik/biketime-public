@@ -20,19 +20,13 @@ export const metadata: Metadata = {
   title: "Biketime",
   description: "Biketime – kola Bulls v ČR",
   metadataBase: new URL('https://biketime.cz'), // Replace with your actual domain
+  // Next.js automatically uses /src/app/opengraph-image.png for Open Graph!
+  // No need to manually specify the image - it's detected automatically
   openGraph: {
     title: "Biketime – kola Bulls v ČR",
     description: "Objevte kompletní nabídku kol Bulls. E-bikes, horská kola, trekingová kola a další.",
     url: 'https://biketime.cz',
     siteName: 'Biketime',
-    images: [
-      {
-        url: '/og-image.jpg', // Default OG image
-        width: 1200,
-        height: 630,
-        alt: 'Biketime – kola Bulls',
-      },
-    ],
     locale: 'cs_CZ',
     type: 'website',
   },
@@ -40,7 +34,6 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: "Biketime – kola Bulls v ČR",
     description: "Objevte kompletní nabídku kol Bulls. E-bikes, horská kola, trekingová kola a další.",
-    images: ['/og-image.jpg'],
   },
 };
 
