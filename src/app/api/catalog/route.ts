@@ -257,8 +257,8 @@ export async function GET(req: NextRequest) {
                         primaryVariantId: firstVariant.id,
                         _isExpanded: true,
                         _displayColor: stockColor,
-                        // Unique ID for this expanded entry
-                        id: `${product.id}_${stockColor.replace(/\s+/g, '_')}`
+                        // Keep original product ID for detail page lookup
+                        // The ProductCardV2 will use primaryVariantId for linking if available
                     });
                 });
             }

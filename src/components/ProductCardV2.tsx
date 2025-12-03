@@ -69,11 +69,13 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
     // Use primaryImage if available (expanded variant), otherwise first image
     const displayImage = product.primaryImage || product.images?.[0];
 
-    // Determine which ID to link to (variant ID if expanded, otherwise product ID)
-    const linkId = product.primaryVariantId || product.id;
+    // Always link to product ID (not variant ID)
+    // If we have a specific color variant, add it as a query parameter for pre-selection
+    const baseLink = `/catalog/${product.id}`;
+    const linkHref = product.primaryColor ? `${baseLink}?color=${encodeURIComponent(product.primaryColor)}` : baseLink;
 
     return (
-        <Link href={`/catalog/${linkId}`} className="group block h-full">
+        <Link href={linkHref} className="group block h-full">
             <div
                 className="bg-white rounded-2xl overflow-hidden border border-zinc-100 shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col"
             >
