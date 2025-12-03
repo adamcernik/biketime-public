@@ -101,7 +101,7 @@ export async function GET(req: NextRequest) {
         const q = collection(db, 'products_v2');
 
         const snapshot = await getDocs(q);
-        const allProducts = snapshot.docs.map(d => {
+        let allProducts = snapshot.docs.map(d => {
             const data = d.data();
             const product = { id: d.id, ...data } as any;
 
@@ -188,9 +188,84 @@ export async function GET(req: NextRequest) {
                 hasStock,
                 sizes,
                 stockSizes,
-                onTheWaySizes
+                onTheWaySizes,
+                variants // Keep variants for expansion below
             };
         });
+
+        // **NEW: Expand products to show each in-stock color variant as a separate card**
+        const expandedProducts: any[] = [];
+
+        allProducts.forEach(product => {
+            if (!product.variants || !Array.isArray(product.variants)) {
+                // No variants, keep as is
+                expandedProducts.push(product);
+                return;
+            }
+
+            // Group variants by color and check stock
+            const colorGroups = new Map<string, any[]>();
+            product.variants.forEach((v: any) => {
+                const color = v.color || 'No Color';
+                if (!colorGroups.has(color)) {
+                    colorGroups.set(color, []);
+                }
+                colorGroups.get(color)!.push(v);
+            });
+
+            // Find which colors have stock
+            const colorsWithStock: string[] = [];
+            colorGroups.forEach((variants, color) => {
+                const hasStockInColor = variants.some((v: any) => {
+                    const stock = Number(v.stock) || Number(v.onHand) || Number(v.qty) || Number(v.b2bStockQuantity) || 0;
+                    return stock > 0;
+                });
+                if (hasStockInColor) {
+                    colorsWithStock.push(color);
+                }
+            });
+
+            if (colorsWithStock.length === 0) {
+                // No stock in any color, show original product (first variant's image)
+                expandedProducts.push(product);
+            } else if (colorsWithStock.length === 1) {
+                // Only one color in stock, show that variant
+                const stockColor = colorsWithStock[0];
+                const colorVariants = colorGroups.get(stockColor)!;
+                const firstVariant = colorVariants[0];
+
+                expandedProducts.push({
+                    ...product,
+                    // Override with variant-specific data
+                    primaryImage: firstVariant.images?.[0] || product.images?.[0],
+                    primaryColor: stockColor,
+                    primaryVariantId: firstVariant.id,
+                    _isExpanded: true,
+                    _displayColor: stockColor
+                });
+            } else {
+                // Multiple colors in stock - create separate entries for each
+                colorsWithStock.forEach(stockColor => {
+                    const colorVariants = colorGroups.get(stockColor)!;
+                    const firstVariant = colorVariants[0];
+
+                    expandedProducts.push({
+                        ...product,
+                        // Override with variant-specific data
+                        primaryImage: firstVariant.images?.[0] || product.images?.[0],
+                        primaryColor: stockColor,
+                        primaryVariantId: firstVariant.id,
+                        _isExpanded: true,
+                        _displayColor: stockColor,
+                        // Unique ID for this expanded entry
+                        id: `${product.id}_${stockColor.replace(/\s+/g, '_')}`
+                    });
+                });
+            }
+        });
+
+        // Replace allProducts with expandedProducts for filtering
+        allProducts = expandedProducts;
 
         // 1. Apply Base Filters (E-bike & Stock)
         // These filters determine the "Universe" of options available

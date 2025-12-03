@@ -28,6 +28,12 @@ interface ProductV2 {
     stockSizes?: string[];
     onTheWaySizes?: string[];
     farf?: string;
+    // Expansion properties (when showing specific color variants)
+    primaryImage?: string;
+    primaryColor?: string;
+    primaryVariantId?: string;
+    _isExpanded?: boolean;
+    _displayColor?: string;
 }
 
 export default function ProductCardV2({ product }: { product: ProductV2 }) {
@@ -60,17 +66,23 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
     const hasStock = product.hasStock || (product.stockSizes && product.stockSizes.length > 0);
     const hasOnTheWay = !hasStock && (product.onTheWaySizes && product.onTheWaySizes.length > 0);
 
+    // Use primaryImage if available (expanded variant), otherwise first image
+    const displayImage = product.primaryImage || product.images?.[0];
+
+    // Determine which ID to link to (variant ID if expanded, otherwise product ID)
+    const linkId = product.primaryVariantId || product.id;
+
     return (
-        <Link href={`/catalog/${product.id}`} className="group block h-full">
+        <Link href={`/catalog/${linkId}`} className="group block h-full">
             <div
                 className="bg-white rounded-2xl overflow-hidden border border-zinc-100 shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col"
             >
                 {/* Image Area */}
                 <div className="aspect-[4/3] relative bg-zinc-50 p-6 group-hover:bg-zinc-100 transition-colors overflow-hidden">
                     {/* Main Image */}
-                    {product.images[0] ? (
+                    {displayImage ? (
                         <Image
-                            src={getOptimizedImageUrl(product.images[0], 'small', product.brand)}
+                            src={getOptimizedImageUrl(displayImage, 'small', product.brand)}
                             alt={`${product.brand} ${product.model}`}
                             fill
                             className="object-contain mix-blend-multiply transition-transform duration-500 group-hover:scale-95"
@@ -93,6 +105,13 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
                                 Na cestě
                             </span>
                         ) : null}
+
+                        {/* Color badge for expanded variants */}
+                        {product._displayColor && (
+                            <span className="text-[10px] font-bold px-2 py-1 rounded bg-blue-100 text-blue-700 border border-blue-200">
+                                {product._displayColor}
+                            </span>
+                        )}
                     </div>
                 </div>
 
