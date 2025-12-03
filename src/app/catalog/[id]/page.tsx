@@ -50,6 +50,15 @@ export default function DetailPageV2() {
     const [selectedSize, setSelectedSize] = useState<string>('');
     const [selectedCapacity, setSelectedCapacity] = useState<string>('');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+
+    // Detect mobile on mount and resize
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 1024);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     useEffect(() => {
         const load = async () => {
@@ -700,7 +709,7 @@ export default function DetailPageV2() {
                     </div>
                     <div className="relative w-[95vw] h-[90vh]" onClick={(e) => e.stopPropagation()}>
                         <Image
-                            src={getOptimizedImageUrl(mainImage, 'large', product.brand)}
+                            src={isMobile ? getOptimizedImageUrl(mainImage, 'large', product.brand) : mainImage}
                             alt={`${product.brand} ${product.model}`}
                             fill
                             className="object-contain"
