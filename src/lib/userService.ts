@@ -188,22 +188,20 @@ export class UserService {
             throw error;
         }
     }
-}
-
     // Update user data (for client zone)
     static async updateUserData(
-    uid: string,
-    data: Partial<ShopRegistrationData>
-): Promise < void> {
-    try {
-        const now = Timestamp.now();
-        await updateDoc(doc(db, USERS_COLLECTION, uid), {
+        uid: string,
+        data: Partial<ShopRegistrationData>
+    ): Promise<void> {
+        try {
+            const now = Timestamp.now();
+            await updateDoc(doc(db, USERS_COLLECTION, uid), {
                 ...data,
-        updatedAt: now
-});
+                updatedAt: now
+            });
         } catch (error) {
-    console.error('Error updating user data:', error);
-    throw error;
-}
+            console.error('Error updating user data:', error);
+            throw error;
+        }
     }
 }
