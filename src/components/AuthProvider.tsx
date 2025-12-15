@@ -2,7 +2,7 @@
 
 import { ReactNode, createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import { auth, googleProvider } from '@/lib/firebase';
-import { onAuthStateChanged, signInWithPopup, signOut, User as FirebaseUser } from 'firebase/auth';
+import { onAuthStateChanged, signInWithPopup, signOut, User as FirebaseUser, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { ShopUser, ShopRegistrationData } from '@/types/User';
 import { UserService } from '@/lib/userService';
 
@@ -11,6 +11,8 @@ type AuthContextValue = {
   shopUser: ShopUser | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
+  signUpWithEmail: (email: string, password: string) => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
   signOutUser: () => Promise<void>;
   registerShop: (registrationData: ShopRegistrationData) => Promise<void>;
   refreshUserData: () => Promise<void>;
@@ -81,6 +83,14 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     signInWithGoogle: async () => {
       if (!auth || !googleProvider) return;
       await signInWithPopup(auth, googleProvider);
+    },
+    signUpWithEmail: async (email, password) => {
+      if (!auth) return;
+      await createUserWithEmailAndPassword(auth, email, password);
+    },
+    signInWithEmail: async (email, password) => {
+      if (!auth) return;
+      await signInWithEmailAndPassword(auth, email, password);
     },
     signOutUser: async () => {
       if (!auth) return;
