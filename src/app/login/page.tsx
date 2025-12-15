@@ -6,12 +6,17 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export default function LoginPage() {
-  const { shopUser, signInWithGoogle, signInWithEmail, loading } = useAuth();
+  const { shopUser, signInWithGoogle, signInWithEmail, resetPassword, loading } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Reset password state
+  const [resetMode, setResetMode] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetSent, setResetSent] = useState(false);
 
   useEffect(() => {
     if (shopUser) {
@@ -40,6 +45,98 @@ export default function LoginPage() {
       setSubmitting(false);
     }
   };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    try {
+      await resetPassword(resetEmail);
+      setResetSent(true);
+    } catch (err: any) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      console.error('Reset password error:', err);
+      let msg = 'Chyba při odesílání emailu.';
+      if (err.code === 'auth/user-not-found') {
+        msg = 'Uživatel s tímto emailem neexistuje.';
+      }
+      setError(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (resetMode) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 flex items-center justify-center py-16 px-4">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-2xl shadow-xl p-8">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-zinc-900 mb-2">Obnova hesla</h1>
+              <p className="text-zinc-600">Zadejte váš email pro obnovení hesla</p>
+            </div>
+
+            {resetSent ? (
+              <div className="text-center">
+                <div className="bg-green-50 text-green-700 p-4 rounded-lg mb-6">
+                  Email pro obnovu hesla byl odeslán na adresu <strong>{resetEmail}</strong>. Zkontrolujte prosím svou schránku.
+                </div>
+                <button
+                  onClick={() => {
+                    setResetMode(false);
+                    setResetSent(false);
+                    setError(null);
+                  }}
+                  className="w-full bg-zinc-900 text-white py-3 px-4 rounded-lg font-medium hover:bg-zinc-800 transition-colors"
+                >
+                  Zpět na přihlášení
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative text-sm">
+                    {error}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 mb-1">Email</label>
+                  <input
+                    type="email"
+                    required
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    className="w-full px-4 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    placeholder="vas@email.cz"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full bg-zinc-900 text-white py-3 px-4 rounded-lg font-medium hover:bg-zinc-800 transition-colors disabled:opacity-50"
+                >
+                  {submitting ? 'Odesílám...' : 'Odeslat obnovovací email'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResetMode(false);
+                    setError(null);
+                  }}
+                  className="w-full text-zinc-500 hover:text-zinc-800 text-sm py-2 transition-colors"
+                >
+                  Zpět na přihlášení
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 flex items-center justify-center py-16 px-4">
@@ -105,7 +202,20 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-1">Heslo</label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-sm font-medium text-zinc-700">Heslo</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResetMode(true);
+                    setResetEmail(email); // Pre-fill email if entered
+                    setError(null);
+                  }}
+                  className="text-xs text-primary hover:text-primary/80 transition-colors"
+                >
+                  Zapomněli jste heslo?
+                </button>
+              </div>
               <input
                 type="password"
                 required
