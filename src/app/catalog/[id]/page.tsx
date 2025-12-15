@@ -7,6 +7,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { sortSizes, standardizeSize, detectCategory } from '@/lib/size-mapping';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
+import { useAuth } from '../../../components/AuthProvider';
 
 interface Variant {
     id: string;
@@ -37,10 +38,12 @@ interface Product {
     images: string[];
     minPrice: number;
     maxPrice: number;
+    priceLevelsCzk?: Partial<Record<'A' | 'B' | 'C' | 'D', number>>;
 }
 
 export default function DetailPageV2() {
     const { id } = useParams<{ id: string }>();
+    const { shopUser } = useAuth();
     // const router = useRouter(); // Unused variable removed
 
     const [product, setProduct] = useState<Product | null>(null);
@@ -359,6 +362,24 @@ export default function DetailPageV2() {
                                 {priceDisplay}
                             </div>
                             <div className="text-sm text-zinc-500">Včetně DPH</div>
+
+                            {/* B2B Price */}
+                            {(() => {
+                                const priceLevel = shopUser?.priceLevel as 'A' | 'B' | 'C' | 'D' | undefined;
+                                const b2bPrice = priceLevel && product.priceLevelsCzk ? product.priceLevelsCzk[priceLevel] : null;
+
+                                if (b2bPrice) {
+                                    return (
+                                        <div className="mt-4 mb-2 bg-zinc-50 p-4 rounded-xl border border-zinc-100 inline-block">
+                                            <div className="text-2xl font-bold text-primary">
+                                                {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(b2bPrice)}
+                                            </div>
+                                            <div className="text-xs text-zinc-500 uppercase tracking-wide">Nákupní cena bez DPH</div>
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })()}
                         </div>
 
                         <div className="bg-white rounded-2xl border border-zinc-100 p-6 shadow-sm mb-8">

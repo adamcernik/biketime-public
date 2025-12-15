@@ -1,15 +1,19 @@
 'use client';
 
 import { ReactNode, createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { auth, googleProvider, db } from '@/lib/firebase';
-import { onAuthStateChanged, signInWithPopup, signOut, User } from 'firebase/auth';
-import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { auth, googleProvider } from '@/lib/firebase';
+import { onAuthStateChanged, signInWithPopup, signOut, User as FirebaseUser } from 'firebase/auth';
+import { ShopUser, ShopRegistrationData } from '@/types/User';
+import { UserService } from '@/lib/userService';
 
 type AuthContextValue = {
-  user: User | null;
+  firebaseUser: FirebaseUser | null;
+  shopUser: ShopUser | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
   signOutUser: () => Promise<void>;
+  registerShop: (registrationData: ShopRegistrationData) => Promise<void>;
+  refreshUserData: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -21,53 +25,58 @@ export function useAuth(): AuthContextValue {
 }
 
 export default function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const [shopUser, setShopUser] = useState<ShopUser | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const refreshUserData = async () => {
+    if (!firebaseUser) {
+      setShopUser(null);
+      return;
+    }
+
+    try {
+      const userData = await UserService.updateUserOnLogin({
+        uid: firebaseUser.uid,
+        email: firebaseUser.email!,
+        displayName: firebaseUser.displayName || undefined,
+        photoURL: firebaseUser.photoURL || undefined
+      });
+
+      setShopUser(userData);
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+      setShopUser(null);
+    }
+  };
 
   useEffect(() => {
     if (!auth) {
       setLoading(false);
       return;
     }
+
     const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setLoading(false);
-      if (u && db) {
-        const adminEmails = new Set(
-          [
-            ...(process.env.NEXT_PUBLIC_ADMIN_EMAILS
-              ? process.env.NEXT_PUBLIC_ADMIN_EMAILS.split(',').map((e) => e.trim().toLowerCase())
-              : []),
-            'adam.cernik@gmail.com', // seed poweradmin
-          ].filter(Boolean)
-        );
-        const shouldBeAdmin = adminEmails.has((u.email ?? '').toLowerCase());
-        const ref = doc(db, 'users', u.uid);
-        getDoc(ref).then(async (snap) => {
-          if (!snap.exists()) {
-            await setDoc(ref, {
-              uid: u.uid,
-              email: u.email ?? '',
-              displayName: u.displayName ?? '',
-              photoURL: u.photoURL ?? '',
-              isAdmin: shouldBeAdmin,
-              createdAt: serverTimestamp(),
-              lastLoginAt: serverTimestamp(),
-            });
-          } else {
-            const current = snap.data() as { isAdmin?: boolean } | undefined;
-            const updates: Record<string, unknown> = { lastLoginAt: serverTimestamp() };
-            if (shouldBeAdmin && !current?.isAdmin) updates.isAdmin = true;
-            await updateDoc(ref, updates);
-          }
-        }).catch(() => {/* ignore */});
+      setFirebaseUser(u);
+
+      if (!u) {
+        setShopUser(null);
+        setLoading(false);
       }
     });
+
     return () => unsub();
   }, []);
 
+  useEffect(() => {
+    if (firebaseUser) {
+      refreshUserData().finally(() => setLoading(false));
+    }
+  }, [firebaseUser]);
+
   const value = useMemo<AuthContextValue>(() => ({
-    user,
+    firebaseUser,
+    shopUser,
     loading,
     signInWithGoogle: async () => {
       if (!auth || !googleProvider) return;
@@ -76,8 +85,32 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     signOutUser: async () => {
       if (!auth) return;
       await signOut(auth);
+      setFirebaseUser(null);
+      setShopUser(null);
     },
-  }), [user, loading]);
+    registerShop: async (registrationData: ShopRegistrationData) => {
+      if (!firebaseUser) throw new Error('Must be signed in to register a shop');
+
+      // Check if user already has shop data
+      const existingUser = await UserService.getUserByUid(firebaseUser.uid);
+
+      if (existingUser?.companyName) {
+        // Update existing registration
+        await UserService.updateShopRegistration(firebaseUser.uid, registrationData);
+      } else {
+        // New registration
+        await UserService.registerShop(
+          firebaseUser.uid,
+          firebaseUser.email!,
+          registrationData
+        );
+      }
+
+      // Refresh user data
+      await refreshUserData();
+    },
+    refreshUserData,
+  }), [firebaseUser, shopUser, loading]);
 
   return (
     <AuthContext.Provider value={value}>

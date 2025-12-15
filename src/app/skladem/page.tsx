@@ -28,7 +28,7 @@ interface Bike {
   b2bStockQuantity?: number;
   stockSizes?: string[];
   mocCzk?: number;
-  priceLevelsCzk?: Partial<Record<'A'|'B'|'C'|'D'|'E'|'F', number>>;
+  priceLevelsCzk?: Partial<Record<'A' | 'B' | 'C' | 'D', number>>;
 }
 
 export default function InStockPage() {
@@ -107,8 +107,8 @@ export default function InStockPage() {
                     const hasRepSizeInStock = repSize ? (b.stockSizes ?? []).includes(repSize) : (b.stockSizes ?? []).length > 0;
                     return hasRepSizeInStock;
                   })() && (
-                    <span className="absolute top-2 left-2 text-[10px] px-2 py-0.5 rounded bg-green-600 text-white">SKLADEM</span>
-                  )}
+                      <span className="absolute top-2 left-2 text-[10px] px-2 py-0.5 rounded bg-green-600 text-white">SKLADEM</span>
+                    )}
                 </div>
                 <div className="p-3">
                   <div className="text-xs text-gray-500 font-mono">{b.nrLf}</div>

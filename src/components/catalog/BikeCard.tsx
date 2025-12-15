@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
+import { useAuth } from '../AuthProvider';
 
 // Types (copied from page.tsx for now, ideally should be in a types file)
 export interface Bike {
@@ -20,7 +21,7 @@ export interface Bike {
     stockSizes?: string[];
     onTheWaySizes?: string[];
     mocCzk?: number;
-    priceLevelsCzk?: Partial<Record<'A' | 'B' | 'C' | 'D' | 'E' | 'F', number>>;
+    priceLevelsCzk?: Partial<Record<'A' | 'B' | 'C' | 'D', number>>;
     mose?: string;
     variants?: { id: string; color: string; image: string; nrLf: string }[];
     frameType?: string;
@@ -54,7 +55,13 @@ function getColorHex(colorName: string): string {
 }
 
 export function BikeCard({ bike, viewMode }: { bike: Bike; viewMode: 'grid' | 'list' }) {
+    const { shopUser } = useAuth();
     const [activeVariantId, setActiveVariantId] = useState(bike.id);
+
+    // ... existing initialization ...
+
+    // ... inside JSX ...
+
 
     // Find the active variant object
     const activeVariant = bike.variants?.find(v => v.id === activeVariantId) || {
@@ -179,6 +186,23 @@ export function BikeCard({ bike, viewMode }: { bike: Bike; viewMode: 'grid' | 'l
                         </Link>
                     )}
                 </div>
+                {/* B2B Price display */}
+                {(() => {
+                    const priceLevel = shopUser?.priceLevel as 'A' | 'B' | 'C' | 'D' | undefined;
+                    const b2bPrice = priceLevel && bike.priceLevelsCzk ? bike.priceLevelsCzk[priceLevel] : null;
+
+                    if (b2bPrice) {
+                        return (
+                            <div className="mt-1 text-right">
+                                <div className="text-sm font-bold text-primary">
+                                    {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(b2bPrice)}
+                                </div>
+                                <div className="text-[10px] text-zinc-500 uppercase tracking-wide">Nákupní cena bez DPH</div>
+                            </div>
+                        );
+                    }
+                    return null;
+                })()}
             </div>
         </div>
     );

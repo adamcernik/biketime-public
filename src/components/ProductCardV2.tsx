@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { standardizeSize, detectCategory, sortSizes } from '@/lib/size-mapping';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
 
+import { useAuth } from './AuthProvider';
+
 interface ProductV2 {
     id: string;
     brand: string;
@@ -28,6 +30,7 @@ interface ProductV2 {
     stockSizes?: string[];
     onTheWaySizes?: string[];
     farf?: string;
+    priceLevelsCzk?: Partial<Record<'A' | 'B' | 'C' | 'D', number>>;
     // Expansion properties (when showing specific color variants)
     primaryImage?: string;
     primaryColor?: string;
@@ -37,8 +40,11 @@ interface ProductV2 {
 }
 
 export default function ProductCardV2({ product }: { product: ProductV2 }) {
+    const { shopUser } = useAuth();
 
-    // Determine category for size mapping
+    // ... rest of component logic ...
+
+
     const category = detectCategory({ categoryPrgr: product.category, modell: product.model });
 
     // Standardize and deduplicate sizes
@@ -176,9 +182,25 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
                                 )}
                             </div>
                         </div>
-                        <div className="text-xs text-zinc-400 font-medium">
-                            {product.variants.length} variant
-                        </div>
+                    </div>
+                    {(() => {
+                        const priceLevel = shopUser?.priceLevel as 'A' | 'B' | 'C' | 'D' | undefined;
+                        const b2bPrice = priceLevel && product.priceLevelsCzk ? product.priceLevelsCzk[priceLevel] : null;
+
+                        if (b2bPrice) {
+                            return (
+                                <div className="mt-1">
+                                    <div className="text-sm font-bold text-primary">
+                                        {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(b2bPrice)}
+                                    </div>
+                                    <div className="text-[9px] text-zinc-500 uppercase tracking-wide leading-none">Bez DPH</div>
+                                </div>
+                            );
+                        }
+                        return null;
+                    })()}
+                    <div className="text-xs text-zinc-400 font-medium">
+                        {product.variants.length} variant
                     </div>
                 </div>
             </div>

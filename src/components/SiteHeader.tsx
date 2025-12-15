@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import logoImage from '@/assets/biketime-logo.png';
+import UserAuthButton from './UserAuthButton';
 
 const navItems: { href: string; label: string }[] = [
   { href: '/catalog', label: 'Katalog kol' },
@@ -56,11 +57,7 @@ export default function SiteHeader() {
               +420 604 263 221
             </a>
           </div>
-          <div className="hidden sm:block">
-            <Link href="/prodejny" className="hover:text-white transition-colors">
-              Prodej možný v prodejnách uvedených zde
-            </Link>
-          </div>
+          <UserAuthButton />
         </div>
       </div>
 

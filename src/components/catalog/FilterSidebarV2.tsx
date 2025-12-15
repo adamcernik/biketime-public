@@ -1,14 +1,17 @@
 // import { getSizeLabel } from '@/lib/size-mapping';
+import { useState } from 'react';
 
 interface FilterSidebarV2Props {
     categories: string[];
     moseOptions: string[];
     moheOptions: string[];
+    wheelSizeOptions: string[];
 
     // Current Filters
     selectedCategory: string;
     selectedMose: string;
     selectedMohe: string;
+    selectedWheelSize: string;
     ebikeOnly: 'all' | 'ebike' | 'non';
     inStockOnly: boolean;
 
@@ -16,6 +19,7 @@ interface FilterSidebarV2Props {
     setCategory: (v: string) => void;
     setMose: (v: string) => void;
     setMohe: (v: string) => void;
+    setWheelSize: (v: string) => void;
     setEbikeOnly: (v: 'all' | 'ebike' | 'non') => void;
     setInStockOnly: (v: boolean) => void;
 
@@ -26,17 +30,29 @@ export function FilterSidebarV2({
     categories,
     moseOptions,
     moheOptions,
+    wheelSizeOptions,
     selectedCategory,
     selectedMose,
     selectedMohe,
+    selectedWheelSize,
     ebikeOnly,
     inStockOnly,
     setCategory,
     setMose,
     setMohe,
+    setWheelSize,
     setEbikeOnly,
     setInStockOnly,
 }: FilterSidebarV2Props) {
+    const [showOtherWheelSizes, setShowOtherWheelSizes] = useState(false);
+
+    // Main wheel sizes that are always visible
+    const mainWheelSizes = ['27.5', '28', '29'];
+
+    // Filter wheel sizes into main and others
+    const mainSizes = wheelSizeOptions.filter(size => mainWheelSizes.includes(size));
+    const otherSizes = wheelSizeOptions.filter(size => !mainWheelSizes.includes(size));
+
     return (
         <div className="space-y-8">
 
@@ -99,9 +115,72 @@ export function FilterSidebarV2({
                 </div>
             </div>
 
+            <hr className="border-zinc-100" />
+
+            {/* Wheel Size */}
+            {wheelSizeOptions.length > 0 && (
+                <>
+                    <div>
+                        <h3 className="text-sm font-bold text-zinc-900 mb-3 uppercase tracking-wider">Velikost kol</h3>
+                        <div className="space-y-2">
+                            {/* Main sizes - always visible */}
+                            {mainSizes.map(size => (
+                                <div
+                                    key={size}
+                                    onClick={() => setWheelSize(selectedWheelSize === size ? '' : size)}
+                                    className="flex items-center gap-3 cursor-pointer group"
+                                >
+                                    <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${selectedWheelSize === size ? 'bg-zinc-900 border-zinc-900' : 'bg-white border-zinc-300 group-hover:border-zinc-400'}`}>
+                                        {selectedWheelSize === size && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                                    </div>
+                                    <span className={`text-sm ${selectedWheelSize === size ? 'text-zinc-900 font-medium' : 'text-zinc-600'}`}>{size}"</span>
+                                </div>
+                            ))}
+
+                            {/* Other sizes - expandable */}
+                            {otherSizes.length > 0 && (
+                                <div>
+                                    <div
+                                        onClick={() => setShowOtherWheelSizes(!showOtherWheelSizes)}
+                                        className="flex items-center gap-2 cursor-pointer group py-1"
+                                    >
+                                        <svg
+                                            className={`w-4 h-4 text-zinc-500 transition-transform ${showOtherWheelSizes ? 'rotate-90' : ''}`}
+                                            fill="none"
+                                            viewBox="0 0 24 24"
+                                            stroke="currentColor"
+                                        >
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                        <span className="text-sm text-zinc-600 font-medium">Ostatní</span>
+                                    </div>
+
+                                    {showOtherWheelSizes && (
+                                        <div className="space-y-2 mt-2 ml-6">
+                                            {otherSizes.map(size => (
+                                                <div
+                                                    key={size}
+                                                    onClick={() => setWheelSize(selectedWheelSize === size ? '' : size)}
+                                                    className="flex items-center gap-3 cursor-pointer group"
+                                                >
+                                                    <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${selectedWheelSize === size ? 'bg-zinc-900 border-zinc-900' : 'bg-white border-zinc-300 group-hover:border-zinc-400'}`}>
+                                                        {selectedWheelSize === size && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>}
+                                                    </div>
+                                                    <span className={`text-sm ${selectedWheelSize === size ? 'text-zinc-900 font-medium' : 'text-zinc-600'}`}>{size}"</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    <hr className="border-zinc-100" />
+                </>
+            )}
+
             {(ebikeOnly === 'ebike' || ebikeOnly === 'all') && (
                 <>
-                    <hr className="border-zinc-100" />
                     <div>
                         <h3 className="text-sm font-bold text-zinc-900 mb-3 uppercase tracking-wider">Motor</h3>
                         <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
@@ -119,10 +198,9 @@ export function FilterSidebarV2({
                             ))}
                         </div>
                     </div>
+                    <hr className="border-zinc-100" />
                 </>
             )}
-
-            <hr className="border-zinc-100" />
 
             {/* Model Series */}
             <div>

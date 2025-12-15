@@ -1,1 +1,2 @@
 The AI agent MUST NOT commit changes automatically. All changes must be reviewed and staged by the human developer before committing.
+Dont use the Screenshot feature in Chrome

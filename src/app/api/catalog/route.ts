@@ -307,6 +307,20 @@ export async function GET(req: NextRequest) {
         });
         const sizeOptions = Array.from(allSizes).sort(sortSizes);
 
+        // Extract all available wheel sizes from product specs
+        const allWheelSizes = new Set<string>();
+        baseProducts.forEach(p => {
+            const wheelSize = p.specs?.wheelSize;
+            if (wheelSize && wheelSize.trim()) {
+                // Extract numeric part (e.g., "28" from "28 zoll" or "28\"")
+                const match = wheelSize.match(/([\d\.]+)/);
+                if (match) {
+                    allWheelSizes.add(match[1]);
+                }
+            }
+        });
+        const wheelSizeOptions = Array.from(allWheelSizes).sort((a, b) => parseFloat(a) - parseFloat(b));
+
         // 3. Apply Selection Filters (Category, Year, Mose, Search)
         let filteredProducts = baseProducts;
 
@@ -364,6 +378,18 @@ export async function GET(req: NextRequest) {
             });
         }
 
+        // Wheel Size Filter
+        const wheelSizeParam = searchParams.get('wheelSize');
+        if (wheelSizeParam) {
+            filteredProducts = filteredProducts.filter(p => {
+                const wheelSize = p.specs?.wheelSize;
+                if (!wheelSize) return false;
+                // Check if the wheelSize contains the selected value
+                const match = wheelSize.match(/([\d\.]+)/);
+                return match && match[1] === wheelSizeParam;
+            });
+        }
+
         // Sort by Priority (Model Series), then Year (desc), then Brand, then Model
         filteredProducts.sort((a, b) => {
             // 1. Model Series Priority
@@ -401,7 +427,8 @@ export async function GET(req: NextRequest) {
                 years,
                 moseOptions,
                 moheOptions,
-                sizeOptions
+                sizeOptions,
+                wheelSizeOptions
             }
         });
 

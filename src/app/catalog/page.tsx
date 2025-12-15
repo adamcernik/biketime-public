@@ -21,6 +21,7 @@ function CatalogNewContent() {
     const [selectedMose, setSelectedMose] = useState<string>('');
     const [selectedMohe, setSelectedMohe] = useState<string>('');
     const [selectedSize, setSelectedSize] = useState<string>('');
+    const [selectedWheelSize, setSelectedWheelSize] = useState<string>('');
     const [ebikeOnly, setEbikeOnly] = useState<'all' | 'ebike' | 'non'>('ebike');
     const [inStockOnly, setInStockOnly] = useState(false);
     const [search, setSearch] = useState('');
@@ -47,6 +48,7 @@ function CatalogNewContent() {
         setSelectedMose(searchParams.get('mose') || '');
         setSelectedMohe(searchParams.get('mohe') || '');
         setSelectedSize(searchParams.get('size') || '');
+        setSelectedWheelSize(searchParams.get('wheelSize') || '');
         setInStockOnly(searchParams.get('inStock') === 'true');
         setSearch(searchParams.get('search') || '');
         setPage(Number(searchParams.get('page')) || 1);
@@ -67,6 +69,7 @@ function CatalogNewContent() {
         if (selectedMose) params.set('mose', selectedMose);
         if (selectedMohe) params.set('mohe', selectedMohe);
         if (selectedSize) params.set('size', selectedSize);
+        if (selectedWheelSize) params.set('wheelSize', selectedWheelSize);
         if (inStockOnly) params.set('inStock', 'true');
         if (ebikeOnly === 'ebike') params.set('ebike', 'true');
         if (ebikeOnly === 'non') params.set('ebike', 'false');
@@ -83,12 +86,12 @@ function CatalogNewContent() {
         // This effect is now strictly for synchronizing STATE -> URL
         // The other effect handles URL -> STATE
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [initialized, selectedCategory, selectedMose, selectedMohe, selectedYear, selectedSize, inStockOnly, ebikeOnly, debouncedSearch, page]);
+    }, [initialized, selectedCategory, selectedMose, selectedMohe, selectedYear, selectedSize, selectedWheelSize, inStockOnly, ebikeOnly, debouncedSearch, page]);
 
     // Reset page on filter change (except pagination itself)
     useEffect(() => {
         setPage(1);
-    }, [selectedCategory, selectedMose, selectedMohe, selectedYear, selectedSize, inStockOnly, ebikeOnly, debouncedSearch]);
+    }, [selectedCategory, selectedMose, selectedMohe, selectedYear, selectedSize, selectedWheelSize, inStockOnly, ebikeOnly, debouncedSearch]);
 
     // Fetch Data
     useEffect(() => {
@@ -104,6 +107,7 @@ function CatalogNewContent() {
                 if (selectedMose) params.set('mose', selectedMose);
                 if (selectedMohe) params.set('mohe', selectedMohe);
                 if (selectedSize) params.set('size', selectedSize);
+                if (selectedWheelSize) params.set('wheelSize', selectedWheelSize);
                 if (ebikeOnly === 'ebike') params.set('ebike', 'true');
                 if (ebikeOnly === 'non') params.set('ebike', 'false');
                 if (inStockOnly) params.set('inStock', 'true');
@@ -134,7 +138,7 @@ function CatalogNewContent() {
             }
         };
         load();
-    }, [selectedCategory, selectedMose, selectedMohe, selectedYear, selectedSize, inStockOnly, ebikeOnly, debouncedSearch, page]);
+    }, [selectedCategory, selectedMose, selectedMohe, selectedYear, selectedSize, selectedWheelSize, inStockOnly, ebikeOnly, debouncedSearch, page]);
 
     return (
         <main className="min-h-screen bg-zinc-50 pb-20">
@@ -166,14 +170,17 @@ function CatalogNewContent() {
                             categories={filters.categories || []}
                             moseOptions={filters.moseOptions || []}
                             moheOptions={filters.moheOptions || []}
+                            wheelSizeOptions={filters.wheelSizeOptions || []}
                             selectedCategory={selectedCategory}
                             selectedMose={selectedMose}
                             selectedMohe={selectedMohe}
+                            selectedWheelSize={selectedWheelSize}
                             ebikeOnly={ebikeOnly}
                             inStockOnly={inStockOnly}
                             setCategory={setSelectedCategory}
                             setMose={setSelectedMose}
                             setMohe={setSelectedMohe}
+                            setWheelSize={setSelectedWheelSize}
                             setEbikeOnly={setEbikeOnly}
                             setInStockOnly={setInStockOnly}
                             total={total}
@@ -200,14 +207,17 @@ function CatalogNewContent() {
                                 categories={filters.categories || []}
                                 moseOptions={filters.moseOptions || []}
                                 moheOptions={filters.moheOptions || []}
+                                wheelSizeOptions={filters.wheelSizeOptions || []}
                                 selectedCategory={selectedCategory}
                                 selectedMose={selectedMose}
                                 selectedMohe={selectedMohe}
+                                selectedWheelSize={selectedWheelSize}
                                 ebikeOnly={ebikeOnly}
                                 inStockOnly={inStockOnly}
                                 setCategory={setSelectedCategory}
                                 setMose={setSelectedMose}
                                 setMohe={setSelectedMohe}
+                                setWheelSize={setSelectedWheelSize}
                                 setEbikeOnly={setEbikeOnly}
                                 setInStockOnly={setInStockOnly}
                                 total={total}
@@ -253,6 +263,7 @@ function CatalogNewContent() {
                                                 setSelectedMohe('');
                                                 setSelectedYear('');
                                                 setSelectedSize('');
+                                                setSelectedWheelSize('');
                                                 setInStockOnly(false);
                                                 setEbikeOnly('ebike');
                                                 setSearch('');
