@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { ReactNode, createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import { auth, googleProvider } from '@/lib/firebase';
 import { onAuthStateChanged, signInWithPopup, signOut, User as FirebaseUser } from 'firebase/auth';
 import { ShopUser, ShopRegistrationData } from '@/types/User';
@@ -29,7 +29,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   const [shopUser, setShopUser] = useState<ShopUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refreshUserData = async () => {
+  const refreshUserData = useCallback(async () => {
     if (!firebaseUser) {
       setShopUser(null);
       return;
@@ -48,7 +48,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Error refreshing user data:', error);
       setShopUser(null);
     }
-  };
+  }, [firebaseUser]);
 
   useEffect(() => {
     if (!auth) {
@@ -72,7 +72,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     if (firebaseUser) {
       refreshUserData().finally(() => setLoading(false));
     }
-  }, [firebaseUser]);
+  }, [firebaseUser, refreshUserData]);
 
   const value = useMemo<AuthContextValue>(() => ({
     firebaseUser,
@@ -110,7 +110,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       await refreshUserData();
     },
     refreshUserData,
-  }), [firebaseUser, shopUser, loading]);
+  }), [firebaseUser, shopUser, loading, refreshUserData]);
 
   return (
     <AuthContext.Provider value={value}>

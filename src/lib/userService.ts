@@ -61,6 +61,7 @@ export class UserService {
 
             if (existingUser) {
                 // Update existing user's last login and profile info
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const updateData: any = {
                     lastLoginAt: now,
                     updatedAt: now
@@ -85,6 +86,7 @@ export class UserService {
                 };
             } else {
                 // Create new user with pending status (Google sign-in for existing users)
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const userData: any = {
                     uid: userInfo.uid,
                     email: userInfo.email,
