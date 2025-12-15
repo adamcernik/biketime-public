@@ -26,6 +26,7 @@ export default function LoginPage() {
     try {
       await signInWithEmail(email, password);
       // Auth provider will update state and useEffect will redirect
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error('Login error:', err);
       let msg = 'Chyba při přihlášení.';
