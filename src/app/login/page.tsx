@@ -53,8 +53,8 @@ export default function LoginPage() {
     try {
       await resetPassword(resetEmail);
       setResetSent(true);
-    } catch (err: any) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
       console.error('Reset password error:', err);
       let msg = 'Chyba při odesílání emailu.';
       if (err.code === 'auth/user-not-found') {
