@@ -90,8 +90,8 @@ export class UserService {
                 const userData: any = {
                     uid: userInfo.uid,
                     email: userInfo.email,
-                    displayName: userInfo.displayName || undefined,
-                    photoURL: userInfo.photoURL || undefined,
+                    displayName: userInfo.displayName || null,
+                    photoURL: userInfo.photoURL || null,
                     hasAccess: false,
                     role: UserRole.PENDING,
                     createdAt: now,

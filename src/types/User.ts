@@ -2,8 +2,8 @@ export interface ShopUser {
     id: string;
     uid: string; // Firebase Auth UID
     email: string;
-    displayName?: string;
-    photoURL?: string;
+    displayName?: string | null;
+    photoURL?: string | null;
 
     // Shop-specific fields
     companyName?: string;
