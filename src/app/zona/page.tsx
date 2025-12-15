@@ -3,10 +3,12 @@
 import { useAuth } from '@/components/AuthProvider';
 import { UserService } from '@/lib/userService';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import React, { useState, useEffect } from 'react';
 
 export default function ClientZonePage() {
   const { firebaseUser, shopUser, loading, signOutUser, refreshUserData } = useAuth();
+  const router = useRouter();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -80,7 +82,10 @@ export default function ClientZonePage() {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-zinc-900">Klientská zóna</h1>
           <button
-            onClick={signOutUser}
+            onClick={async () => {
+              await signOutUser();
+              router.push('/');
+            }}
             className="text-zinc-600 hover:text-zinc-900 text-sm font-medium px-4 py-2 border border-zinc-300 rounded-lg hover:bg-zinc-100 transition-colors"
           >
             Odhlásit se
