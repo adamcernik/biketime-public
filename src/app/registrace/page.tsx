@@ -51,6 +51,7 @@ export default function RegistrationPage() {
         try {
             await signUpWithEmail(authData.email, authData.password);
             // On success, firebaseUser will update, and the UI will switch to shop details form
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             console.error('Email sign up error:', err);
             let msg = 'Chyba při registraci.';
