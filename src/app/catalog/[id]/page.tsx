@@ -43,7 +43,7 @@ interface Product {
 
 export default function DetailPageV2() {
     const { id } = useParams<{ id: string }>();
-    const { shopUser } = useAuth();
+    const { shopUser, hideB2BPrices } = useAuth();
     // const router = useRouter(); // Unused variable removed
 
     const [product, setProduct] = useState<Product | null>(null);
@@ -368,7 +368,7 @@ export default function DetailPageV2() {
                                 const priceLevel = shopUser?.priceLevel as 'A' | 'B' | 'C' | 'D' | undefined;
                                 const b2bPrice = priceLevel && product.priceLevelsCzk ? product.priceLevelsCzk[priceLevel] : null;
 
-                                if (b2bPrice) {
+                                if (b2bPrice && !hideB2BPrices) {
                                     return (
                                         <div className="mt-4 mb-2 bg-zinc-50 p-4 rounded-xl border border-zinc-100 inline-block">
                                             <div className="text-2xl font-bold text-primary">
