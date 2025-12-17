@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/firebase-server';
-import { collection, doc, getDoc, getDocs, query, where, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDocs, writeBatch } from 'firebase/firestore';
 import fs from 'fs';
 import path from 'path';
 
@@ -77,7 +77,6 @@ export async function GET() {
     const productsRef = collection(db, 'products_v2');
     let updated = 0;
     const notFound: string[] = [];
-    const errors: string[] = [];
 
     // 1. Pre-fetch all products to build a map of NrLf -> ProductID
     // efficient for large datasets instead of querying for each row
@@ -97,6 +96,7 @@ export async function GET() {
         if (data.id) nrLfToId.set(data.id, id); // Fallback
 
         if (Array.isArray(data.variants)) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             data.variants.forEach((v: any) => {
                 if (v.nrLf) variantNrLfToId.set(v.nrLf, id);
                 if (v.ean) eanToId.set(v.ean, id);
@@ -114,7 +114,7 @@ export async function GET() {
 
         for (const r of chunk) {
             // Try identify product
-            let productId = nrLfToId.get(r.nrLf) || variantNrLfToId.get(r.nrLf) || eanToId.get(r.nrLf);
+            const productId = nrLfToId.get(r.nrLf) || variantNrLfToId.get(r.nrLf) || eanToId.get(r.nrLf);
 
             // Special case fallback: Try direct query if not in map (unlikely if we fetched everything, but safe)
             if (!productId) {
