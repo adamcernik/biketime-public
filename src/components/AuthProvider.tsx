@@ -17,6 +17,8 @@ type AuthContextValue = {
   signOutUser: () => Promise<void>;
   registerShop: (registrationData: ShopRegistrationData) => Promise<void>;
   refreshUserData: () => Promise<void>;
+  hideB2BPrices: boolean;
+  toggleHideB2BPrices: () => void;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -31,6 +33,23 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [shopUser, setShopUser] = useState<ShopUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [hideB2BPrices, setHideB2BPrices] = useState(false);
+
+  // Load B2B price visibility preference
+  useEffect(() => {
+    const stored = localStorage.getItem('hideB2BPrices');
+    if (stored) {
+      setHideB2BPrices(stored === 'true');
+    }
+  }, []);
+
+  const toggleHideB2BPrices = useCallback(() => {
+    setHideB2BPrices(prev => {
+      const newValue = !prev;
+      localStorage.setItem('hideB2BPrices', String(newValue));
+      return newValue;
+    });
+  }, []);
 
   const refreshUserData = useCallback(async () => {
     if (!firebaseUser) {
@@ -81,6 +100,8 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     firebaseUser,
     shopUser,
     loading,
+    hideB2BPrices,
+    toggleHideB2BPrices,
     signInWithGoogle: async () => {
       if (!auth || !googleProvider) return;
       await signInWithPopup(auth, googleProvider);
@@ -125,7 +146,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       await refreshUserData();
     },
     refreshUserData,
-  }), [firebaseUser, shopUser, loading, refreshUserData]);
+  }), [firebaseUser, shopUser, loading, refreshUserData, hideB2BPrices, toggleHideB2BPrices]);
 
   return (
     <AuthContext.Provider value={value}>

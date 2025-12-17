@@ -40,7 +40,7 @@ interface ProductV2 {
 }
 
 export default function ProductCardV2({ product }: { product: ProductV2 }) {
-    const { shopUser } = useAuth();
+    const { shopUser, hideB2BPrices } = useAuth();
 
     // ... rest of component logic ...
 
@@ -187,7 +187,7 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
                         const priceLevel = shopUser?.priceLevel as 'A' | 'B' | 'C' | 'D' | undefined;
                         const b2bPrice = priceLevel && product.priceLevelsCzk ? product.priceLevelsCzk[priceLevel] : null;
 
-                        if (b2bPrice) {
+                        if (b2bPrice && !hideB2BPrices) {
                             return (
                                 <div className="mt-1">
                                     <div className="text-sm font-bold text-primary">

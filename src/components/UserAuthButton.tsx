@@ -6,7 +6,7 @@ import { useAuth } from './AuthProvider';
 import { useState, useEffect, useRef } from 'react';
 
 export default function UserAuthButton() {
-    const { shopUser, loading, signOutUser } = useAuth();
+    const { shopUser, loading, signOutUser, hideB2BPrices, toggleHideB2BPrices } = useAuth();
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -98,6 +98,20 @@ export default function UserAuthButton() {
                         <div className="px-4 py-2 border-b border-gray-200">
                             <p className="text-xs text-gray-500">Firma</p>
                             <p className="text-sm text-gray-900">{shopUser.companyName}</p>
+                        </div>
+                    )}
+                    {shopUser.priceLevel && (
+                        <div className="px-4 py-2 border-b border-gray-200 flex items-center justify-between">
+                            <span className="text-sm text-gray-700">Skrýt VOC</span>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation(); // Prevent closing dropdown
+                                    toggleHideB2BPrices();
+                                }}
+                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${hideB2BPrices ? 'bg-primary' : 'bg-gray-200'}`}
+                            >
+                                <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${hideB2BPrices ? 'translate-x-5' : 'translate-x-1'}`} />
+                            </button>
                         </div>
                     )}
                     <Link
