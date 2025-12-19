@@ -185,7 +185,19 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
                     </div>
                     {(() => {
                         const priceLevel = shopUser?.priceLevel as 'A' | 'B' | 'C' | 'D' | undefined;
-                        const b2bPrice = priceLevel && product.priceLevelsCzk ? product.priceLevelsCzk[priceLevel] : null;
+                        let b2bPrice = priceLevel && product.priceLevelsCzk ? product.priceLevelsCzk[priceLevel] : null;
+
+                        // Check stock variants for manual B2B price override
+                        if (product.variants && Array.isArray(product.variants)) {
+                            const stockVariant = product.variants.find((v: any) => {
+                                const stock = Number(v.stock) || Number(v.onHand) || Number(v.qty) || Number(v.b2bStockQuantity) || 0;
+                                return stock > 0 && (Number(v.b2bPrice) > 0);
+                            });
+
+                            if (stockVariant) {
+                                b2bPrice = Number(stockVariant.b2bPrice);
+                            }
+                        }
 
                         if (b2bPrice && !hideB2BPrices) {
                             return (

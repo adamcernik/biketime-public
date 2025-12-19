@@ -25,6 +25,7 @@ interface Variant {
     b2bStockQuantity?: number;
     inTransit?: number;
     onTheWay?: number;
+    b2bPrice?: number;
 }
 
 interface Product {
@@ -366,7 +367,30 @@ export default function DetailPageV2() {
                             {/* B2B Price */}
                             {(() => {
                                 const priceLevel = shopUser?.priceLevel as 'A' | 'B' | 'C' | 'D' | undefined;
-                                const b2bPrice = priceLevel && product.priceLevelsCzk ? product.priceLevelsCzk[priceLevel] : null;
+                                let b2bPrice = priceLevel && product.priceLevelsCzk ? product.priceLevelsCzk[priceLevel] : null;
+
+                                // Check for manual B2B price
+                                if (selectedSize) {
+                                    // If size is selected, look at the specific variant
+                                    const selectedVariant = variantsInFrame.find(v =>
+                                        standardizeSize(v.size, category) === selectedSize &&
+                                        (!selectedCapacity || v.capacity === selectedCapacity)
+                                    );
+
+                                    if (selectedVariant && (selectedVariant as any).b2bPrice > 0) {
+                                        b2bPrice = Number((selectedVariant as any).b2bPrice);
+                                    }
+                                } else {
+                                    // Fallback to finding ANY stock variant with B2B price (like on card)
+                                    const stockVariant = product.variants.find((v: any) => {
+                                        const stock = Number(v.stock) || Number(v.onHand) || Number(v.qty) || Number(v.b2bStockQuantity) || 0;
+                                        return stock > 0 && (Number(v.b2bPrice) > 0);
+                                    });
+
+                                    if (stockVariant) {
+                                        b2bPrice = Number(stockVariant.b2bPrice);
+                                    }
+                                }
 
                                 if (b2bPrice && !hideB2BPrices) {
                                     return (
