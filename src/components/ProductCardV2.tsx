@@ -212,6 +212,7 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
                                         {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(b2bPrice)}
                                     </div>
                                     <div className="text-[9px] text-zinc-500 uppercase tracking-wide leading-none">Bez DPH</div>
+                                    <div className="text-[9px] text-red-500 mt-1">Manual: {product.manualB2BPrice || 'N/A'} (Level: {priceLevel || 'None'})</div>
                                 </div>
                             );
                         }
