@@ -40,6 +40,7 @@ interface Product {
     minPrice: number;
     maxPrice: number;
     priceLevelsCzk?: Partial<Record<'A' | 'B' | 'C' | 'D', number>>;
+    manualB2BPrice?: number;
 }
 
 export default function DetailPageV2() {
@@ -370,7 +371,20 @@ export default function DetailPageV2() {
                                 let b2bPrice = priceLevel && product.priceLevelsCzk ? product.priceLevelsCzk[priceLevel] : null;
 
                                 // Check for manual B2B price
-                                if (selectedSize) {
+                                if (product.manualB2BPrice && product.manualB2BPrice > 0) {
+                                    b2bPrice = Number(product.manualB2BPrice);
+
+                                    // Refine with specific variant price if available
+                                    if (selectedSize) {
+                                        const selectedVariant = variantsInFrame.find(v =>
+                                            standardizeSize(v.size, category) === selectedSize &&
+                                            (!selectedCapacity || v.capacity === selectedCapacity)
+                                        );
+                                        if (selectedVariant && (selectedVariant as any).b2bPrice > 0) {
+                                            b2bPrice = Number((selectedVariant as any).b2bPrice);
+                                        }
+                                    }
+                                } else if (selectedSize) {
                                     // If size is selected, look at the specific variant
                                     const selectedVariant = variantsInFrame.find(v =>
                                         standardizeSize(v.size, category) === selectedSize &&

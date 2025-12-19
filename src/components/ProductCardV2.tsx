@@ -37,6 +37,7 @@ interface ProductV2 {
     primaryVariantId?: string;
     _isExpanded?: boolean;
     _displayColor?: string;
+    manualB2BPrice?: number;
 }
 
 export default function ProductCardV2({ product }: { product: ProductV2 }) {
@@ -187,15 +188,20 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
                         const priceLevel = shopUser?.priceLevel as 'A' | 'B' | 'C' | 'D' | undefined;
                         let b2bPrice = priceLevel && product.priceLevelsCzk ? product.priceLevelsCzk[priceLevel] : null;
 
-                        // Check stock variants for manual B2B price override
-                        if (product.variants && Array.isArray(product.variants)) {
-                            const stockVariant = product.variants.find((v: any) => {
-                                const stock = Number(v.stock) || Number(v.onHand) || Number(v.qty) || Number(v.b2bStockQuantity) || 0;
-                                return stock > 0 && (Number(v.b2bPrice) > 0);
-                            });
+                        // Check for manual B2B price on the product (root level)
+                        if (product.manualB2BPrice && product.manualB2BPrice > 0) {
+                            b2bPrice = Number(product.manualB2BPrice);
+                        } else {
+                            // Check stock variants for manual B2B price override
+                            if (product.variants && Array.isArray(product.variants)) {
+                                const stockVariant = product.variants.find((v: any) => {
+                                    const stock = Number(v.stock) || Number(v.onHand) || Number(v.qty) || Number(v.b2bStockQuantity) || 0;
+                                    return stock > 0 && (Number(v.b2bPrice) > 0);
+                                });
 
-                            if (stockVariant) {
-                                b2bPrice = Number(stockVariant.b2bPrice);
+                                if (stockVariant) {
+                                    b2bPrice = Number(stockVariant.b2bPrice);
+                                }
                             }
                         }
 
