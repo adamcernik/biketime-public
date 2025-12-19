@@ -215,7 +215,14 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
                                         {new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(b2bPrice)}
                                     </div>
                                     <div className="text-[9px] text-zinc-500 uppercase tracking-wide leading-none">Bez DPH</div>
-                                    <div className="text-[9px] text-red-500 mt-1">Manual: {product.manualB2BPrice || 'N/A'} (Level: {priceLevel || 'None'})</div>
+                                    <div className="text-[9px] text-red-500 mt-1 font-mono break-all leading-tight border-t border-red-100 pt-1">
+                                        ManualRoot: {product.manualB2BPrice ?? 'undef'} |
+                                        LegacyRoot: {(product as any).b2bPrice ?? 'undef'} |
+                                        Vars: {product.variants?.length ?? 0} |
+                                        V1_Stock: {product.variants?.[0]?.stock ?? product.variants?.[0]?.onHand ?? 'u'} |
+                                        V1_Price: {product.variants?.[0]?.b2bPrice ?? 'u'} |
+                                        Result: {b2bPrice}
+                                    </div>
                                 </div>
                             );
                         }
