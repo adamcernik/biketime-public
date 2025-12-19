@@ -370,9 +370,11 @@ export default function DetailPageV2() {
                                 const priceLevel = shopUser?.priceLevel as 'A' | 'B' | 'C' | 'D' | undefined;
                                 let b2bPrice = priceLevel && product.priceLevelsCzk ? product.priceLevelsCzk[priceLevel] : null;
 
-                                // Check for manual B2B price
-                                if (product.manualB2BPrice && product.manualB2BPrice > 0) {
-                                    b2bPrice = Number(product.manualB2BPrice);
+                                // Check for manual B2B price (Root Level)
+                                const rootManualPrice = Number(product.manualB2BPrice) || Number((product as any).b2bPrice) || 0;
+
+                                if (rootManualPrice > 0) {
+                                    b2bPrice = rootManualPrice;
 
                                     // Refine with specific variant price if available
                                     if (selectedSize) {

@@ -189,8 +189,11 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
                         let b2bPrice = priceLevel && product.priceLevelsCzk ? product.priceLevelsCzk[priceLevel] : null;
 
                         // Check for manual B2B price on the product (root level)
-                        if (product.manualB2BPrice && product.manualB2BPrice > 0) {
-                            b2bPrice = Number(product.manualB2BPrice);
+                        // Support both 'manualB2BPrice' (new sync) and 'b2bPrice' (legacy/manual entry)
+                        const rootManualPrice = Number(product.manualB2BPrice) || Number((product as any).b2bPrice) || 0;
+
+                        if (rootManualPrice > 0) {
+                            b2bPrice = rootManualPrice;
                         } else {
                             // Check stock variants for manual B2B price override
                             if (product.variants && Array.isArray(product.variants)) {
