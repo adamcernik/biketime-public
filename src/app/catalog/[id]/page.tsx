@@ -367,6 +367,9 @@ export default function DetailPageV2() {
 
                             {/* B2B Price */}
                             {(() => {
+                                // CRITICAL: Only show B2B prices to logged-in users
+                                if (!shopUser) return null;
+
                                 const priceLevel = shopUser?.priceLevel as 'A' | 'B' | 'C' | 'D' | undefined;
                                 let b2bPrice = priceLevel && product.priceLevelsCzk ? product.priceLevelsCzk[priceLevel] : null;
 
