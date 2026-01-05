@@ -559,7 +559,7 @@ export default function DetailPageV2() {
                                                     }
                                                 `}
                                             >
-                                                <span>{size}</span>
+                                                <span>{size}{stock > 0 ? ` (${stock})` : ''}</span>
                                                 {inStock && !isSelected && (
                                                     <span className="w-2 h-2 rounded-full bg-green-500"></span>
                                                 )}
