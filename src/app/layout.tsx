@@ -5,6 +5,9 @@ import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import AuthProvider from "@/components/AuthProvider";
 import CookieBanner from "@/components/CookieBanner";
+import CSPostHogProvider from '@/components/PostHogProvider'
+import PostHogPageView from "@/components/PostHogPageView"
+import { Suspense } from "react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -57,10 +60,15 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          <SiteHeader />
-          {children}
-          <SiteFooter />
-          <CookieBanner />
+          <CSPostHogProvider>
+            <Suspense fallback={null}>
+              <PostHogPageView />
+            </Suspense>
+            <SiteHeader />
+            {children}
+            <SiteFooter />
+            <CookieBanner />
+          </CSPostHogProvider>
         </AuthProvider>
       </body>
     </html>

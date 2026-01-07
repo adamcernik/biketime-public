@@ -5,6 +5,7 @@ import { auth, googleProvider } from '@/lib/firebase';
 import { onAuthStateChanged, signInWithPopup, signOut, User as FirebaseUser, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { ShopUser, ShopRegistrationData } from '@/types/User';
 import { UserService } from '@/lib/userService';
+import { usePostHog } from 'posthog-js/react';
 
 type AuthContextValue = {
   firebaseUser: FirebaseUser | null;
@@ -95,6 +96,20 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       refreshUserData().finally(() => setLoading(false));
     }
   }, [firebaseUser, refreshUserData]);
+
+  const posthog = usePostHog();
+
+  useEffect(() => {
+    if (shopUser && posthog) {
+      posthog.identify(shopUser.uid, {
+        email: shopUser.email,
+        companyName: shopUser.companyName,
+        role: shopUser.role,
+      });
+    } else if (!firebaseUser && posthog) {
+      posthog.reset();
+    }
+  }, [shopUser, firebaseUser, posthog]);
 
   const value = useMemo<AuthContextValue>(() => ({
     firebaseUser,
