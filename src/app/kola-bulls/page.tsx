@@ -80,12 +80,12 @@ export default function BullsBikesPage() {
               {models.map((model, index) => (
                 <div key={model.id || index} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-300 flex flex-col h-full">
                   {/* Image Section */}
-                  <div className="bg-gray-100 border-b border-gray-100 aspect-video">
+                  <div className="bg-white border-b border-gray-100 aspect-video">
                     {model.image ? (
                       <img
                         src={model.image}
                         alt={model.title}
-                        className="w-full h-full object-contain p-4"
+                        className="w-full h-full object-contain"
                       />
                     ) : (
                       <div className="h-full flex items-center justify-center">
