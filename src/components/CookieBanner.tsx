@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { GoogleAnalytics } from '@next/third-parties/google';
 import { usePostHog } from 'posthog-js/react';
 
 export default function CookieBanner() {
@@ -38,8 +37,6 @@ export default function CookieBanner() {
 
     return (
         <>
-            {consentGiven && <GoogleAnalytics gaId="G-6T58ZKMCDQ" />}
-
             {show && (
                 <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-white border-t border-zinc-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] animate-in slide-in-from-bottom duration-500">
                     <div className="container-custom max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
