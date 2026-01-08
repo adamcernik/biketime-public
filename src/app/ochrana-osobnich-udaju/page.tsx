@@ -47,7 +47,7 @@ export default function PrivacyPolicyPage() {
                         </p>
                         <ul>
                             <li><strong>Nezbytné cookies:</strong> Jsou nutné pro fungování webu (např. uložení vašeho souhlasu s cookies).</li>
-                            <li><strong>Analytické cookies:</strong> Pomáhají nám měřit návštěvnost webu (např. Google Analytics). Tyto cookies používáme pouze s vaším souhlasem.</li>
+                            <li><strong>Analytické cookies:</strong> Pomáhají nám měřit návštěvnost a analyzovat chování uživatelů na webu. Využíváme služby Google Analytics a PostHog. PostHog nám navíc umožňuje analyzovat průchod webem a nahrávat relace (session recording) za účelem odhalování chyb a zlepšování použitelnosti. Veškerá data jsou zpracovávána anonymizovaně. Tyto nástroje používáme pouze s vaším souhlasem.</li>
                         </ul>
                         <p>
                             Nastavení cookies můžete kdykoli změnit ve svém prohlížeči nebo prostřednictvím naší cookie lišty.

@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-
 import { GoogleAnalytics } from '@next/third-parties/google';
+import { usePostHog } from 'posthog-js/react';
 
 export default function CookieBanner() {
     const [show, setShow] = useState(false);
     const [consentGiven, setConsentGiven] = useState(false);
+    const posthog = usePostHog();
 
     useEffect(() => {
         // Check if user has already made a choice
@@ -23,12 +24,16 @@ export default function CookieBanner() {
         localStorage.setItem('cookie-consent', 'accepted');
         setShow(false);
         setConsentGiven(true);
+        posthog?.opt_in_capturing();
+        posthog?.set_config({ persistence: 'localStorage+cookie' });
     };
 
     const handleDecline = () => {
         localStorage.setItem('cookie-consent', 'declined');
         setShow(false);
         setConsentGiven(false);
+        posthog?.opt_out_capturing();
+        posthog?.set_config({ persistence: 'memory' });
     };
 
     return (
