@@ -85,7 +85,7 @@ export default function BullsBikesPage() {
                       <img
                         src={model.image}
                         alt={model.title}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain p-4"
                       />
                     ) : (
                       <div className="h-full flex items-center justify-center">
