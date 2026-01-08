@@ -33,7 +33,7 @@ export default function BullsBikesPage() {
       } catch (error) {
         console.error("Error fetching models:", error);
         // Fallback: fetch without sort if index missing
-        if ((error as any).code === 'failed-precondition') {
+        if ((error as { code?: string }).code === 'failed-precondition') {
           try {
             const simpleQ = collection(db, 'bulls_models');
             const simpleSnap = await getDocs(simpleQ);

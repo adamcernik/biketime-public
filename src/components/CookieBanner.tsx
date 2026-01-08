@@ -6,7 +6,6 @@ import { usePostHog } from 'posthog-js/react';
 
 export default function CookieBanner() {
     const [show, setShow] = useState(false);
-    const [consentGiven, setConsentGiven] = useState(false);
     const posthog = usePostHog();
 
     useEffect(() => {
@@ -14,15 +13,12 @@ export default function CookieBanner() {
         const consent = localStorage.getItem('cookie-consent');
         if (!consent) {
             setShow(true);
-        } else if (consent === 'accepted') {
-            setConsentGiven(true);
         }
     }, []);
 
     const handleAccept = () => {
         localStorage.setItem('cookie-consent', 'accepted');
         setShow(false);
-        setConsentGiven(true);
         posthog?.opt_in_capturing();
         posthog?.set_config({ persistence: 'localStorage+cookie' });
     };
@@ -30,7 +26,6 @@ export default function CookieBanner() {
     const handleDecline = () => {
         localStorage.setItem('cookie-consent', 'declined');
         setShow(false);
-        setConsentGiven(false);
         posthog?.opt_out_capturing();
         posthog?.set_config({ persistence: 'memory' });
     };
