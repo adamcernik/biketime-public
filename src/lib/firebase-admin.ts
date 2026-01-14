@@ -5,8 +5,6 @@ import { getAuth } from 'firebase-admin/auth';
 // This file is designed to run ONLY on the server side (Node.js environment).
 // It uses "firebase-admin" to bypass Firestore security rules for admin tasks.
 
-let adminApp: App;
-
 function getFirebaseAdminApp() {
     if (getApps().length > 0) {
         return getApps()[0];
@@ -25,14 +23,14 @@ function getFirebaseAdminApp() {
         try {
             const buffer = Buffer.from(process.env.FIREBASE_SERVICE_ACCOUNT_BASE64, 'base64');
             serviceAccount = JSON.parse(buffer.toString('utf-8'));
-        } catch (e) {
+        } catch {
             console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT_BASE64');
         }
     } else if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
         // Direct JSON string (careful with newlines/escaping in some envs)
         try {
             serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
-        } catch (e) {
+        } catch {
             console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON');
         }
     }
@@ -62,7 +60,7 @@ function getFirebaseAdminApp() {
     });
 }
 
-adminApp = getFirebaseAdminApp();
+const adminApp = getFirebaseAdminApp();
 
 export const adminDb = getFirestore(adminApp);
 export const adminAuth = getAuth(adminApp);
