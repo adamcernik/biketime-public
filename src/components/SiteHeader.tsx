@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import logoImage from '@/assets/biketime-logo.png';
 import UserAuthButton from './UserAuthButton';
+import { useAuth } from './AuthProvider';
 
 const navItems: { href: string; label: string }[] = [
   { href: '/catalog', label: 'Katalog kol' },
@@ -21,6 +22,7 @@ export default function SiteHeader() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const { shopUser } = useAuth();
 
   useEffect(() => {
     setMounted(true);
@@ -44,7 +46,7 @@ export default function SiteHeader() {
   return (
     <header className={`sticky top-0 z-50 w-full transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-sm' : 'bg-white'}`}>
       {/* Top Bar */}
-      <div className="w-full bg-zinc-900 text-zinc-300 text-xs py-2">
+      <div className="w-full bg-zinc-900 text-zinc-300 text-xs py-2 hidden md:block">
         <div className="container-custom flex flex-col sm:flex-row justify-between items-center gap-2">
           <div className="flex items-center gap-6">
             <a href="mailto:info@biketime.cz" className="hover:text-white transition-colors flex items-center gap-2">
@@ -90,22 +92,28 @@ export default function SiteHeader() {
           ))}
         </nav>
 
-        {/* Mobile Menu Button */}
-        <button
-          className="md:hidden z-50 p-2 text-zinc-800"
-          onClick={() => setOpen(!open)}
-          aria-label="Toggle menu"
-        >
-          {open ? (
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          ) : (
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          )}
-        </button>
+        {/* Mobile Controls (Avatar + Hamburger) */}
+        {mounted && (
+          <div className="flex items-center gap-4 md:hidden z-50">
+            {shopUser && <UserAuthButton />}
+
+            <button
+              className="p-2 text-zinc-800"
+              onClick={() => setOpen(!open)}
+              aria-label="Toggle menu"
+            >
+              {open ? (
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
+          </div>
+        )}
 
         {/* Mobile Overlay */}
         {mounted && createPortal(
@@ -123,6 +131,16 @@ export default function SiteHeader() {
                 {item.label}
               </Link>
             ))}
+
+            {!shopUser && (
+              <Link
+                href="/login"
+                onClick={() => setOpen(false)}
+                className="mt-8 px-8 py-3 text-lg font-medium text-zinc-800 border-2 border-zinc-800 rounded-full hover:bg-zinc-800 hover:text-white transition-all"
+              >
+                Přihlášení
+              </Link>
+            )}
           </div>,
           document.body
         )}
