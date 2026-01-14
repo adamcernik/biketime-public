@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '../../../../lib/firebase';
-import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebase-admin';
 
 // Define interfaces for better type safety
 interface StockBike {
@@ -45,6 +44,16 @@ export async function OPTIONS() {
 
 export async function POST(request: Request) {
     try {
+        // 1. Security Check
+        const authHeader = request.headers.get('authorization');
+        // Simple API Key check - ensure ADMIN_API_KEY is set in .env.local
+        if (!process.env.ADMIN_API_KEY || authHeader !== `Bearer ${process.env.ADMIN_API_KEY}`) {
+            return NextResponse.json(
+                { success: false, error: 'Unauthorized' },
+                { status: 401, headers: corsHeaders }
+            );
+        }
+
         console.log('Received stock update request');
         const body = await request.json();
         const { stockData, dryRun } = body;
@@ -58,14 +67,14 @@ export async function POST(request: Request) {
             );
         }
 
-        // 1. Fetch all products_v2
-        const productsSnapshot = await getDocs(collection(db, 'products_v2'));
+        // 2. Fetch all products_v2 using Admin SDK
+        const productsSnapshot = await adminDb.collection('products_v2').get();
         const products: Product[] = [];
         productsSnapshot.forEach(doc => {
             products.push({ id: doc.id, ...doc.data() } as Product);
         });
 
-        // 2. Create a map of stock bikes for faster lookup
+        // 3. Create a map of stock bikes for faster lookup
         // Key: nrLf (or id if nrLf is missing)
         const stockMap = new Map<string, StockBike>();
         stockData.forEach((bike: StockBike) => {
@@ -97,7 +106,7 @@ export async function POST(request: Request) {
         const results: string[] = [];
         const errors: string[] = [];
 
-        // 3. Compare
+        // 4. Compare
         for (const product of products) {
             if (!product.variants || !Array.isArray(product.variants)) continue;
 
@@ -158,8 +167,8 @@ export async function POST(request: Request) {
 
                     const hasStock = stockSizes.length > 0;
 
-                    const productRef = doc(db, 'products_v2', product.id);
-                    await updateDoc(productRef, {
+                    // Update using Admin SDK
+                    await adminDb.collection('products_v2').doc(product.id).update({
                         variants: updatedVariants,
                         stockSizes,
                         onTheWaySizes,

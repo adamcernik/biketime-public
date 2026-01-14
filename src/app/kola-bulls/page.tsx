@@ -63,7 +63,7 @@ export default function BullsBikesPage() {
           <div className="text-center mb-12">
             <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">BULLS Modelové Řady</h1>
             <p className="mt-4 text-lg text-gray-500">
-              Přehled modelových řad elektrokol BULLS pro rok 2025.
+              Přehled modelových řad elektrokol BULLS pro rok 2026.
             </p>
           </div>
 

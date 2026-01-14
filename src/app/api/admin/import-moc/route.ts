@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/firebase-server';
-import { collection, doc, getDoc, getDocs, query, where, writeBatch } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebase-admin';
 import fs from 'fs';
 import path from 'path';
 
@@ -26,11 +25,22 @@ function parseCsv(content: string): CsvRow[] {
   return rows;
 }
 
-export async function GET() {
-  // Safety: do not allow on production Vercel
-  if (process.env.VERCEL === '1' || process.env.NODE_ENV === 'production') {
-    return NextResponse.json({ error: 'Disabled in production' }, { status: 403 });
+export async function GET(request: Request) {
+  // 1. Security Check
+  const authHeader = request.headers.get('authorization');
+  if (
+    process.env.NODE_ENV === 'production' &&
+    (!process.env.ADMIN_API_KEY || authHeader !== `Bearer ${process.env.ADMIN_API_KEY}`)
+  ) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  // Also keep the existing Vercel check if you want, or rely solely on API Key
+  if (process.env.VERCEL === '1') {
+    // In production/Vercel, we must use the API Key.
+    // The old check disabled it entirely, but now we allow it IF authenticated.
+  }
+
   const csvPath = path.join(process.cwd(), 'Bulls-2026-MOC-prices.csv');
   if (!fs.existsSync(csvPath)) {
     return NextResponse.json({ error: 'CSV file not found at project root' }, { status: 404 });
@@ -41,7 +51,6 @@ export async function GET() {
     return NextResponse.json({ error: 'CSV parsed but contains no valid rows' }, { status: 400 });
   }
 
-  const bikesRef = collection(db, 'bikes');
   let updated = 0;
   let skippedYear = 0;
   const notFound: string[] = [];
@@ -50,28 +59,34 @@ export async function GET() {
   const chunkSize = 400;
   for (let i = 0; i < rows.length; i += chunkSize) {
     const chunk = rows.slice(i, i + chunkSize);
-    const batch = writeBatch(db);
-    // For each row, try by doc id, otherwise query by nrLf/lfSn
+    const batch = adminDb.batch();
+
+    // For each row, query by nrLf/lfSn
     for (const r of chunk) {
-      const idRef = doc(db, 'bikes', r.nrLf);
-      const idSnap = await getDoc(idRef);
-      let targetDocRef: ReturnType<typeof doc> | null = null;
-      let targetData: Record<string, unknown> | null = null;
-      if (idSnap.exists()) {
+      // Direct doc lookup by ID (nrLf as ID)
+      const idRef = adminDb.collection('bikes').doc(r.nrLf);
+      const idSnap = await idRef.get();
+
+      let targetDocRef: FirebaseFirestore.DocumentReference | null = null;
+      let targetData: FirebaseFirestore.DocumentData | null = null;
+
+      if (idSnap.exists) {
         targetDocRef = idRef;
-        targetData = idSnap.data() as Record<string, unknown>;
+        targetData = idSnap.data()!;
       } else {
-        const byNr = await getDocs(query(bikesRef, where('nrLf', '==', r.nrLf)));
+        // Query by field nrLf
+        const byNr = await adminDb.collection('bikes').where('nrLf', '==', r.nrLf).limit(1).get();
         if (!byNr.empty) {
-          const d = byNr.docs[0]!;
-          targetDocRef = doc(db, 'bikes', d.id);
-          targetData = d.data() as Record<string, unknown>;
+          const d = byNr.docs[0];
+          targetDocRef = d.ref;
+          targetData = d.data();
         } else {
-          const byLfSn = await getDocs(query(bikesRef, where('lfSn', '==', r.nrLf)));
+          // Query by field lfSn
+          const byLfSn = await adminDb.collection('bikes').where('lfSn', '==', r.nrLf).limit(1).get();
           if (!byLfSn.empty) {
-            const d = byLfSn.docs[0]!;
-            targetDocRef = doc(db, 'bikes', d.id);
-            targetData = d.data() as Record<string, unknown>;
+            const d = byLfSn.docs[0];
+            targetDocRef = d.ref;
+            targetData = d.data();
           }
         }
       }
@@ -80,6 +95,7 @@ export async function GET() {
         notFound.push(r.nrLf);
         continue;
       }
+
       const year = Number((targetData.modelljahr as unknown) ?? (targetData['Model Year'] as unknown));
       if (year && year !== 2026) {
         skippedYear += 1;
