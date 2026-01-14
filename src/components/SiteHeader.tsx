@@ -1,6 +1,7 @@
 'use client';
 // Re-trigger build 3
 
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
@@ -19,8 +20,10 @@ const navItems: { href: string; label: string }[] = [
 export default function SiteHeader() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -39,7 +42,7 @@ export default function SiteHeader() {
   }, [open]);
 
   return (
-    <header className={`sticky top-0 z-50 w-full transition-all duration-300 ${scrolled && !open ? 'bg-white/95 backdrop-blur-md shadow-sm' : 'bg-white'}`}>
+    <header className={`sticky top-0 z-50 w-full transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-sm' : 'bg-white'}`}>
       {/* Top Bar */}
       <div className="w-full bg-zinc-900 text-zinc-300 text-xs py-2">
         <div className="container-custom flex flex-col sm:flex-row justify-between items-center gap-2">
@@ -105,21 +108,24 @@ export default function SiteHeader() {
         </button>
 
         {/* Mobile Overlay */}
-        <div
-          className={`fixed inset-0 bg-white z-40 flex flex-col justify-center items-center gap-8 transition-all duration-300 md:hidden ${open ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'
-            }`}
-        >
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="text-2xl font-semibold text-zinc-800 hover:text-primary transition-colors"
-              onClick={() => setOpen(false)}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </div>
+        {mounted && createPortal(
+          <div
+            className={`fixed inset-0 bg-white z-40 flex flex-col justify-center items-center gap-8 transition-all duration-300 md:hidden ${open ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'
+              }`}
+          >
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="text-2xl font-semibold text-zinc-800 hover:text-primary transition-colors"
+                onClick={() => setOpen(false)}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>,
+          document.body
+        )}
       </div>
     </header>
   );
