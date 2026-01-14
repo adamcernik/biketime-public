@@ -39,7 +39,7 @@ export default function SiteHeader() {
   }, [open]);
 
   return (
-    <header className={`sticky top-0 z-50 w-full transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-sm' : 'bg-white'}`}>
+    <header className={`sticky top-0 z-50 w-full transition-all duration-300 ${scrolled && !open ? 'bg-white/95 backdrop-blur-md shadow-sm' : 'bg-white'}`}>
       {/* Top Bar */}
       <div className="w-full bg-zinc-900 text-zinc-300 text-xs py-2">
         <div className="container-custom flex flex-col sm:flex-row justify-between items-center gap-2">
