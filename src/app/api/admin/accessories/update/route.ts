@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase-server';
-import { doc, updateDoc } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebase-admin';
 
 type AllowedUpdates = Partial<{
   productType: string;
@@ -12,10 +11,17 @@ type AllowedUpdates = Partial<{
 }>;
 
 export async function POST(req: NextRequest) {
-  if (process.env.VERCEL === '1' || process.env.NODE_ENV === 'production') {
-    return NextResponse.json({ error: 'Disabled in production' }, { status: 403 });
+  // 1. Authenticate using API Key
+  const authHeader = req.headers.get('authorization');
+  if (!process.env.ADMIN_API_KEY || authHeader !== `Bearer ${process.env.ADMIN_API_KEY}`) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    );
   }
+
   const body = (await req.json().catch(() => null)) as { id?: string; updates?: AllowedUpdates } | null;
+
   if (!body || !body.id || !body.updates) {
     return NextResponse.json({ error: 'Missing id or updates' }, { status: 400 });
   }
@@ -31,7 +37,7 @@ export async function POST(req: NextRequest) {
   if (Object.keys(clean).length === 0) {
     return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
   }
-  await updateDoc(doc(db, 'accessories', id), {
+  await adminDb.collection('accessories').doc(id).update({
     ...clean,
     updatedAt: Date.now(),
   });

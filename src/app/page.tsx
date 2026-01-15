@@ -85,7 +85,7 @@ export default async function Home() {
 
       {/* USP / About Section */}
       <section className="section-padding bg-zinc-900 text-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/pattern.svg')] opacity-5" />
+        {/* <div className="absolute inset-0 bg-[url('/pattern.svg')] opacity-5" /> */}
         <div className="container-custom relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="space-y-8">

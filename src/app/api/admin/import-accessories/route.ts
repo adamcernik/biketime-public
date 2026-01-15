@@ -1,6 +1,5 @@
-import { NextResponse } from 'next/server';
-import { db } from '@/lib/firebase-server';
-import { collection, doc, writeBatch } from 'firebase/firestore';
+import { NextRequest, NextResponse } from 'next/server';
+import { adminDb } from '@/lib/firebase-admin';
 import fs from 'fs';
 import path from 'path';
 
@@ -131,10 +130,16 @@ function mapRow(header: string[], row: string[]): AccessoryRow {
   };
 }
 
-export async function GET() {
-  if (process.env.VERCEL === '1' || process.env.NODE_ENV === 'production') {
-    return NextResponse.json({ error: 'Disabled in production' }, { status: 403 });
+export async function GET(req: NextRequest) {
+  // 1. Authenticate using API Key
+  const authHeader = req.headers.get('authorization');
+  if (!process.env.ADMIN_API_KEY || authHeader !== `Bearer ${process.env.ADMIN_API_KEY}`) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    );
   }
+
 
   const csvPath = path.join(process.cwd(), 'ZEG_0_20251112101545.csv');
   if (!fs.existsSync(csvPath)) {
@@ -148,13 +153,12 @@ export async function GET() {
   const header = rows[0]!;
   const dataRows = rows.slice(1);
 
-  const accessoriesRef = collection(db, 'accessories');
   const chunkSize = 400;
   let upserted = 0;
 
   for (let i = 0; i < dataRows.length; i += chunkSize) {
     const chunk = dataRows.slice(i, i + chunkSize);
-    const batch = writeBatch(db);
+    const batch = adminDb.batch();
     for (const r of chunk) {
       const mapped = mapRow(header, r);
       // Require at least an identifier
@@ -168,7 +172,7 @@ export async function GET() {
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
-      batch.set(doc(db, accessoriesRef.path, docId), payload, { merge: true });
+      batch.set(adminDb.collection('accessories').doc(docId), payload, { merge: true });
       upserted += 1;
     }
     await batch.commit();

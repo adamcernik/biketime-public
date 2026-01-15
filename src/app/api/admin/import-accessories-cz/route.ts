@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
-import { db } from '@/lib/firebase-server';
-import { collection, deleteField, doc, getDocs, writeBatch } from 'firebase/firestore';
+import { NextRequest, NextResponse } from 'next/server';
+import { adminDb } from '@/lib/firebase-admin';
+import * as admin from 'firebase-admin';
 import fs from 'fs';
 import path from 'path';
 
@@ -15,7 +15,6 @@ type CsvRow = {
 };
 
 function toCzkNumber(value: string): number | null {
-  // Remove currency and thousand separators; keep digits only
   const cleaned = String(value).replace(/[^\d]/g, '');
   if (!cleaned) return null;
   const n = Number(cleaned);
@@ -23,7 +22,6 @@ function toCzkNumber(value: string): number | null {
 }
 
 function splitCsvLine(line: string): string[] {
-  // Basic CSV splitting supporting quotes and commas
   const result: string[] = [];
   let current = '';
   let inQuotes = false;
@@ -66,11 +64,10 @@ function mapRow(header: string[], row: string[]): CsvRow {
     const pos = idx(name);
     return pos >= 0 ? (row[pos] ?? '').trim() : '';
   };
-  const state = get('Stav');
   return {
     kat: get('Kat.č. pův.'),
     nameCz: get('Název modelu'),
-    state,
+    state: get('Stav'),
     mocCzkGross: toCzkNumber(get('MOC s DPH')),
     mocCzkNet: toCzkNumber(get('MOC bez DPH')),
     katA: toCzkNumber(get('KATEGORIE A')),
@@ -78,10 +75,14 @@ function mapRow(header: string[], row: string[]): CsvRow {
   };
 }
 
-export async function GET() {
-  // Safety: disabled on production/Vercel
-  if (process.env.VERCEL === '1' || process.env.NODE_ENV === 'production') {
-    return NextResponse.json({ error: 'Disabled in production' }, { status: 403 });
+export async function GET(req: NextRequest) {
+  // 1. Authenticate using API Key
+  const authHeader = req.headers.get('authorization');
+  if (!process.env.ADMIN_API_KEY || authHeader !== `Bearer ${process.env.ADMIN_API_KEY}`) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    );
   }
 
   const csvPath = path.join(process.cwd(), 'MonkeyLinkCZ.csv');
@@ -96,8 +97,8 @@ export async function GET() {
   const header = rows[0]!;
   const dataRows = rows.slice(1);
 
-  const accessoriesRef = collection(db, 'accessories');
-  const snap = await getDocs(accessoriesRef);
+  const colRef = adminDb.collection('accessories');
+  const snap = await colRef.get();
   const existingIds = new Set<string>();
   snap.forEach((d) => existingIds.add(d.id));
 
@@ -108,7 +109,7 @@ export async function GET() {
   const chunkSize = 400;
   for (let i = 0; i < dataRows.length; i += chunkSize) {
     const chunk = dataRows.slice(i, i + chunkSize);
-    const batch = writeBatch(db);
+    const batch = adminDb.batch();
     for (const r of chunk) {
       const mapped = mapRow(header, r);
       const id = mapped.kat;
@@ -118,29 +119,39 @@ export async function GET() {
         notFoundIds.push(id);
         continue;
       }
-      const payload: Record<string, unknown> = {
-        // Replace English product name with Czech translation
-        produkt: mapped.nameCz || deleteField(),
-        produktCs: mapped.nameCz || deleteField(),
-        // Prices in CZK
-        mocCzk: mapped.mocCzkGross ?? deleteField(),
-        mocCzkNet: mapped.mocCzkNet ?? deleteField(),
-        priceLevelsCzk: {
-          A: mapped.katA ?? null,
-          B: mapped.katB ?? null,
-        },
-        // Simple stock info
-        inStock: /skladem/i.test(mapped.state || ''),
-        // Initial visibility mirrors stock
-        isVisible: /skladem/i.test(mapped.state || ''),
-        availability: mapped.state || '',
+
+      const updateData: any = {
         updatedAt: Date.now(),
-        // Delete EUR price fields if present
-        ekPl: deleteField(),
-        uvpPl: deleteField(),
-        uavpPl: deleteField(),
+        inStock: /skladem/i.test(mapped.state || ''),
+        isVisible: /skladem/i.test(mapped.state || ''), // mirror stock initially
+        availability: mapped.state || '',
       };
-      batch.set(doc(db, accessoriesRef.path, id), payload, { merge: true });
+
+      if (mapped.nameCz) {
+        updateData.produkt = mapped.nameCz;
+        updateData.produktCs = mapped.nameCz;
+      } else {
+        updateData.produkt = admin.firestore.FieldValue.delete();
+        updateData.produktCs = admin.firestore.FieldValue.delete();
+      }
+
+      if (mapped.mocCzkGross !== null) updateData.mocCzk = mapped.mocCzkGross;
+      else updateData.mocCzk = admin.firestore.FieldValue.delete();
+
+      if (mapped.mocCzkNet !== null) updateData.mocCzkNet = mapped.mocCzkNet;
+      else updateData.mocCzkNet = admin.firestore.FieldValue.delete();
+
+      updateData.priceLevelsCzk = {
+        A: mapped.katA ?? null,
+        B: mapped.katB ?? null,
+      };
+
+      // Clear EUR prices
+      updateData.ekPl = admin.firestore.FieldValue.delete();
+      updateData.uvpPl = admin.firestore.FieldValue.delete();
+      updateData.uavpPl = admin.firestore.FieldValue.delete();
+
+      batch.set(colRef.doc(id), updateData, { merge: true });
       updated += 1;
     }
     await batch.commit();
@@ -151,8 +162,5 @@ export async function GET() {
     updated,
     notFound,
     notFoundIds,
-    note: 'Matched by NrLf (Kat.č. pův.). Replaced produkt with Czech name, set mocCzk, categories A/B, stock flag, and removed EUR price fields.',
   });
 }
-
-

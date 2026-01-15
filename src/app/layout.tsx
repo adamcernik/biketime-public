@@ -47,6 +47,9 @@ export const metadata: Metadata = {
     description: "Objevte špičková německá kola BULLS. Biketime zajišťuje velkoobchodní prodej a technickou podporu pro partnery. Najděte nejnovější modely Sonic, Vuca a další.",
     images: ['/opengraph-image.png'],
   },
+  verification: {
+    google: "kVOuQFee61z35i09I0b0Ow2CRM8F6GTg-yTyIWHBoMU",
+  },
 };
 
 export default function RootLayout({

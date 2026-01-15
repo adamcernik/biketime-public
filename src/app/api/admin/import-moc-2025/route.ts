@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase-server';
-import { collection, doc, getDoc, getDocs, query, where, writeBatch } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebase-admin';
 import fs from 'fs';
 import path from 'path';
 
@@ -27,10 +26,15 @@ function parseCsv(content: string): CsvRow[] {
 }
 
 export async function GET(req: NextRequest) {
-  // Safety: do not allow on production Vercel
-  if (process.env.VERCEL === '1' || process.env.NODE_ENV === 'production') {
-    return NextResponse.json({ error: 'Disabled in production' }, { status: 403 });
+  // 1. Authenticate using API Key
+  const authHeader = req.headers.get('authorization');
+  if (!process.env.ADMIN_API_KEY || authHeader !== `Bearer ${process.env.ADMIN_API_KEY}`) {
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    );
   }
+
   const dry = req.nextUrl.searchParams.get('dry') === 'true';
   const csvPath = path.join(process.cwd(), 'Bulls-2025-price.csv');
   if (!fs.existsSync(csvPath)) {
@@ -42,53 +46,56 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'CSV parsed but contains no valid rows' }, { status: 400 });
   }
 
-  const bikesRef = collection(db, 'bikes');
+  const bikesCol = adminDb.collection('bikes');
   let updated = 0;
   let skippedYear = 0;
   const notFound: string[] = [];
 
-  const chunkSize = 400;
+  const chunkSize = 40; // Smaller chunk for heavy lookup
   for (let i = 0; i < rows.length; i += chunkSize) {
     const chunk = rows.slice(i, i + chunkSize);
-    const batch = writeBatch(db);
+    const batch = adminDb.batch();
+
     for (const r of chunk) {
-      const idRef = doc(db, 'bikes', r.nrLf);
-      const idSnap = await getDoc(idRef);
-      let targetDocRef: ReturnType<typeof doc> | null = null;
-      let targetData: Record<string, unknown> | null = null;
-      if (idSnap.exists()) {
-        targetDocRef = idRef;
-        targetData = idSnap.data() as Record<string, unknown>;
+      const docById = await bikesCol.doc(r.nrLf).get();
+      let targetRef: admin.firestore.DocumentReference | null = null;
+      let targetData: any = null;
+
+      if (docById.exists) {
+        targetRef = docById.ref;
+        targetData = docById.data();
       } else {
-        const byNr = await getDocs(query(bikesRef, where('nrLf', '==', r.nrLf)));
+        const byNr = await bikesCol.where('nrLf', '==', r.nrLf).limit(1).get();
         if (!byNr.empty) {
-          const d = byNr.docs[0]!;
-          targetDocRef = doc(db, 'bikes', d.id);
-          targetData = d.data() as Record<string, unknown>;
+          targetRef = byNr.docs[0]!.ref;
+          targetData = byNr.docs[0]!.data();
         } else {
-          const byLfSn = await getDocs(query(bikesRef, where('lfSn', '==', r.nrLf)));
+          const byLfSn = await bikesCol.where('lfSn', '==', r.nrLf).limit(1).get();
           if (!byLfSn.empty) {
-            const d = byLfSn.docs[0]!;
-            targetDocRef = doc(db, 'bikes', d.id);
-            targetData = d.data() as Record<string, unknown>;
+            targetRef = byLfSn.docs[0]!.ref;
+            targetData = byLfSn.docs[0]!.data();
           }
         }
       }
-      if (!targetDocRef || !targetData) {
+
+      if (!targetRef || !targetData) {
         notFound.push(r.nrLf);
         continue;
       }
-      const year = Number((targetData.modelljahr as unknown) ?? (targetData['Model Year'] as unknown));
+
+      const year = Number(targetData.modelljahr ?? targetData['Model Year']);
       if (year && year !== 2025) {
         skippedYear += 1;
         continue;
       }
+
       if (!dry) {
-        batch.update(targetDocRef, { mocCzk: r.mocCzk });
+        batch.update(targetRef, { mocCzk: r.mocCzk });
       }
       updated += 1;
     }
-    if (!dry) {
+
+    if (!dry && updated > 0) {
       await batch.commit();
     }
   }
@@ -103,4 +110,4 @@ export async function GET(req: NextRequest) {
   });
 }
 
-
+import * as admin from 'firebase-admin';
