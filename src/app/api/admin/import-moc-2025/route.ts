@@ -59,21 +59,21 @@ export async function GET(req: NextRequest) {
     for (const r of chunk) {
       const docById = await bikesCol.doc(r.nrLf).get();
       let targetRef: admin.firestore.DocumentReference | null = null;
-      let targetData: any = null;
+      let targetData: Record<string, unknown> | null = null;
 
       if (docById.exists) {
         targetRef = docById.ref;
-        targetData = docById.data();
+        targetData = docById.data() as Record<string, unknown>;
       } else {
         const byNr = await bikesCol.where('nrLf', '==', r.nrLf).limit(1).get();
         if (!byNr.empty) {
           targetRef = byNr.docs[0]!.ref;
-          targetData = byNr.docs[0]!.data();
+          targetData = byNr.docs[0]!.data() as Record<string, unknown>;
         } else {
           const byLfSn = await bikesCol.where('lfSn', '==', r.nrLf).limit(1).get();
           if (!byLfSn.empty) {
             targetRef = byLfSn.docs[0]!.ref;
-            targetData = byLfSn.docs[0]!.data();
+            targetData = byLfSn.docs[0]!.data() as Record<string, unknown>;
           }
         }
       }

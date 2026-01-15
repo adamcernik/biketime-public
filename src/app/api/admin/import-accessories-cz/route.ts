@@ -120,7 +120,7 @@ export async function GET(req: NextRequest) {
         continue;
       }
 
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         updatedAt: Date.now(),
         inStock: /skladem/i.test(mapped.state || ''),
         isVisible: /skladem/i.test(mapped.state || ''), // mirror stock initially
