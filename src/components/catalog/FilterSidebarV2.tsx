@@ -78,30 +78,32 @@ export function FilterSidebarV2({
                 </button>
             </div>
 
-            {/* Availability Segmented Control */}
+            {/* Availability Toggles */}
             <div>
                 <h3 className="text-sm font-bold text-zinc-900 mb-3 uppercase tracking-wider">Dostupnost</h3>
-                <div className="bg-zinc-100 p-1 rounded-xl flex">
-                    <button
-                        onClick={() => setAvailability('all')}
-                        className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${availability === 'all' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-900'}`}
-                    >
-                        Vše
-                    </button>
-                    <button
-                        onClick={() => setAvailability('inStock')}
-                        className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${availability === 'inStock' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-900'}`}
-                    >
-                        <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                        Skladem
-                    </button>
-                    <button
-                        onClick={() => setAvailability('onOrder')}
-                        className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${availability === 'onOrder' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-900'}`}
-                    >
-                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                        Na objednávku
-                    </button>
+                <div className="space-y-3">
+                    <label className="flex items-center justify-between cursor-pointer group">
+                        <span className={`text-sm ${availability === 'inStock' ? 'text-zinc-900 font-medium' : 'text-zinc-600'}`}>Skladem</span>
+                        <button
+                            role="switch"
+                            aria-checked={availability === 'inStock'}
+                            onClick={() => setAvailability(availability === 'inStock' ? 'all' : 'inStock')}
+                            className={`relative w-10 h-6 rounded-full transition-colors ${availability === 'inStock' ? 'bg-zinc-900' : 'bg-zinc-200 group-hover:bg-zinc-300'}`}
+                        >
+                            <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${availability === 'inStock' ? 'translate-x-4' : ''}`} />
+                        </button>
+                    </label>
+                    <label className="flex items-center justify-between cursor-pointer group">
+                        <span className={`text-sm ${availability === 'onOrder' ? 'text-zinc-900 font-medium' : 'text-zinc-600'}`}>Na objednávku</span>
+                        <button
+                            role="switch"
+                            aria-checked={availability === 'onOrder'}
+                            onClick={() => setAvailability(availability === 'onOrder' ? 'all' : 'onOrder')}
+                            className={`relative w-10 h-6 rounded-full transition-colors ${availability === 'onOrder' ? 'bg-zinc-900' : 'bg-zinc-200 group-hover:bg-zinc-300'}`}
+                        >
+                            <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${availability === 'onOrder' ? 'translate-x-4' : ''}`} />
+                        </button>
+                    </label>
                 </div>
             </div>
 
