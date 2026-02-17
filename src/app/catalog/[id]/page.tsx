@@ -551,7 +551,7 @@ export default function DetailPageV2() {
                                                         : inStock
                                                             ? 'border-green-200 bg-green-50 text-green-800 hover:border-green-300'
                                                             : onOrder
-                                                                ? 'border-blue-200 bg-blue-50 text-blue-800 hover:border-blue-300'
+                                                                ? 'border-zinc-300 bg-zinc-50 text-zinc-600 hover:border-zinc-400'
                                                                 : 'border-zinc-200 bg-white text-zinc-900 hover:border-zinc-300 hover:shadow-sm'
                                                     }
                                                 `}
@@ -561,7 +561,7 @@ export default function DetailPageV2() {
                                                     <span className="w-2 h-2 rounded-full bg-green-500"></span>
                                                 )}
                                                 {onOrder && !isSelected && (
-                                                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                                                    <span className="w-2 h-2 rounded-full bg-zinc-400"></span>
                                                 )}
                                             </button>
                                         </div>

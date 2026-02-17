@@ -107,7 +107,7 @@ export function BikeCard({ bike, viewMode }: { bike: Bike; viewMode: 'grid' | 'l
                             const onOrder = bike.b2bOrderStatus === 'na_objednavku';
 
                             if (inStock) return <span className="text-[10px] font-bold px-2 py-1 rounded bg-green-100 text-green-700 border border-green-200">SKLADEM</span>;
-                            if (onOrder) return <span className="text-[10px] font-bold px-2 py-1 rounded bg-blue-100 text-blue-700 border border-blue-200">NA OBJEDNÁVKU</span>;
+                            if (onOrder) return <span className="text-[10px] font-bold px-2 py-1 rounded bg-zinc-100 text-zinc-500 border border-zinc-200">NA OBJEDNÁVKU</span>;
                             return null;
                         })()}
                     </div>
@@ -162,7 +162,7 @@ export function BikeCard({ bike, viewMode }: { bike: Bike; viewMode: 'grid' | 'l
                                 <span
                                     key={s}
                                     className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${inStock ? 'bg-green-50 text-green-700 border-green-200' :
-                                        onOrder ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                        onOrder ? 'bg-zinc-100 text-zinc-500 border-zinc-200' :
                                             'bg-zinc-50 text-zinc-400 border-zinc-100'
                                         }`}
                                 >

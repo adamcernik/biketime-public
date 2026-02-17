@@ -123,7 +123,7 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
                                 Skladem
                             </span>
                         ) : isOnOrder ? (
-                            <span className="text-[10px] font-bold px-2 py-1 rounded bg-blue-100 text-blue-700 border border-blue-200 uppercase">
+                            <span className="text-[10px] font-bold px-2 py-1 rounded bg-zinc-100 text-zinc-500 border border-zinc-200 uppercase">
                                 Na objednávku
                             </span>
                         ) : null}
@@ -153,7 +153,7 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
                                     className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${inStock
                                         ? 'bg-green-100 text-green-700 border-green-200'
                                         : onOrder
-                                            ? 'bg-blue-100 text-blue-700 border-blue-200'
+                                            ? 'bg-zinc-100 text-zinc-500 border-zinc-200'
                                             : 'bg-zinc-50 text-zinc-400 border-zinc-100'
                                         }`}
                                 >
