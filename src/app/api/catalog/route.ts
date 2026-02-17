@@ -67,7 +67,8 @@ export async function GET(req: NextRequest) {
         const moseParam = searchParams.get('mose');
         const moheParam = searchParams.get('mohe');
         const ebikeParam = searchParams.get('ebike'); // 'true' | 'false' | null
-        const inStockParam = searchParams.get('inStock'); // 'true' | null
+        const inStockParam = searchParams.get('inStock'); // 'true' | null (backward compat for /skladem)
+        const availabilityParam = searchParams.get('availability'); // 'all' | 'inStock' | 'onOrder' | null
 
         // Fetch priority settings
         const settingsRef = doc(db, 'settings', 'catalog');
@@ -144,8 +145,9 @@ export async function GET(req: NextRequest) {
             const variants = (product.variants && Array.isArray(product.variants)) ? product.variants : [];
             const sizesSet = new Set<string>();
             const stockSizesSet = new Set<string>();
-            const onTheWaySizesSet = new Set<string>();
+            const onOrderSizesSet = new Set<string>();
             let hasStock = false;
+            let isOnOrder = false;
 
             // Determine category for size mapping
             const categoryForSize = detectCategory({ categoryPrgr: product.category, modell: product.model });
@@ -157,14 +159,14 @@ export async function GET(req: NextRequest) {
                 if (size) sizesSet.add(size);
 
                 const stock = Number(v.stock) || Number(v.onHand) || Number(v.qty) || Number(v.b2bStockQuantity) || 0;
-                const transit = Number(v.inTransit) || Number(v.onTheWay) || 0;
 
                 if (stock > 0) {
                     hasStock = true;
                     if (size) stockSizesSet.add(size);
                 }
-                if (transit > 0) {
-                    if (size) onTheWaySizesSet.add(size);
+                if (v.b2bOrderStatus === 'na_objednavku') {
+                    isOnOrder = true;
+                    if (size) onOrderSizesSet.add(size);
                 }
             });
 
@@ -173,9 +175,14 @@ export async function GET(req: NextRequest) {
                 hasStock = true;
             }
 
+            // Also check product-level b2bOrderStatus (fallback)
+            if (!isOnOrder && product.b2bOrderStatus === 'na_objednavku') {
+                isOnOrder = true;
+            }
+
             const sizes = Array.from(sizesSet).sort(sortSizes);
             const stockSizes = Array.from(stockSizesSet);
-            const onTheWaySizes = Array.from(onTheWaySizesSet);
+            const onOrderSizes = Array.from(onOrderSizesSet);
 
             return {
                 ...product,
@@ -186,9 +193,10 @@ export async function GET(req: NextRequest) {
                 mohe,
                 farf,
                 hasStock,
+                isOnOrder,
                 sizes,
                 stockSizes,
-                onTheWaySizes,
+                onOrderSizes,
                 variants // Keep variants for expansion below
             };
         });
@@ -278,16 +286,24 @@ export async function GET(req: NextRequest) {
             baseProducts = baseProducts.filter(p => !p.isEbike);
         }
 
+        // Backward compat: /skladem page still uses inStock=true
         if (inStockParam === 'true') {
             baseProducts = baseProducts.filter(p => p.hasStock);
         }
 
-        // Rule: Hide 2022-2024 models if they are not in stock
+        // New availability filter (for catalog page)
+        if (availabilityParam === 'inStock') {
+            baseProducts = baseProducts.filter(p => p.hasStock);
+        } else if (availabilityParam === 'onOrder') {
+            baseProducts = baseProducts.filter(p => p.isOnOrder);
+        }
+
+        // Rule: Hide 2022-2024 models if they are not in stock and not on order
         // We want to keep the catalog fresh, so older models are only visible if we actually have them.
         baseProducts = baseProducts.filter(p => {
             const y = Number(p.year);
             if (y >= 2022 && y <= 2024) {
-                return p.hasStock;
+                return p.hasStock || p.isOnOrder;
             }
             return true;
         });
@@ -302,7 +318,11 @@ export async function GET(req: NextRequest) {
         // Extract all available sizes (standardized)
         const allSizes = new Set<string>();
         baseProducts.forEach(p => {
-            const list = inStockParam === 'true' ? p.stockSizes : p.sizes;
+            const list = (inStockParam === 'true' || availabilityParam === 'inStock')
+                ? p.stockSizes
+                : availabilityParam === 'onOrder'
+                    ? p.onOrderSizes
+                    : p.sizes;
             list.forEach((s: string) => allSizes.add(s));
         });
         const sizeOptions = Array.from(allSizes).sort(sortSizes);
@@ -372,8 +392,11 @@ export async function GET(req: NextRequest) {
         if (sizeParam) {
             filteredProducts = filteredProducts.filter(p => {
                 // Check if the product has the selected size in its standardized sizes list
-                // If inStockOnly is true, we should check stockSizes, otherwise sizes
-                const targetList = inStockParam === 'true' ? p.stockSizes : p.sizes;
+                const targetList = (inStockParam === 'true' || availabilityParam === 'inStock')
+                    ? p.stockSizes
+                    : availabilityParam === 'onOrder'
+                        ? p.onOrderSizes
+                        : p.sizes;
                 return targetList.includes(sizeParam);
             });
         }
