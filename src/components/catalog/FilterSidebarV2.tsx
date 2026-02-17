@@ -13,7 +13,7 @@ interface FilterSidebarV2Props {
     selectedMohe: string;
     selectedWheelSize: string;
     ebikeOnly: 'all' | 'ebike' | 'non';
-    inStockOnly: boolean;
+    availability: 'all' | 'inStock' | 'onOrder';
 
     // Setters
     setCategory: (v: string) => void;
@@ -21,7 +21,7 @@ interface FilterSidebarV2Props {
     setMohe: (v: string) => void;
     setWheelSize: (v: string) => void;
     setEbikeOnly: (v: 'all' | 'ebike' | 'non') => void;
-    setInStockOnly: (v: boolean) => void;
+    setAvailability: (v: 'all' | 'inStock' | 'onOrder') => void;
 
     total: number;
 }
@@ -36,13 +36,13 @@ export function FilterSidebarV2({
     selectedMohe,
     selectedWheelSize,
     ebikeOnly,
-    inStockOnly,
+    availability,
     setCategory,
     setMose,
     setMohe,
     setWheelSize,
     setEbikeOnly,
-    setInStockOnly,
+    setAvailability,
 }: FilterSidebarV2Props) {
     const [showOtherWheelSizes, setShowOtherWheelSizes] = useState(false);
 
@@ -78,20 +78,31 @@ export function FilterSidebarV2({
                 </button>
             </div>
 
-            {/* Availability */}
+            {/* Availability Segmented Control */}
             <div>
-                <label className="flex items-center justify-between cursor-pointer group">
-                    <span className="text-sm font-medium text-zinc-900">Pouze skladem</span>
-                    <div className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors ${inStockOnly ? 'bg-primary' : 'bg-zinc-200'}`}>
-                        <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${inStockOnly ? 'translate-x-5' : 'translate-x-0'}`} />
-                    </div>
-                    <input
-                        type="checkbox"
-                        className="hidden"
-                        checked={inStockOnly}
-                        onChange={(e) => setInStockOnly(e.target.checked)}
-                    />
-                </label>
+                <h3 className="text-sm font-bold text-zinc-900 mb-3 uppercase tracking-wider">Dostupnost</h3>
+                <div className="bg-zinc-100 p-1 rounded-xl flex">
+                    <button
+                        onClick={() => setAvailability('all')}
+                        className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${availability === 'all' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-900'}`}
+                    >
+                        Vše
+                    </button>
+                    <button
+                        onClick={() => setAvailability('inStock')}
+                        className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${availability === 'inStock' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-900'}`}
+                    >
+                        <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                        Skladem
+                    </button>
+                    <button
+                        onClick={() => setAvailability('onOrder')}
+                        className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all flex items-center justify-center gap-1.5 ${availability === 'onOrder' ? 'bg-white text-zinc-900 shadow-sm' : 'text-zinc-500 hover:text-zinc-900'}`}
+                    >
+                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                        Na objednávku
+                    </button>
+                </div>
             </div>
 
             <hr className="border-zinc-100" />

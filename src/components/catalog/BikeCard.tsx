@@ -19,7 +19,8 @@ export interface Bike {
     capacitiesWh?: number[];
     b2bStockQuantity?: number;
     stockSizes?: string[];
-    onTheWaySizes?: string[];
+    onOrderSizes?: string[];
+    b2bOrderStatus?: string;
     mocCzk?: number;
     priceLevelsCzk?: Partial<Record<'A' | 'B' | 'C' | 'D', number>>;
     mose?: string;
@@ -103,10 +104,10 @@ export function BikeCard({ bike, viewMode }: { bike: Bike; viewMode: 'grid' | 'l
                         {(() => {
                             const repSize = ((displayNrLf ?? '') as string).toString().match(/(\d{2})$/)?.[1];
                             const inStock = repSize ? (bike.stockSizes ?? []).includes(repSize) : (bike.stockSizes ?? []).length > 0;
-                            const onWay = repSize ? (bike.onTheWaySizes ?? []).includes(repSize) : (bike.onTheWaySizes ?? []).length > 0;
+                            const onOrder = bike.b2bOrderStatus === 'na_objednavku';
 
                             if (inStock) return <span className="text-[10px] font-bold px-2 py-1 rounded bg-green-100 text-green-700 border border-green-200">SKLADEM</span>;
-                            if (onWay) return <span className="text-[10px] font-bold px-2 py-1 rounded bg-orange-100 text-orange-700 border border-orange-200">NA CESTĚ</span>;
+                            if (onOrder) return <span className="text-[10px] font-bold px-2 py-1 rounded bg-blue-100 text-blue-700 border border-blue-200">NA OBJEDNÁVKU</span>;
                             return null;
                         })()}
                     </div>
@@ -156,12 +157,12 @@ export function BikeCard({ bike, viewMode }: { bike: Bike; viewMode: 'grid' | 'l
                     <div className="flex flex-wrap gap-1 mb-4">
                         {bike.sizes.map((s) => {
                             const inStock = (bike.stockSizes ?? []).includes(s);
-                            const onWay = !inStock && (bike.onTheWaySizes ?? []).includes(s);
+                            const onOrder = !inStock && (bike.onOrderSizes ?? []).includes(s);
                             return (
                                 <span
                                     key={s}
                                     className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${inStock ? 'bg-green-50 text-green-700 border-green-200' :
-                                        onWay ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                                        onOrder ? 'bg-blue-50 text-blue-700 border-blue-200' :
                                             'bg-zinc-50 text-zinc-400 border-zinc-100'
                                         }`}
                                 >

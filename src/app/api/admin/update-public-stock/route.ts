@@ -8,6 +8,7 @@ interface StockBike {
     ean?: string;
     b2bStockQuantity?: number;
     b2bShipQuantity?: number;
+    b2bOrderStatus?: string;
     [key: string]: unknown;
 }
 
@@ -21,6 +22,7 @@ interface ProductVariant {
     onTheWay?: number;
     onHand?: number;
     qty?: number;
+    b2bOrderStatus?: string;
     [key: string]: unknown;
 }
 
@@ -119,11 +121,13 @@ export async function POST(request: Request) {
                 if (stockBike) {
                     const newStock = stockBike.b2bStockQuantity || 0;
                     const newTransit = stockBike.b2bShipQuantity || 0;
+                    const newOrderStatus = stockBike.b2bOrderStatus || '';
 
                     const currentStock = v.stock || 0;
                     const currentTransit = v.inTransit || v.onTheWay || 0;
+                    const currentOrderStatus = v.b2bOrderStatus || '';
 
-                    if (newStock !== currentStock || newTransit !== currentTransit) {
+                    if (newStock !== currentStock || newTransit !== currentTransit || newOrderStatus !== currentOrderStatus) {
                         productChanged = true;
 
                         // Add to updates list for dryRun
@@ -147,7 +151,8 @@ export async function POST(request: Request) {
                             // Update legacy fields
                             onHand: newStock,
                             qty: newStock,
-                            onTheWay: newTransit
+                            onTheWay: newTransit,
+                            b2bOrderStatus: newOrderStatus,
                         };
                     }
                 }
@@ -161,18 +166,21 @@ export async function POST(request: Request) {
                         .filter((v: ProductVariant) => (v.stock || 0) > 0)
                         .map((v: ProductVariant) => v.size);
 
-                    const onTheWaySizes = updatedVariants
-                        .filter((v: ProductVariant) => (v.stock || 0) === 0 && (v.inTransit || 0) > 0)
+                    const onOrderSizes = updatedVariants
+                        .filter((v: ProductVariant) => v.b2bOrderStatus === 'na_objednavku')
                         .map((v: ProductVariant) => v.size);
 
                     const hasStock = stockSizes.length > 0;
+                    const isOnOrder = onOrderSizes.length > 0;
 
                     // Update using Admin SDK
                     await adminDb.collection('products_v2').doc(product.id).update({
                         variants: updatedVariants,
                         stockSizes,
-                        onTheWaySizes,
+                        onOrderSizes,
+                        onTheWaySizes: [],
                         hasStock,
+                        b2bOrderStatus: isOnOrder ? 'na_objednavku' : '',
                         lastStockUpdate: new Date().toISOString()
                     });
                     results.push(product.id);

@@ -26,6 +26,7 @@ interface Variant {
     inTransit?: number;
     onTheWay?: number;
     b2bPrice?: number;
+    b2bOrderStatus?: string;
 }
 
 interface Product {
@@ -523,23 +524,19 @@ export default function DetailPageV2() {
                                         (!selectedCapacity || v.capacity === selectedCapacity)
                                     );
 
-                                    // Check if any of these variants are in stock or on the way
+                                    // Check if any of these variants are in stock or on order
                                     const inStockVariant = variants.find(v => {
                                         const s = Number(v.stock) || Number(v.onHand) || Number(v.qty) || Number(v.b2bStockQuantity) || 0;
                                         return s > 0;
                                     });
 
-                                    const onTheWayVariant = variants.find(v => {
-                                        const s = Number(v.inTransit) || Number(v.onTheWay) || 0;
-                                        return s > 0;
-                                    });
+                                    const onOrderVariant = variants.find(v => v.b2bOrderStatus === 'na_objednavku');
 
-                                    const variant = inStockVariant || onTheWayVariant || variants[0];
+                                    const variant = inStockVariant || onOrderVariant || variants[0];
                                     const stock = variant ? (Number(variant.stock) || Number(variant.onHand) || Number(variant.qty) || Number(variant.b2bStockQuantity) || 0) : 0;
-                                    const transit = variant ? (Number(variant.inTransit) || Number(variant.onTheWay) || 0) : 0;
 
                                     const inStock = stock > 0;
-                                    const onTheWay = !inStock && transit > 0;
+                                    const onOrder = !inStock && !!onOrderVariant;
                                     const isSelected = selectedSize === size;
 
                                     if (!variant && selectedCapacity) return null; // Don't show size if not available in this capacity
@@ -553,8 +550,8 @@ export default function DetailPageV2() {
                                                         ? 'border-zinc-900 bg-zinc-900 text-white'
                                                         : inStock
                                                             ? 'border-green-200 bg-green-50 text-green-800 hover:border-green-300'
-                                                            : onTheWay
-                                                                ? 'border-orange-200 bg-orange-50 text-orange-800 hover:border-orange-300'
+                                                            : onOrder
+                                                                ? 'border-blue-200 bg-blue-50 text-blue-800 hover:border-blue-300'
                                                                 : 'border-zinc-200 bg-white text-zinc-900 hover:border-zinc-300 hover:shadow-sm'
                                                     }
                                                 `}
@@ -563,8 +560,8 @@ export default function DetailPageV2() {
                                                 {inStock && !isSelected && (
                                                     <span className="w-2 h-2 rounded-full bg-green-500"></span>
                                                 )}
-                                                {onTheWay && !isSelected && (
-                                                    <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                                                {onOrder && !isSelected && (
+                                                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
                                                 )}
                                             </button>
                                         </div>

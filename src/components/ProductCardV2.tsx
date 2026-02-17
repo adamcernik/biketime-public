@@ -26,9 +26,11 @@ interface ProductV2 {
         wheelSize?: string;
     };
     hasStock?: boolean;
+    isOnOrder?: boolean;
+    b2bOrderStatus?: string;
     sizes?: string[];
     stockSizes?: string[];
-    onTheWaySizes?: string[];
+    onOrderSizes?: string[];
     farf?: string;
     priceLevelsCzk?: Partial<Record<'A' | 'B' | 'C' | 'D', number>>;
     // Expansion properties (when showing specific color variants)
@@ -49,31 +51,30 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
     const category = detectCategory({ categoryPrgr: product.category, modell: product.model });
 
     // Standardize, deduplicate sizes, and count stock
-    const sizeMap = new Map<string, { label: string, count: number, inStock: boolean, onTheWay: boolean }>();
+    const sizeMap = new Map<string, { label: string, count: number, inStock: boolean, onOrder: boolean }>();
 
     if (product.variants && Array.isArray(product.variants)) {
         product.variants.forEach(variant => {
             if (!variant.size) return;
             const std = standardizeSize(variant.size, category);
             const stock = Number(variant.stock) || Number(variant.onHand) || Number(variant.qty) || Number(variant.b2bStockQuantity) || 0;
-            const inTransit = Number(variant.inTransit) || Number(variant.onTheWay) || 0;
 
             if (!sizeMap.has(std)) {
-                sizeMap.set(std, { label: std, count: 0, inStock: false, onTheWay: false });
+                sizeMap.set(std, { label: std, count: 0, inStock: false, onOrder: false });
             }
 
             const entry = sizeMap.get(std)!;
             entry.count += stock;
             if (stock > 0) entry.inStock = true;
-            if (stock === 0 && inTransit > 0 && !entry.inStock) entry.onTheWay = true;
+            if (variant.b2bOrderStatus === 'na_objednavku' && !entry.inStock) entry.onOrder = true;
         });
     } else if (product.sizes) {
         product.sizes.forEach(size => {
             const std = standardizeSize(size, category);
             if (!sizeMap.has(std)) {
                 const inStock = (product.stockSizes || []).includes(size);
-                const onTheWay = (product.onTheWaySizes || []).includes(size);
-                sizeMap.set(std, { label: std, count: 0, inStock, onTheWay });
+                const onOrder = (product.onOrderSizes || []).includes(size);
+                sizeMap.set(std, { label: std, count: 0, inStock, onOrder });
             }
         });
     }
@@ -83,7 +84,7 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
     // Format price removed as it was unused and causing lint error
 
     const hasStock = product.hasStock || (product.stockSizes && product.stockSizes.length > 0);
-    const hasOnTheWay = !hasStock && (product.onTheWaySizes && product.onTheWaySizes.length > 0);
+    const isOnOrder = !hasStock && (product.isOnOrder || product.b2bOrderStatus === 'na_objednavku');
 
     // Use primaryImage if available (expanded variant), otherwise first image
     const displayImage = product.primaryImage || product.images?.[0];
@@ -121,9 +122,9 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
                             <span className="text-[10px] font-bold px-2 py-1 rounded bg-green-100 text-green-700 border border-green-200 uppercase">
                                 Skladem
                             </span>
-                        ) : hasOnTheWay ? (
-                            <span className="text-[10px] font-bold px-2 py-1 rounded bg-orange-100 text-orange-700 border border-orange-200 uppercase">
-                                Na cestě
+                        ) : isOnOrder ? (
+                            <span className="text-[10px] font-bold px-2 py-1 rounded bg-blue-100 text-blue-700 border border-blue-200 uppercase">
+                                Na objednávku
                             </span>
                         ) : null}
                     </div>
@@ -146,13 +147,13 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
                     {/* Sizes */}
                     {sortedSizes.length > 0 && (
                         <div className="flex flex-wrap gap-1 mb-3">
-                            {sortedSizes.map(({ label, count, inStock, onTheWay }) => (
+                            {sortedSizes.map(({ label, count, inStock, onOrder }) => (
                                 <span
                                     key={label}
                                     className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${inStock
                                         ? 'bg-green-100 text-green-700 border-green-200'
-                                        : onTheWay
-                                            ? 'bg-orange-100 text-orange-700 border-orange-200'
+                                        : onOrder
+                                            ? 'bg-blue-100 text-blue-700 border-blue-200'
                                             : 'bg-zinc-50 text-zinc-400 border-zinc-100'
                                         }`}
                                 >
