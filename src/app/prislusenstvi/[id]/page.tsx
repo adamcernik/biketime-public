@@ -10,6 +10,7 @@ type Accessory = {
   nrLf?: string;
   ean?: string;
   produkt?: string;
+  produktCs?: string;
   marke?: string;
   modell?: string;
   farbe?: string;
@@ -26,6 +27,8 @@ type Accessory = {
   uavpPl?: number | null;
   spezifikation?: string;
   hersteller?: string;
+  b2bOrderStatus?: string;
+  specs?: Record<string, unknown>;
 };
 
 function translateType(type?: string): string {
@@ -67,12 +70,72 @@ function translateType(type?: string): string {
   return map[type] ?? type;
 }
 
+const SPEC_KEY_LABELS: Record<string, string> = {
+  gewicht: 'Hmotnost',
+  weight: 'Hmotnost',
+  material: 'Materiál',
+  farbe: 'Barva',
+  color: 'Barva',
+  groesse: 'Velikost',
+  size: 'Velikost',
+  durchmesser: 'Průměr',
+  diameter: 'Průměr',
+  laenge: 'Délka',
+  length: 'Délka',
+  breite: 'Šířka',
+  width: 'Šířka',
+  hoehe: 'Výška',
+  height: 'Výška',
+  spannung: 'Napětí',
+  voltage: 'Napětí',
+  leistung: 'Výkon',
+  power: 'Výkon',
+  lumen: 'Svítivost (lumen)',
+  akku: 'Baterie',
+  battery: 'Baterie',
+  ladezeit: 'Doba nabíjení',
+  leuchtdauer: 'Doba svícení',
+  anschluss: 'Připojení',
+  kompatibilitaet: 'Kompatibilita',
+  compatibility: 'Kompatibilita',
+};
+
+function translateSpecKey(key: string): string {
+  return SPEC_KEY_LABELS[key.toLowerCase()] || key.charAt(0).toUpperCase() + key.slice(1);
+}
+
+function formatSpecValue(val: unknown): string {
+  if (val === null || val === undefined) return '—';
+  if (typeof val === 'boolean') return val ? 'Ano' : 'Ne';
+  if (typeof val === 'number') return String(val);
+  return String(val);
+}
+
+function getStatusLabel(status?: string): string {
+  switch (status) {
+    case 'skladem': return 'Skladem';
+    case 'na_ceste': return 'Na cestě';
+    case 'na_objednavku': return 'Na objednávku';
+    default: return '';
+  }
+}
+
+function getStatusClasses(status?: string): string {
+  switch (status) {
+    case 'skladem': return 'bg-green-100 text-green-700';
+    case 'na_ceste': return 'bg-blue-100 text-blue-700';
+    case 'na_objednavku': return 'bg-orange-100 text-orange-700';
+    default: return 'bg-zinc-100 text-zinc-500';
+  }
+}
+
 export default function AccessoryDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id;
   const [data, setData] = React.useState<Accessory | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (!id) return;
@@ -84,7 +147,10 @@ export default function AccessoryDetailPage() {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return (await r.json()) as Accessory;
       })
-      .then((acc) => setData(acc))
+      .then((acc) => {
+        setData(acc);
+        setSelectedImage(acc.image || null);
+      })
       .catch((e: unknown) => {
         if ((e as Error).name !== 'AbortError') setError((e as Error).message);
       })
@@ -94,60 +160,168 @@ export default function AccessoryDetailPage() {
 
   const title = React.useMemo(() => {
     if (!data) return '';
-    const parts = [data.marke, data.produkt || data.modell].filter(Boolean);
+    const parts = [data.marke, data.produktCs || data.produkt || data.modell].filter(Boolean);
     return parts.join(' ');
   }, [data]);
 
+  const allImages = React.useMemo(() => {
+    if (!data) return [];
+    return [data.image, data.imageDetail1, data.imageDetail2, data.imageDetail3].filter(Boolean) as string[];
+  }, [data]);
+
+  const specsEntries = React.useMemo(() => {
+    if (!data?.specs) return [];
+    return Object.entries(data.specs).filter(([, val]) => val !== null && val !== undefined && val !== '');
+  }, [data]);
+
+  const statusLabel = data ? getStatusLabel(data.b2bOrderStatus) : '';
+
   return (
-    <main className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
-          <div className="text-sm">
-            <Link href="/prislusenstvi" className="text-gray-600 hover:text-black">Příslušenství</Link>
-            <span className="mx-2 text-gray-400">/</span>
-            <span className="text-gray-800">{title || 'Detail'}</span>
-          </div>
+    <main className="min-h-screen bg-zinc-50">
+      <header className="bg-white border-b border-zinc-200">
+        <div className="container-custom py-4 flex items-center gap-2 text-sm">
+          <Link href="/prislusenstvi" className="text-zinc-500 hover:text-zinc-900 transition-colors">
+            Příslušenství
+          </Link>
+          <svg className="w-3 h-3 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+          <span className="text-zinc-900 font-medium truncate">{title || 'Detail'}</span>
         </div>
       </header>
-      <section className="max-w-5xl mx-auto px-4 py-6">
+
+      <section className="container-custom py-8">
         {loading ? (
-          <div className="text-gray-600">Načítám…</div>
-        ) : error ? (
-          <div className="text-red-600">Chyba: {error}</div>
-        ) : !data ? (
-          <div className="text-gray-600">Produkt nebyl nalezen.</div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-              <div className="aspect-square relative">
-                {data.image ? (
-                  <Image
-                    src={data.image}
-                    alt={title}
-                    fill
-                    sizes="(min-width: 1024px) 50vw, 100vw"
-                    className="object-contain p-4"
-                  />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center text-gray-500">Bez foto</div>
-                )}
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="bg-white rounded-2xl aspect-square animate-pulse" />
+            <div className="space-y-4">
+              <div className="h-4 bg-zinc-200 rounded animate-pulse w-24" />
+              <div className="h-8 bg-zinc-200 rounded animate-pulse w-3/4" />
+              <div className="h-4 bg-zinc-200 rounded animate-pulse w-1/2" />
             </div>
-            <div className="p-1 md:p-0">
-              <div className="text-xs text-gray-500 font-mono">{data.nrLf || data.ean}</div>
-              <h1 className="text-xl font-semibold mt-1">{title}</h1>
-              <div className="text-sm text-gray-600 mt-1">
+          </div>
+        ) : error ? (
+          <div className="text-red-600 p-4 bg-red-50 rounded-xl">Chyba: {error}</div>
+        ) : !data ? (
+          <div className="text-center py-24 bg-white rounded-3xl border border-dashed border-zinc-200">
+            <p className="text-zinc-400 text-lg">Produkt nebyl nalezen.</p>
+            <Link href="/prislusenstvi" className="mt-4 inline-block text-primary font-medium hover:underline">
+              Zpět na příslušenství
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Image gallery */}
+            <div>
+              <div className="bg-white rounded-2xl overflow-hidden border border-zinc-100 shadow-sm">
+                <div className="aspect-square relative">
+                  {selectedImage ? (
+                    <Image
+                      src={selectedImage}
+                      alt={title}
+                      fill
+                      sizes="(min-width: 1024px) 50vw, 100vw"
+                      className="object-contain p-6 mix-blend-multiply"
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-zinc-400">Bez foto</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Thumbnails */}
+              {allImages.length > 1 && (
+                <div className="grid grid-cols-4 gap-2 mt-3">
+                  {allImages.map((img, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedImage(img)}
+                      className={`aspect-square relative bg-white rounded-xl border overflow-hidden transition-all ${
+                        selectedImage === img
+                          ? 'border-primary ring-2 ring-primary/20'
+                          : 'border-zinc-100 hover:border-zinc-300'
+                      }`}
+                    >
+                      <Image
+                        src={img}
+                        alt={`${title} - foto ${i + 1}`}
+                        fill
+                        sizes="120px"
+                        className="object-contain p-2 mix-blend-multiply"
+                        unoptimized
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Product info */}
+            <div className="space-y-4">
+              <div className="text-xs text-zinc-400 font-mono tracking-wide">{data.nrLf || data.ean}</div>
+
+              <div>
+                <span className="text-xs font-bold text-primary tracking-wider uppercase">{data.marke}</span>
+                <h1 className="text-2xl font-bold text-zinc-900 mt-1">
+                  {data.produktCs || data.produkt || data.modell || ''}
+                </h1>
+              </div>
+
+              {/* Status badge */}
+              {statusLabel && (
+                <span className={`inline-flex text-xs font-bold px-2.5 py-1 rounded-full ${getStatusClasses(data.b2bOrderStatus)}`}>
+                  {statusLabel}
+                </span>
+              )}
+
+              {/* Category / Type / Color */}
+              <div className="text-sm text-zinc-600">
                 {[translateType(data.productType), data.categorie, data.farbe].filter(Boolean).join(' · ')}
               </div>
+
               {!!data.modelljahr && (
-                <div className="text-sm text-gray-600 mt-1">Rok: {data.modelljahr}</div>
+                <div className="text-sm text-zinc-500">Modelový rok: {data.modelljahr}</div>
               )}
+
               {data.hersteller && (
-                <div className="text-sm text-gray-600 mt-1">Výrobce: {data.hersteller}</div>
+                <div className="text-sm text-zinc-500">Výrobce: {data.hersteller}</div>
               )}
+
+              {/* Specification text */}
               {data.spezifikation && (
-                <div className="text-sm text-gray-700 mt-3 whitespace-pre-wrap">{data.spezifikation}</div>
+                <div className="pt-2 border-t border-zinc-100">
+                  <p className="text-sm text-zinc-700 whitespace-pre-wrap leading-relaxed">{data.spezifikation}</p>
+                </div>
               )}
+
+              {/* Structured specs */}
+              {specsEntries.length > 0 && (
+                <div className="pt-4 border-t border-zinc-100">
+                  <h3 className="text-sm font-bold text-zinc-900 mb-3">Specifikace</h3>
+                  <dl className="space-y-2">
+                    {specsEntries.map(([key, val]) => (
+                      <div key={key} className="flex items-baseline gap-2 text-sm">
+                        <dt className="text-zinc-500 min-w-[120px] shrink-0">{translateSpecKey(key)}</dt>
+                        <dd className="text-zinc-900">{formatSpecValue(val)}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              )}
+
+              {/* Back link */}
+              <div className="pt-6">
+                <Link
+                  href="/prislusenstvi"
+                  className="inline-flex items-center gap-2 text-sm text-zinc-500 hover:text-zinc-900 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Zpět na příslušenství
+                </Link>
+              </div>
             </div>
           </div>
         )}
@@ -155,5 +329,3 @@ export default function AccessoryDetailPage() {
     </main>
   );
 }
-
-

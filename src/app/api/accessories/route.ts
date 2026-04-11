@@ -9,6 +9,7 @@ export interface AccessoryDoc {
   nrLf?: string;
   ean?: string;
   produkt?: string;
+  produktCs?: string;        // český název (z admin importu)
   marke?: string;
   modell?: string;
   spezifikation?: string;
@@ -18,6 +19,8 @@ export interface AccessoryDoc {
   ekPl?: number | null;
   uvpPl?: number | null;
   uavpPl?: number | null;
+  mocCzk?: number | null;    // MOC cena (pro budoucí zobrazení)
+  vocCzk?: number | null;    // VOC cena
   image?: string;
   imageTransparent?: string;
   imageDetail1?: string;
@@ -28,6 +31,8 @@ export interface AccessoryDoc {
   category?: string; // constant: Accessories
   inStock?: boolean;
   isVisible?: boolean;
+  b2bOrderStatus?: string;   // 'skladem' | 'na_ceste' | 'na_objednavku' | 'nedostupne' | ''
+  specs?: Record<string, unknown>; // technické specifikace
 }
 
 export async function GET(req: NextRequest) {
@@ -48,10 +53,15 @@ export async function GET(req: NextRequest) {
       return { id: d.id, ...data };
     });
 
-    // Visibility: respect explicit isVisible flag if present; otherwise default to inStock
+    // Visibility: hide unavailable items, then respect explicit flags
     const isVisible = (a: AccessoryDoc): boolean => {
+      // 1. Nedostupné vždy skrýt
+      if (a.b2bOrderStatus === 'nedostupne') return false;
+      // 2. Explicitní isVisible flag
       if (typeof a.isVisible === 'boolean') return a.isVisible;
+      // 3. Fallback na inStock
       if (typeof a.inStock === 'boolean') return a.inStock;
+      // 4. Default = visible
       return true;
     };
 
@@ -94,6 +104,7 @@ export async function GET(req: NextRequest) {
         const hay = [
           a.nrLf,
           a.ean,
+          a.produktCs,
           a.produkt,
           a.marke,
           a.modell,
@@ -118,6 +129,15 @@ export async function GET(req: NextRequest) {
         if (g !== qGroup) return false;
       }
       return true;
+    });
+
+    // Sort by brand, then by name
+    filtered.sort((a, b) => {
+      const brandCmp = (a.marke || '').localeCompare(b.marke || '');
+      if (brandCmp !== 0) return brandCmp;
+      const nameA = a.produktCs || a.produkt || a.modell || '';
+      const nameB = b.produktCs || b.produkt || b.modell || '';
+      return nameA.localeCompare(nameB);
     });
 
     const total = filtered.length;
