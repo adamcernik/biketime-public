@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // Re-trigger build
 import { db } from '@/lib/firebase-server';
 import { collection, getDocs } from 'firebase/firestore';
+import { stripSensitiveFields, clampInt } from '@/lib/apiSanitize';
 
 export interface AccessoryDoc {
   id: string;
@@ -44,8 +45,8 @@ export async function GET(req: NextRequest) {
     const qType = searchParams.get('productType') ?? '';
     const qCategorie = searchParams.get('categorie') ?? '';
     const qGroup = (searchParams.get('group') ?? '').toLowerCase();
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const pageSize = parseInt(searchParams.get('pageSize') || '24', 10);
+    const page = clampInt(searchParams.get('page'), 1, 1, 10000);
+    const pageSize = clampInt(searchParams.get('pageSize'), 24, 1, 100);
 
     const snap = await getDocs(collection(db, 'accessories'));
     const all: AccessoryDoc[] = snap.docs.map((d) => {
@@ -162,7 +163,7 @@ export async function GET(req: NextRequest) {
     const categories = Array.from(new Set(visibleItems.map(mapToGroup).filter(Boolean))).sort();
 
     return NextResponse.json({
-      items,
+      items: stripSensitiveFields(items),
       total,
       page,
       pageSize,
@@ -171,6 +172,8 @@ export async function GET(req: NextRequest) {
         brands,
         categories
       }
+    }, {
+      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' }
     });
   } catch (error) {
     console.error('Error in GET /api/accessories:', error);

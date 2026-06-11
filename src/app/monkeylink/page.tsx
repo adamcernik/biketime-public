@@ -2,6 +2,7 @@
 'use client';
 
 import React from 'react';
+import { useAuth } from '@/components/AuthProvider';
 
 type Accessory = {
   id: string;
@@ -33,6 +34,7 @@ function formatPrice(value: number | null | undefined): string {
 }
 
 export default function MonkeyLinkPage() {
+  const { shopUser, loading: authLoading } = useAuth();
   const [search, setSearch] = React.useState('');
   const [brand, setBrand] = React.useState('');
   const [year, setYear] = React.useState('');
@@ -105,6 +107,19 @@ export default function MonkeyLinkPage() {
     }
     cancelEdit();
     load();
+  }
+
+  // Internal tool — admins only
+  if (authLoading) {
+    return <main className="px-4 py-10 text-center text-sm text-gray-500">Načítání…</main>;
+  }
+  if (!shopUser || (shopUser.role !== 'admin' && shopUser.role !== 'poweradmin')) {
+    return (
+      <main className="px-4 py-10 text-center">
+        <h1 className="text-xl font-semibold mb-2">Přístup odepřen</h1>
+        <p className="text-sm text-gray-600">Tato stránka je dostupná pouze administrátorům.</p>
+      </main>
+    );
   }
 
   return (

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
+import { isAdminAuthorized } from '@/lib/adminAuth';
 import fs from 'fs';
 import path from 'path';
 
@@ -26,19 +27,8 @@ function parseCsv(content: string): CsvRow[] {
 }
 
 export async function GET(request: Request) {
-  // 1. Security Check
-  const authHeader = request.headers.get('authorization');
-  if (
-    process.env.NODE_ENV === 'production' &&
-    (!process.env.ADMIN_API_KEY || authHeader !== `Bearer ${process.env.ADMIN_API_KEY}`)
-  ) {
+  if (!isAdminAuthorized(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  // Also keep the existing Vercel check if you want, or rely solely on API Key
-  if (process.env.VERCEL === '1') {
-    // In production/Vercel, we must use the API Key.
-    // The old check disabled it entirely, but now we allow it IF authenticated.
   }
 
   const csvPath = path.join(process.cwd(), 'Bulls-2026-MOC-prices.csv');

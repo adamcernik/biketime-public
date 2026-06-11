@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isAdminAuthorized } from '@/lib/adminAuth';
 import { adminDb } from '@/lib/firebase-admin';
 import * as admin from 'firebase-admin';
 import fs from 'fs';
@@ -76,13 +77,8 @@ function mapRow(header: string[], row: string[]): CsvRow {
 }
 
 export async function GET(req: NextRequest) {
-  // 1. Authenticate using API Key
-  const authHeader = req.headers.get('authorization');
-  if (!process.env.ADMIN_API_KEY || authHeader !== `Bearer ${process.env.ADMIN_API_KEY}`) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    );
+  if (!isAdminAuthorized(req)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const csvPath = path.join(process.cwd(), 'MonkeyLinkCZ.csv');

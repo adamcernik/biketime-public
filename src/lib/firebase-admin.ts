@@ -60,7 +60,19 @@ function getFirebaseAdminApp() {
     });
 }
 
-const adminApp = getFirebaseAdminApp();
+// Lazy initialization: credentials are parsed on first use, not at import time.
+// This keeps `next build` (page-data collection) from evaluating the service
+// account key, and avoids crashing the whole app on a misconfigured env.
+function lazy<T extends object>(factory: () => T): T {
+    let instance: T | undefined;
+    return new Proxy({} as T, {
+        get(_target, prop) {
+            instance ??= factory();
+            const value = instance[prop as keyof T];
+            return typeof value === 'function' ? (value as (...args: unknown[]) => unknown).bind(instance) : value;
+        },
+    });
+}
 
-export const adminDb = getFirestore(adminApp);
-export const adminAuth = getAuth(adminApp);
+export const adminDb = lazy(() => getFirestore(getFirebaseAdminApp()));
+export const adminAuth = lazy(() => getAuth(getFirebaseAdminApp()));

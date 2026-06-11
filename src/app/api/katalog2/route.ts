@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/firebase-server';
 import { collection, doc, getDoc, getDocs } from 'firebase/firestore';
 import { sortSizes, detectCategory, standardizeSize } from '@/lib/size-mapping';
+import { clampInt } from '@/lib/apiSanitize';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,8 +39,8 @@ const mapCategory = (raw: string, isE: boolean): string | null => {
 export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
-        const page = parseInt(searchParams.get('page') || '1');
-        const pageSize = parseInt(searchParams.get('pageSize') || '24');
+        const page = clampInt(searchParams.get('page'), 1, 1, 10000);
+        const pageSize = clampInt(searchParams.get('pageSize'), 24, 1, 100);
 
         const searchParam = searchParams.get('search');
         const categoryParam = searchParams.get('category');

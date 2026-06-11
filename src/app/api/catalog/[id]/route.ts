@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/firebase-server';
 import { doc, getDoc } from 'firebase/firestore';
+import { stripSensitiveFields } from '@/lib/apiSanitize';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +23,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         // Let's check the data structure.
         
         const product = { id: snapshot.id, ...productData };
-        return NextResponse.json(product);
+        return NextResponse.json(stripSensitiveFields(product), {
+            headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' }
+        });
 
     } catch (error) {
         console.error('Catalog V2 Detail Error:', error);

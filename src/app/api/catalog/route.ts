@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/firebase-server';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { sortSizes, detectCategory, standardizeSize } from '@/lib/size-mapping';
+import { stripSensitiveFields, clampInt } from '@/lib/apiSanitize';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,8 +58,8 @@ const mapRawToTag = (raw: string, isE: boolean): string | null => {
 export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
-        const page = parseInt(searchParams.get('page') || '1');
-        const pageSize = parseInt(searchParams.get('pageSize') || '24');
+        const page = clampInt(searchParams.get('page'), 1, 1, 10000);
+        const pageSize = clampInt(searchParams.get('pageSize'), 24, 1, 100);
 
         const searchParam = searchParams.get('search');
         const categoryParam = searchParams.get('category');
@@ -437,7 +438,7 @@ export async function GET(req: NextRequest) {
         const paginatedProducts = filteredProducts.slice(start, start + pageSize);
 
         return NextResponse.json({
-            products: paginatedProducts,
+            products: stripSensitiveFields(paginatedProducts),
             pagination: {
                 total,
                 page,
@@ -453,6 +454,8 @@ export async function GET(req: NextRequest) {
                 sizeOptions,
                 wheelSizeOptions
             }
+        }, {
+            headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' }
         });
 
     } catch (error) {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isAdminAuthorized } from '@/lib/adminAuth';
 import { adminDb } from '@/lib/firebase-admin';
 
 type AllowedUpdates = Partial<{
@@ -11,13 +12,8 @@ type AllowedUpdates = Partial<{
 }>;
 
 export async function POST(req: NextRequest) {
-  // 1. Authenticate using API Key
-  const authHeader = req.headers.get('authorization');
-  if (!process.env.ADMIN_API_KEY || authHeader !== `Bearer ${process.env.ADMIN_API_KEY}`) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    );
+  if (!isAdminAuthorized(req)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const body = (await req.json().catch(() => null)) as { id?: string; updates?: AllowedUpdates } | null;
