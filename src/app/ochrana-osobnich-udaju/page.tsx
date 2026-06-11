@@ -17,7 +17,7 @@ export default function PrivacyPolicyPage() {
                         <p>
                             Správcem vašich osobních údajů je společnost:<br />
                             <strong>Biketime s.r.o.</strong><br />
-                            Se sídlem: K dolům 1924/42, 143 00 Praha 4<br />
+                            Se sídlem: Křižíkova 53, 186 00 Praha 8, Karlín<br />
                             IČO: 03269787<br />
                             E-mail: <a href="mailto:info@biketime.cz">info@biketime.cz</a>
                         </p>

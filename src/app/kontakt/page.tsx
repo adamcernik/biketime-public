@@ -38,7 +38,7 @@ export default function KontaktPage() {
             <div className="uppercase tracking-widest text-gray-500 font-semibold mb-2">Sídlo firmy</div>
             <div className="space-y-2 text-gray-700">
               <p>BIKETIME s.r.o.</p>
-              <p>K dolům 1924/42, 143 00 Praha 4</p>
+              <p>Křižíkova 53, 186 00 Praha 8, Karlín</p>
               <p>IČO: 03269787</p>
             </div>
           </div>
