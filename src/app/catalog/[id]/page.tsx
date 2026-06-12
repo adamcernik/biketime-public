@@ -193,6 +193,16 @@ export default function DetailPageV2() {
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
 
+    // Keep battery-related specs consistent with the currently selected capacity.
+    // The product carries a single (product-level) battery spec, so without this a
+    // bike with 600/800 Wh variants would always show one fixed number, contradicting
+    // the user's selection.
+    const formatCapacity = (cap?: string) => (cap?.toLowerCase().includes('wh') ? cap : `${cap} Wh`);
+    const selectedCapNum = selectedCapacity ? (selectedCapacity.match(/\d+/)?.[0] ?? '') : '';
+    const displayBattery = (product.specs?.battery && selectedCapNum)
+        ? String(product.specs.battery).replace(/\d{3,4}/, selectedCapNum)
+        : product.specs?.battery;
+
     let priceDisplay;
 
     if (selectedSize) {
@@ -346,12 +356,12 @@ export default function DetailPageV2() {
                                         {product.specs.motor}
                                     </span>
                                 )}
-                                {product.specs.battery && (
+                                {displayBattery && (
                                     <span className="inline-flex items-center px-3 py-1 rounded-full bg-zinc-100 text-zinc-700 text-sm font-medium">
                                         <svg className="w-4 h-4 mr-2 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
                                         </svg>
-                                        {product.specs.battery}
+                                        {displayBattery}
                                     </span>
                                 )}
                                 {product.year && (
@@ -663,7 +673,12 @@ export default function DetailPageV2() {
                                             </div>
                                             <div className="divide-y divide-zinc-50">
                                                 {sectionSpecs.map(key => {
-                                                    const value = product.specs[key];
+                                                    let value = product.specs[key];
+                                                    // Reflect the selected battery capacity instead of the static product-level value
+                                                    if (key === 'capacity' && selectedCapacity) value = formatCapacity(selectedCapacity);
+                                                    else if (key === 'battery' && selectedCapNum) value = displayBattery;
+                                                    // Add the missing torque unit (e.g. "100" -> "100 Nm")
+                                                    else if (key === 'motorTorque' && /^\d+([.,]\d+)?$/.test(String(value).trim())) value = `${value} Nm`;
                                                     const labels: Record<string, string> = {
                                                         // Motor & Battery
                                                         motorManufacturer: 'Výrobce motoru',

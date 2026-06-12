@@ -85,6 +85,25 @@ export default function ProductCardV2({ product, detailBasePath = '/catalog', co
 
     const sortedSizes = Array.from(sizeMap.values()).sort((a, b) => sortSizes(a.label, b.label));
 
+    // Battery capacity label — show the real range when a model offers several
+    // capacities (e.g. "600–800 Wh"), so the card matches the catalog filter.
+    const capacityLabel = (() => {
+        const caps = Array.from(new Set(
+            (product.variants || [])
+                .map((v: any) => (v?.capacity ? String(v.capacity).trim() : ''))
+                .filter(Boolean)
+        ));
+        if (caps.length === 0) return product.specs?.capacity || '';
+        const nums = caps
+            .map((c) => parseInt(c, 10))
+            .filter((n) => !Number.isNaN(n))
+            .sort((a, b) => a - b);
+        if (nums.length > 1 && nums[0] !== nums[nums.length - 1]) {
+            return `${nums[0]}–${nums[nums.length - 1]} Wh`;
+        }
+        return caps[0];
+    })();
+
     // Format price removed as it was unused and causing lint error
 
     const hasStock = product.hasStock || (product.stockSizes && product.stockSizes.length > 0);
@@ -200,12 +219,12 @@ export default function ProductCardV2({ product, detailBasePath = '/catalog', co
 
                     {/* Specs Grid */}
                     <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs text-zinc-500 mb-4 mt-auto">
-                        {product.specs.capacity && (
+                        {capacityLabel && (
                             <div className="flex items-center gap-1.5">
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                 </svg>
-                                <span>{product.specs.capacity}</span>
+                                <span>{capacityLabel}</span>
                             </div>
                         )}
                         {product.specs.wheelSize && (

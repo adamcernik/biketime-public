@@ -342,6 +342,22 @@ export async function GET(req: NextRequest) {
         });
         const wheelSizeOptions = Array.from(allWheelSizes).sort((a, b) => parseFloat(a) - parseFloat(b));
 
+        // Extract battery capacities from variants (e-bikes), ranked by how many
+        // products offer each (most common first) so the UI can show the top few
+        // and collapse the rest.
+        const capacityCounts = new Map<string, number>();
+        baseProducts.forEach(p => {
+            const caps = new Set<string>();
+            (p.variants || []).forEach((v: any) => {
+                const c = v.capacity ? String(v.capacity).trim() : '';
+                if (c) caps.add(c);
+            });
+            caps.forEach(c => capacityCounts.set(c, (capacityCounts.get(c) || 0) + 1));
+        });
+        const capacityOptions = Array.from(capacityCounts.entries())
+            .sort((a, b) => b[1] - a[1] || (parseInt(a[0]) || 0) - (parseInt(b[0]) || 0))
+            .map(([cap]) => cap);
+
         // 3. Apply Selection Filters (Category, Year, Mose, Search)
         let filteredProducts = baseProducts;
 
@@ -414,6 +430,14 @@ export async function GET(req: NextRequest) {
             });
         }
 
+        // Battery Capacity Filter (keep products that have a variant with this capacity)
+        const capacityParam = searchParams.get('capacity');
+        if (capacityParam) {
+            filteredProducts = filteredProducts.filter(p =>
+                (p.variants || []).some((v: any) => String(v.capacity).trim() === capacityParam)
+            );
+        }
+
         // Sort by Priority (Model Series), then Year (desc), then Brand, then Model
         filteredProducts.sort((a, b) => {
             // 1. Model Series Priority
@@ -452,7 +476,8 @@ export async function GET(req: NextRequest) {
                 moseOptions,
                 moheOptions,
                 sizeOptions,
-                wheelSizeOptions
+                wheelSizeOptions,
+                capacityOptions
             }
         }, {
             headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' }
