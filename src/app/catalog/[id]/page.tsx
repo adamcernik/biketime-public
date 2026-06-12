@@ -88,7 +88,7 @@ export default function DetailPageV2() {
 
                     // Prefer a variant matching both color and capacity, then color,
                     // then capacity, then the first variant.
-                    let initialVariant =
+                    const initialVariant =
                         data.variants.find((v: any) => matchesColor(v) && matchesCapacity(v)) ||
                         (urlColor && data.variants.find((v: any) => matchesColor(v))) ||
                         (urlCapacity && data.variants.find((v: any) => matchesCapacity(v))) ||
