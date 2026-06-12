@@ -34,7 +34,7 @@ export default function PrivacyPolicyPage() {
                         <p>Správcem vašich osobních údajů je společnost:</p>
                         <div className="not-prose my-6 rounded-xl border border-zinc-200 bg-zinc-50 px-6 py-5 text-sm leading-relaxed text-zinc-700">
                             <p className="font-semibold text-zinc-900">Biketime s.r.o.</p>
-                            <p>Křižíkova 53, 186 00 Praha 8, Karlín</p>
+                            <p>K dolům 1924/42, 143 00 Praha 4</p>
                             <p>IČO: 03269787</p>
                             <p>
                                 E-mail:{' '}
