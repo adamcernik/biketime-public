@@ -75,28 +75,30 @@ export default function DetailPageV2() {
                 const data = await res.json();
                 setProduct(data);
 
-                // Check if color is specified in URL parameters
+                // Check if color/capacity are specified in URL parameters (carried
+                // from the catalog filters) so we open on the matching variant.
                 const urlParams = new URLSearchParams(window.location.search);
                 const urlColor = urlParams.get('color');
+                const urlCapacity = urlParams.get('capacity');
 
                 // Default Selections
                 if (data.variants && data.variants.length > 0) {
-                    // Try to find variant matching URL color parameter
-                    let initialVariant = data.variants[0];
+                    const matchesColor = (v: any) => !urlColor || (v.color && v.color.toLowerCase() === urlColor.toLowerCase());
+                    const matchesCapacity = (v: any) => !urlCapacity || v.capacity === urlCapacity;
 
-                    if (urlColor) {
-                        const matchingVariant = data.variants.find((v: any) =>
-                            v.color && v.color.toLowerCase() === urlColor.toLowerCase()
-                        );
-                        if (matchingVariant) {
-                            initialVariant = matchingVariant;
-                        }
-                    }
+                    // Prefer a variant matching both color and capacity, then color,
+                    // then capacity, then the first variant.
+                    let initialVariant =
+                        data.variants.find((v: any) => matchesColor(v) && matchesCapacity(v)) ||
+                        (urlColor && data.variants.find((v: any) => matchesColor(v))) ||
+                        (urlCapacity && data.variants.find((v: any) => matchesCapacity(v))) ||
+                        data.variants[0];
 
                     setSelectedColor(initialVariant.color);
                     setSelectedFrameShape(initialVariant.frameShape);
 
-                    // Pre-select capacity
+                    // Pre-select capacity: honor the URL capacity if this color/frame
+                    // offers it, otherwise fall back to the lowest available.
                     const relevantVariants = data.variants.filter((v: any) =>
                         v.color === initialVariant.color &&
                         v.frameShape === initialVariant.frameShape
@@ -105,7 +107,9 @@ export default function DetailPageV2() {
                         .filter(Boolean)
                         .sort((a: any, b: any) => parseInt(a || '0') - parseInt(b || '0'));
 
-                    if (capacities.length > 0) {
+                    if (urlCapacity && capacities.includes(urlCapacity)) {
+                        setSelectedCapacity(urlCapacity);
+                    } else if (capacities.length > 0) {
                         setSelectedCapacity(capacities[0] as string);
                     }
                 }

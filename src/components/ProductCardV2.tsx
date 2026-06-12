@@ -44,7 +44,7 @@ interface ProductV2 {
     colors?: string[];
 }
 
-export default function ProductCardV2({ product, detailBasePath = '/catalog', colorMappings = {} }: { product: ProductV2; detailBasePath?: string; colorMappings?: Record<string, string> }) {
+export default function ProductCardV2({ product, detailBasePath = '/catalog', colorMappings = {}, activeCapacity = '' }: { product: ProductV2; detailBasePath?: string; colorMappings?: Record<string, string>; activeCapacity?: string }) {
     const { shopUser, hideB2BPrices } = useAuth();
 
     // ... rest of component logic ...
@@ -116,7 +116,15 @@ export default function ProductCardV2({ product, detailBasePath = '/catalog', co
     // Always link to product ID (not variant ID)
     // If we have a specific color variant, add it as a query parameter for pre-selection
     const baseLink = `${detailBasePath}/${product.id}`;
-    const linkHref = product.primaryColor ? `${baseLink}?color=${encodeURIComponent(product.primaryColor)}` : baseLink;
+    // Carry the active catalog filters into the detail page so it opens with the
+    // matching variant pre-selected (color from expanded cards, battery capacity
+    // from the capacity filter).
+    const linkParams = new URLSearchParams();
+    if (product.primaryColor) linkParams.set('color', product.primaryColor);
+    if (activeCapacity && (product.variants || []).some((v: any) => String(v?.capacity).trim() === activeCapacity)) {
+        linkParams.set('capacity', activeCapacity);
+    }
+    const linkHref = linkParams.toString() ? `${baseLink}?${linkParams.toString()}` : baseLink;
 
     return (
         <Link href={linkHref} className="group block h-full">

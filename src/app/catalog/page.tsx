@@ -307,6 +307,7 @@ function CatalogNewContent() {
                                                 <ProductCardV2
                                                     key={product._uniqueKey || product.id}
                                                     product={product}
+                                                    activeCapacity={selectedCapacity}
                                                 />
                                             ))}
                                         </div>
