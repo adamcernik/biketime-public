@@ -9,7 +9,9 @@ import {
   formatCzk,
   formatDate,
   formatEur,
-  hasUniformPrice,
+  hasPerSizeBattery,
+  showSizeTable,
+  sizeBattery,
   sizePriceEur,
 } from '@/lib/offers/format';
 
@@ -33,7 +35,8 @@ function OfferItemCard({ item, rate }: { item: OfferItem; rate: number }) {
   const img = item.imageUrl
     ? getOptimizedImageUrl(item.imageUrl, 'medium', item.brand)
     : null;
-  const uniform = hasUniformPrice(item);
+  const useTable = showSizeTable(item);
+  const perSizeBattery = hasPerSizeBattery(item);
   const specEntries = Object.entries(item.specs ?? {});
 
   // Catalog detail link — stored absolute (biketime.cz); use its path so it
@@ -113,15 +116,16 @@ function OfferItemCard({ item, rate }: { item: OfferItem; rate: number }) {
           </a>
         )}
 
-        {/* Headline chips */}
-        {(item.motor || item.battery) && (
+        {/* Headline chips — when battery differs by size it is shown per size
+            in the table below, not as a single chip here. */}
+        {(item.motor || (!perSizeBattery && item.battery)) && (
           <div className="mt-2 flex flex-wrap gap-1.5">
             {item.motor && (
               <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-700">
                 {item.motor}
               </span>
             )}
-            {item.battery && (
+            {!perSizeBattery && item.battery && (
               <span className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-700">
                 {item.battery}
               </span>
@@ -147,7 +151,7 @@ function OfferItemCard({ item, rate }: { item: OfferItem; rate: number }) {
             NRLF: <span className="font-mono">{item.nrLf}</span>
           </div>
 
-          {uniform ? (
+          {!useTable ? (
             <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
               <div>
                 <div className="mb-1 text-xs text-zinc-400">Velikosti</div>
@@ -173,6 +177,7 @@ function OfferItemCard({ item, rate }: { item: OfferItem; rate: number }) {
               <thead>
                 <tr className="text-left text-xs text-zinc-400">
                   <th className="py-1 font-medium">Velikost</th>
+                  {perSizeBattery && <th className="py-1 font-medium">Baterie</th>}
                   <th className="py-1 text-right font-medium">Cena (EUR)</th>
                   <th className="py-1 text-right font-medium">Cena (CZK)</th>
                 </tr>
@@ -186,6 +191,9 @@ function OfferItemCard({ item, rate }: { item: OfferItem; rate: number }) {
                         {s.size}
                         {s.quantity ? <span className="text-zinc-400"> · {s.quantity} ks</span> : null}
                       </td>
+                      {perSizeBattery && (
+                        <td className="py-1 text-zinc-600">{sizeBattery(item, s) ?? '—'}</td>
+                      )}
                       <td className="py-1 text-right font-semibold text-zinc-900">{formatEur(eur)}</td>
                       <td className="py-1 text-right text-zinc-500">{formatCzk(eurToCzk(eur, rate))}</td>
                     </tr>

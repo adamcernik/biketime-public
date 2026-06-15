@@ -174,7 +174,11 @@ export const SAMPLE_OFFER: Offer = {
     battery: "FIT SuperTube 520 / 520 Wh",
     specs: { "Rám": "Aluminium", "Převody": "8 speed", "Kola": "26 inch" },
     priceEur: 911,
-    sizes: [{ size: "20", priceEur: 911 }, { size: "24", priceEur: 911 }, { size: "26", priceEur: 1100 }],
+    sizes: [
+      { size: "20", priceEur: 911, battery: "400 Wh" },
+      { size: "24", priceEur: 911, battery: "400 Wh" },
+      { size: "26", priceEur: 1100, battery: "520 Wh" },
+    ],
   },
   ],
 };

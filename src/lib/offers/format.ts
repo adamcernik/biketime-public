@@ -60,6 +60,24 @@ export function hasUniformPrice(item: OfferItem): boolean {
   );
 }
 
+/** True when at least one size carries its own battery value. */
+export function hasPerSizeBattery(item: OfferItem): boolean {
+  return item.sizes.some((s) => !!s.battery);
+}
+
+/** The effective battery for a size: its override, else the item battery. */
+export function sizeBattery(item: OfferItem, size: OfferItemSize): string | undefined {
+  return size.battery || item.battery;
+}
+
+/**
+ * Whether to render the per-size detail table instead of a single price +
+ * size chips: when prices differ by size, or battery differs by size.
+ */
+export function showSizeTable(item: OfferItem): boolean {
+  return !hasUniformPrice(item) || hasPerSizeBattery(item);
+}
+
 /** Lowest EUR price across an item's sizes (for "od …" display). */
 export function minItemPriceEur(item: OfferItem): number {
   if (!item.sizes.length) return item.priceEur;

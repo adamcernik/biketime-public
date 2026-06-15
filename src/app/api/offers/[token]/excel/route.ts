@@ -76,7 +76,7 @@ export async function GET(
         item.year ?? '',
         item.color ?? '',
         item.motor ?? '',
-        item.battery ?? '',
+        size.battery ?? item.battery ?? '',
         size.size,
         size.quantity ?? '',
         eur,

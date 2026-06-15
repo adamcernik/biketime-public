@@ -48,6 +48,12 @@ export interface OfferItemSize {
    * when set. Used for models priced differently per size (e.g. kids bikes).
    */
   priceEur?: number;
+  /**
+   * Per-size battery / capacity. Overrides the item-level battery when set.
+   * Needed for models whose battery differs by size — e.g. kids bikes where
+   * each wheel size (20/24/26) is a distinct product with its own battery.
+   */
+  battery?: string;
   /** Optional free-text note for this size. */
   note?: string;
 }

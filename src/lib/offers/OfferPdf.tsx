@@ -14,7 +14,9 @@ import {
   formatCzk,
   formatEur,
   formatDate,
-  hasUniformPrice,
+  hasPerSizeBattery,
+  showSizeTable,
+  sizeBattery,
   sizePriceEur,
 } from './format';
 
@@ -135,7 +137,8 @@ const styles = StyleSheet.create({
 });
 
 function ItemCard({ item, rate, image }: { item: OfferItem; rate: number; image?: OfferImageMap[string] }) {
-  const uniform = hasUniformPrice(item);
+  const useTable = showSizeTable(item);
+  const perSizeBattery = hasPerSizeBattery(item);
   const specEntries = Object.entries(item.specs ?? {});
 
   return (
@@ -157,10 +160,10 @@ function ItemCard({ item, rate, image }: { item: OfferItem; rate: number; image?
         <Text style={styles.model}>{item.model}</Text>
         {item.color ? <Text style={styles.color}>{item.color}</Text> : null}
 
-        {(item.motor || item.battery) && (
+        {(item.motor || (!perSizeBattery && item.battery)) && (
           <View style={styles.chipRow}>
             {item.motor ? <Text style={styles.chip}>{item.motor}</Text> : null}
-            {item.battery ? <Text style={styles.chip}>{item.battery}</Text> : null}
+            {!perSizeBattery && item.battery ? <Text style={styles.chip}>{item.battery}</Text> : null}
           </View>
         )}
 
@@ -177,7 +180,7 @@ function ItemCard({ item, rate, image }: { item: OfferItem; rate: number; image?
 
         <Text style={styles.code}>NRLF: {item.nrLf}</Text>
 
-        {uniform ? (
+        {!useTable ? (
           <View style={styles.priceRow}>
             <View style={styles.sizesWrap}>
               {item.sizes.map((s, i) => (
@@ -195,20 +198,26 @@ function ItemCard({ item, rate, image }: { item: OfferItem; rate: number; image?
         ) : (
           <View style={styles.sizeTable}>
             <View style={styles.sizeTableHead}>
-              <Text style={styles.thSize}>Velikost</Text>
-              <Text style={styles.thNum}>Cena (EUR)</Text>
-              <Text style={styles.thNum}>Cena (CZK)</Text>
+              <Text style={[styles.thSize, perSizeBattery ? { width: '26%' } : {}]}>Velikost</Text>
+              {perSizeBattery && <Text style={[styles.thNum, { width: '32%', textAlign: 'left' }]}>Baterie</Text>}
+              <Text style={[styles.thNum, perSizeBattery ? { width: '21%' } : {}]}>Cena (EUR)</Text>
+              <Text style={[styles.thNum, perSizeBattery ? { width: '21%' } : {}]}>Cena (CZK)</Text>
             </View>
             {item.sizes.map((s, i) => {
               const eur = sizePriceEur(item, s);
               return (
                 <View key={`${s.size}-${i}`} style={styles.sizeTableRow}>
-                  <Text style={styles.tdSize}>
+                  <Text style={[styles.tdSize, perSizeBattery ? { width: '26%' } : {}]}>
                     {s.size}
                     {s.quantity ? ` · ${s.quantity} ks` : ''}
                   </Text>
-                  <Text style={styles.tdEur}>{formatEur(eur)}</Text>
-                  <Text style={styles.tdCzk}>{formatCzk(eurToCzk(eur, rate))}</Text>
+                  {perSizeBattery && (
+                    <Text style={[styles.tdCzk, { width: '32%', textAlign: 'left' }]}>
+                      {sizeBattery(item, s) ?? '—'}
+                    </Text>
+                  )}
+                  <Text style={[styles.tdEur, perSizeBattery ? { width: '21%' } : {}]}>{formatEur(eur)}</Text>
+                  <Text style={[styles.tdCzk, perSizeBattery ? { width: '21%' } : {}]}>{formatCzk(eurToCzk(eur, rate))}</Text>
                 </View>
               );
             })}
