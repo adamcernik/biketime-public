@@ -36,25 +36,45 @@ function OfferItemCard({ item, rate }: { item: OfferItem; rate: number }) {
   const uniform = hasUniformPrice(item);
   const specEntries = Object.entries(item.specs ?? {});
 
+  // Catalog detail link — stored absolute (biketime.cz); use its path so it
+  // resolves on the current origin (prod/preview/dev) too.
+  const detailUrl = (() => {
+    if (!item.catalogUrl) return null;
+    try {
+      const u = new URL(item.catalogUrl);
+      return `${u.pathname}${u.search}`;
+    } catch {
+      return item.catalogUrl.startsWith('/') ? item.catalogUrl : null;
+    }
+  })();
+
   return (
     <article className="offer-card flex flex-col gap-5 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm sm:flex-row">
       {/* Image */}
       <div className="flex w-full shrink-0 items-center justify-center sm:w-56">
-        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-zinc-50">
-          {img ? (
+        {(() => {
+          const imageInner = img ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={img}
               alt={`${item.brand ?? ''} ${item.model}`.trim()}
               loading="eager"
-              className="absolute inset-0 h-full w-full object-contain p-2 mix-blend-multiply"
+              className="absolute inset-0 h-full w-full object-contain p-2 mix-blend-multiply transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center text-xs text-zinc-400">
               Foto není k dispozici
             </div>
-          )}
-        </div>
+          );
+          const boxClass = 'relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-zinc-50';
+          return detailUrl ? (
+            <a href={detailUrl} target="_blank" rel="noopener noreferrer" className={`group block w-full ${boxClass}`}>
+              {imageInner}
+            </a>
+          ) : (
+            <div className={boxClass}>{imageInner}</div>
+          );
+        })()}
       </div>
 
       {/* Details */}
@@ -67,8 +87,31 @@ function OfferItemCard({ item, rate }: { item: OfferItem; rate: number }) {
           )}
           {item.year && <span className="text-xs text-zinc-400">{item.year}</span>}
         </div>
-        <h3 className="text-lg font-bold leading-tight text-zinc-900">{item.model}</h3>
+        <h3 className="text-lg font-bold leading-tight text-zinc-900">
+          {detailUrl ? (
+            <a
+              href={detailUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition-colors hover:text-primary"
+            >
+              {item.model}
+            </a>
+          ) : (
+            item.model
+          )}
+        </h3>
         {item.color && <p className="text-sm text-zinc-500">{item.color}</p>}
+        {detailUrl && (
+          <a
+            href={detailUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="no-print mt-1 inline-flex w-fit items-center gap-1 text-xs font-medium text-primary hover:underline"
+          >
+            Zobrazit detail v katalogu →
+          </a>
+        )}
 
         {/* Headline chips */}
         {(item.motor || item.battery) && (
