@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
+import { isAdminAuthorized } from '@/lib/adminAuth';
 
 // Define interfaces for better type safety
 interface StockBike {
@@ -34,8 +35,8 @@ interface Product {
     [key: string]: unknown;
 }
 
+// Endpoint is called server-to-server (curl/scripts) — no cross-origin browser access.
 const corsHeaders = {
-    'Access-Control-Allow-Origin': '*', // Replace with specific origin in production if needed
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
@@ -46,10 +47,8 @@ export async function OPTIONS() {
 
 export async function POST(request: Request) {
     try {
-        // 1. Security Check
-        const authHeader = request.headers.get('authorization');
-        // Simple API Key check - ensure ADMIN_API_KEY is set in .env.local
-        if (!process.env.ADMIN_API_KEY || authHeader !== `Bearer ${process.env.ADMIN_API_KEY}`) {
+        // 1. Security Check (timing-safe)
+        if (!isAdminAuthorized(request)) {
             return NextResponse.json(
                 { success: false, error: 'Unauthorized' },
                 { status: 401, headers: corsHeaders }

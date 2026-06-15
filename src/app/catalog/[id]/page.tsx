@@ -75,28 +75,30 @@ export default function DetailPageV2() {
                 const data = await res.json();
                 setProduct(data);
 
-                // Check if color is specified in URL parameters
+                // Check if color/capacity are specified in URL parameters (carried
+                // from the catalog filters) so we open on the matching variant.
                 const urlParams = new URLSearchParams(window.location.search);
                 const urlColor = urlParams.get('color');
+                const urlCapacity = urlParams.get('capacity');
 
                 // Default Selections
                 if (data.variants && data.variants.length > 0) {
-                    // Try to find variant matching URL color parameter
-                    let initialVariant = data.variants[0];
+                    const matchesColor = (v: any) => !urlColor || (v.color && v.color.toLowerCase() === urlColor.toLowerCase());
+                    const matchesCapacity = (v: any) => !urlCapacity || v.capacity === urlCapacity;
 
-                    if (urlColor) {
-                        const matchingVariant = data.variants.find((v: any) =>
-                            v.color && v.color.toLowerCase() === urlColor.toLowerCase()
-                        );
-                        if (matchingVariant) {
-                            initialVariant = matchingVariant;
-                        }
-                    }
+                    // Prefer a variant matching both color and capacity, then color,
+                    // then capacity, then the first variant.
+                    const initialVariant =
+                        data.variants.find((v: any) => matchesColor(v) && matchesCapacity(v)) ||
+                        (urlColor && data.variants.find((v: any) => matchesColor(v))) ||
+                        (urlCapacity && data.variants.find((v: any) => matchesCapacity(v))) ||
+                        data.variants[0];
 
                     setSelectedColor(initialVariant.color);
                     setSelectedFrameShape(initialVariant.frameShape);
 
-                    // Pre-select capacity
+                    // Pre-select capacity: honor the URL capacity if this color/frame
+                    // offers it, otherwise fall back to the lowest available.
                     const relevantVariants = data.variants.filter((v: any) =>
                         v.color === initialVariant.color &&
                         v.frameShape === initialVariant.frameShape
@@ -105,7 +107,9 @@ export default function DetailPageV2() {
                         .filter(Boolean)
                         .sort((a: any, b: any) => parseInt(a || '0') - parseInt(b || '0'));
 
-                    if (capacities.length > 0) {
+                    if (urlCapacity && capacities.includes(urlCapacity)) {
+                        setSelectedCapacity(urlCapacity);
+                    } else if (capacities.length > 0) {
                         setSelectedCapacity(capacities[0] as string);
                     }
                 }
@@ -192,6 +196,16 @@ export default function DetailPageV2() {
     const prices = variantsForPrice.map(v => v.price);
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
+
+    // Keep battery-related specs consistent with the currently selected capacity.
+    // The product carries a single (product-level) battery spec, so without this a
+    // bike with 600/800 Wh variants would always show one fixed number, contradicting
+    // the user's selection.
+    const formatCapacity = (cap?: string) => (cap?.toLowerCase().includes('wh') ? cap : `${cap} Wh`);
+    const selectedCapNum = selectedCapacity ? (selectedCapacity.match(/\d+/)?.[0] ?? '') : '';
+    const displayBattery = (product.specs?.battery && selectedCapNum)
+        ? String(product.specs.battery).replace(/\d{3,4}/, selectedCapNum)
+        : product.specs?.battery;
 
     let priceDisplay;
 
@@ -346,12 +360,12 @@ export default function DetailPageV2() {
                                         {product.specs.motor}
                                     </span>
                                 )}
-                                {product.specs.battery && (
+                                {displayBattery && (
                                     <span className="inline-flex items-center px-3 py-1 rounded-full bg-zinc-100 text-zinc-700 text-sm font-medium">
                                         <svg className="w-4 h-4 mr-2 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
                                         </svg>
-                                        {product.specs.battery}
+                                        {displayBattery}
                                     </span>
                                 )}
                                 {product.year && (
@@ -663,7 +677,12 @@ export default function DetailPageV2() {
                                             </div>
                                             <div className="divide-y divide-zinc-50">
                                                 {sectionSpecs.map(key => {
-                                                    const value = product.specs[key];
+                                                    let value = product.specs[key];
+                                                    // Reflect the selected battery capacity instead of the static product-level value
+                                                    if (key === 'capacity' && selectedCapacity) value = formatCapacity(selectedCapacity);
+                                                    else if (key === 'battery' && selectedCapNum) value = displayBattery;
+                                                    // Add the missing torque unit (e.g. "100" -> "100 Nm")
+                                                    else if (key === 'motorTorque' && /^\d+([.,]\d+)?$/.test(String(value).trim())) value = `${value} Nm`;
                                                     const labels: Record<string, string> = {
                                                         // Motor & Battery
                                                         motorManufacturer: 'Výrobce motoru',

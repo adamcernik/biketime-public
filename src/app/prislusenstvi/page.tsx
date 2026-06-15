@@ -9,6 +9,7 @@ type Accessory = {
   nrLf?: string;
   ean?: string;
   produkt?: string;
+  produktCs?: string;
   marke?: string;
   modell?: string;
   farbe?: string;
@@ -16,6 +17,7 @@ type Accessory = {
   image?: string;
   categorie?: string;
   productType?: string;
+  b2bOrderStatus?: string;
 };
 
 import { AccessoryFilterSidebar } from '@/components/catalog/AccessoryFilterSidebar';
@@ -199,7 +201,7 @@ function AccessoriesContent() {
                               {p.image ? (
                                 <Image
                                   src={p.image}
-                                  alt={`${p.marke ?? ''} ${p.produkt ?? p.modell ?? ''}`.trim()}
+                                  alt={`${p.marke ?? ''} ${p.produktCs ?? p.produkt ?? p.modell ?? ''}`.trim()}
                                   fill
                                   sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                                   className="object-contain p-4 mix-blend-multiply transition-transform duration-500 group-hover:scale-95"
@@ -208,13 +210,29 @@ function AccessoriesContent() {
                               ) : (
                                 <div className="absolute inset-0 flex items-center justify-center text-zinc-300 text-sm">Bez foto</div>
                               )}
+
+                              {/* Availability badge */}
+                              {p.b2bOrderStatus && p.b2bOrderStatus !== '' && (
+                                <div className="absolute top-3 left-3">
+                                  <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${
+                                    p.b2bOrderStatus === 'skladem' ? 'bg-green-100 text-green-700' :
+                                    p.b2bOrderStatus === 'na_ceste' ? 'bg-blue-100 text-blue-700' :
+                                    p.b2bOrderStatus === 'na_objednavku' ? 'bg-orange-100 text-orange-700' :
+                                    'bg-zinc-100 text-zinc-500'
+                                  }`}>
+                                    {p.b2bOrderStatus === 'skladem' ? 'Skladem' :
+                                     p.b2bOrderStatus === 'na_ceste' ? 'Na cestě' :
+                                     p.b2bOrderStatus === 'na_objednavku' ? 'Na objednávku' : ''}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                             <div className="p-5 flex flex-col flex-grow">
                               <div className="mb-2">
                                 <span className="text-xs font-bold text-primary tracking-wider uppercase">{p.marke}</span>
                               </div>
                               <h3 className="text-sm font-bold text-zinc-900 mb-2 group-hover:text-primary transition-colors line-clamp-2">
-                                {[p.produkt || p.modell].filter(Boolean).join(' ')}
+                                {p.produktCs || p.produkt || p.modell || ''}
                               </h3>
                               <div className="text-xs text-zinc-500 mt-auto">
                                 {[p.categorie, p.productType].filter(Boolean).join(' · ')}

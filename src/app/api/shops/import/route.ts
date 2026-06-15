@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/firebase-server';
 import { collection, doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { readFile } from 'fs/promises';
 import path from 'path';
+import { isAdminAuthorized } from '@/lib/adminAuth';
 
 type Shop = { name: string; address: string; website: string };
 
@@ -31,7 +32,10 @@ function parseCsv(content: string): Shop[] {
   return shops;
 }
 
-export async function POST() {
+export async function POST(req: NextRequest) {
+  if (!isAdminAuthorized(req)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
   try {
     const csvPath = path.join(process.cwd(), 'src', 'data', 'shops.csv');
     const file = await readFile(csvPath, 'utf8');
@@ -56,9 +60,9 @@ export async function POST() {
   }
 }
 
-// Allow simple GET import trigger from browser
-export async function GET() {
-  return POST();
+// GET trigger kept for convenience — requires the same admin key
+export async function GET(req: NextRequest) {
+  return POST(req);
 }
 
 

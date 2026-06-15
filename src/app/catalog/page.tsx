@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import ProductCardV2 from '@/components/ProductCardV2';
 import { FilterSidebarV2 } from '@/components/catalog/FilterSidebarV2';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
@@ -22,6 +22,7 @@ function CatalogNewContent() {
     const [selectedMohe, setSelectedMohe] = useState<string>('');
     const [selectedSize, setSelectedSize] = useState<string>('');
     const [selectedWheelSize, setSelectedWheelSize] = useState<string>('');
+    const [selectedCapacity, setSelectedCapacity] = useState<string>('');
     const [ebikeOnly, setEbikeOnly] = useState<'all' | 'ebike' | 'non'>('ebike');
     const [availability, setAvailability] = useState<'all' | 'inStock' | 'onOrder'>('all');
     const [search, setSearch] = useState('');
@@ -49,6 +50,7 @@ function CatalogNewContent() {
         setSelectedMohe(searchParams.get('mohe') || '');
         setSelectedSize(searchParams.get('size') || '');
         setSelectedWheelSize(searchParams.get('wheelSize') || '');
+        setSelectedCapacity(searchParams.get('capacity') || '');
         const avail = searchParams.get('availability');
         setAvailability(
             avail === 'inStock' ? 'inStock'
@@ -75,6 +77,7 @@ function CatalogNewContent() {
         if (selectedMohe) params.set('mohe', selectedMohe);
         if (selectedSize) params.set('size', selectedSize);
         if (selectedWheelSize) params.set('wheelSize', selectedWheelSize);
+        if (selectedCapacity) params.set('capacity', selectedCapacity);
         if (availability !== 'all') params.set('availability', availability);
         if (ebikeOnly === 'ebike') params.set('ebike', 'true');
         if (ebikeOnly === 'non') params.set('ebike', 'false');
@@ -91,15 +94,22 @@ function CatalogNewContent() {
         // This effect is now strictly for synchronizing STATE -> URL
         // The other effect handles URL -> STATE
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [initialized, selectedCategory, selectedMose, selectedMohe, selectedYear, selectedSize, selectedWheelSize, availability, ebikeOnly, debouncedSearch, page]);
+    }, [initialized, selectedCategory, selectedMose, selectedMohe, selectedYear, selectedSize, selectedWheelSize, selectedCapacity, availability, ebikeOnly, debouncedSearch, page]);
 
     // Reset page on filter change (except pagination itself)
     useEffect(() => {
         setPage(1);
-    }, [selectedCategory, selectedMose, selectedMohe, selectedYear, selectedSize, selectedWheelSize, availability, ebikeOnly, debouncedSearch]);
+    }, [selectedCategory, selectedMose, selectedMohe, selectedYear, selectedSize, selectedWheelSize, selectedCapacity, availability, ebikeOnly, debouncedSearch]);
+
+    // Guards against out-of-order responses: when filters change quickly (e.g.
+    // a URL-initialized load firing a default + a filtered request), only the
+    // latest request is allowed to update state. Without this a stale response
+    // can overwrite the correct filtered results.
+    const reqIdRef = useRef(0);
 
     // Fetch Data
     useEffect(() => {
+        const reqId = ++reqIdRef.current;
         const load = async () => {
             setLoading(true);
             try {
@@ -113,12 +123,16 @@ function CatalogNewContent() {
                 if (selectedMohe) params.set('mohe', selectedMohe);
                 if (selectedSize) params.set('size', selectedSize);
                 if (selectedWheelSize) params.set('wheelSize', selectedWheelSize);
+                if (selectedCapacity) params.set('capacity', selectedCapacity);
                 if (ebikeOnly === 'ebike') params.set('ebike', 'true');
                 if (ebikeOnly === 'non') params.set('ebike', 'false');
                 if (availability !== 'all') params.set('availability', availability);
 
                 const res = await fetch(`/api/catalog?${params.toString()}`, { cache: 'no-store' });
                 const data = await res.json();
+
+                // Ignore responses that have been superseded by a newer request
+                if (reqId !== reqIdRef.current) return;
 
                 if (data.error) {
                     console.error('API Error:', data.error);
@@ -133,17 +147,18 @@ function CatalogNewContent() {
                     setTotalPages(data.pagination?.totalPages || 1);
                 }
             } catch (e) {
+                if (reqId !== reqIdRef.current) return;
                 console.error(e);
                 setProducts([]);
                 setFilters({});
                 setTotal(0);
                 setTotalPages(1);
             } finally {
-                setLoading(false);
+                if (reqId === reqIdRef.current) setLoading(false);
             }
         };
         load();
-    }, [selectedCategory, selectedMose, selectedMohe, selectedYear, selectedSize, selectedWheelSize, availability, ebikeOnly, debouncedSearch, page]);
+    }, [selectedCategory, selectedMose, selectedMohe, selectedYear, selectedSize, selectedWheelSize, selectedCapacity, availability, ebikeOnly, debouncedSearch, page]);
 
     return (
         <main className="min-h-screen bg-zinc-50 pb-20">
@@ -176,16 +191,19 @@ function CatalogNewContent() {
                             moseOptions={filters.moseOptions || []}
                             moheOptions={filters.moheOptions || []}
                             wheelSizeOptions={filters.wheelSizeOptions || []}
+                            capacityOptions={filters.capacityOptions || []}
                             selectedCategory={selectedCategory}
                             selectedMose={selectedMose}
                             selectedMohe={selectedMohe}
                             selectedWheelSize={selectedWheelSize}
+                            selectedCapacity={selectedCapacity}
                             ebikeOnly={ebikeOnly}
                             availability={availability}
                             setCategory={setSelectedCategory}
                             setMose={setSelectedMose}
                             setMohe={setSelectedMohe}
                             setWheelSize={setSelectedWheelSize}
+                            setCapacity={setSelectedCapacity}
                             setEbikeOnly={setEbikeOnly}
                             setAvailability={setAvailability}
                             total={total}
@@ -213,16 +231,19 @@ function CatalogNewContent() {
                                 moseOptions={filters.moseOptions || []}
                                 moheOptions={filters.moheOptions || []}
                                 wheelSizeOptions={filters.wheelSizeOptions || []}
+                                capacityOptions={filters.capacityOptions || []}
                                 selectedCategory={selectedCategory}
                                 selectedMose={selectedMose}
                                 selectedMohe={selectedMohe}
                                 selectedWheelSize={selectedWheelSize}
+                                selectedCapacity={selectedCapacity}
                                 ebikeOnly={ebikeOnly}
                                 availability={availability}
                                 setCategory={setSelectedCategory}
                                 setMose={setSelectedMose}
                                 setMohe={setSelectedMohe}
                                 setWheelSize={setSelectedWheelSize}
+                                setCapacity={setSelectedCapacity}
                                 setEbikeOnly={setEbikeOnly}
                                 setAvailability={setAvailability}
                                 total={total}
@@ -269,6 +290,7 @@ function CatalogNewContent() {
                                                 setSelectedYear('');
                                                 setSelectedSize('');
                                                 setSelectedWheelSize('');
+                                                setSelectedCapacity('');
                                                 setAvailability('all');
                                                 setEbikeOnly('ebike');
                                                 setSearch('');
@@ -285,6 +307,7 @@ function CatalogNewContent() {
                                                 <ProductCardV2
                                                     key={product._uniqueKey || product.id}
                                                     product={product}
+                                                    activeCapacity={selectedCapacity}
                                                 />
                                             ))}
                                         </div>

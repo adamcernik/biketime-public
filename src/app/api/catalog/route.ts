@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/firebase-server';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { sortSizes, detectCategory, standardizeSize } from '@/lib/size-mapping';
+import { stripSensitiveFields, clampInt } from '@/lib/apiSanitize';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,8 +58,8 @@ const mapRawToTag = (raw: string, isE: boolean): string | null => {
 export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
-        const page = parseInt(searchParams.get('page') || '1');
-        const pageSize = parseInt(searchParams.get('pageSize') || '24');
+        const page = clampInt(searchParams.get('page'), 1, 1, 10000);
+        const pageSize = clampInt(searchParams.get('pageSize'), 24, 1, 100);
 
         const searchParam = searchParams.get('search');
         const categoryParam = searchParams.get('category');
@@ -341,6 +342,22 @@ export async function GET(req: NextRequest) {
         });
         const wheelSizeOptions = Array.from(allWheelSizes).sort((a, b) => parseFloat(a) - parseFloat(b));
 
+        // Extract battery capacities from variants (e-bikes), ranked by how many
+        // products offer each (most common first) so the UI can show the top few
+        // and collapse the rest.
+        const capacityCounts = new Map<string, number>();
+        baseProducts.forEach(p => {
+            const caps = new Set<string>();
+            (p.variants || []).forEach((v: any) => {
+                const c = v.capacity ? String(v.capacity).trim() : '';
+                if (c) caps.add(c);
+            });
+            caps.forEach(c => capacityCounts.set(c, (capacityCounts.get(c) || 0) + 1));
+        });
+        const capacityOptions = Array.from(capacityCounts.entries())
+            .sort((a, b) => b[1] - a[1] || (parseInt(a[0]) || 0) - (parseInt(b[0]) || 0))
+            .map(([cap]) => cap);
+
         // 3. Apply Selection Filters (Category, Year, Mose, Search)
         let filteredProducts = baseProducts;
 
@@ -413,6 +430,14 @@ export async function GET(req: NextRequest) {
             });
         }
 
+        // Battery Capacity Filter (keep products that have a variant with this capacity)
+        const capacityParam = searchParams.get('capacity');
+        if (capacityParam) {
+            filteredProducts = filteredProducts.filter(p =>
+                (p.variants || []).some((v: any) => String(v.capacity).trim() === capacityParam)
+            );
+        }
+
         // Sort by Priority (Model Series), then Year (desc), then Brand, then Model
         filteredProducts.sort((a, b) => {
             // 1. Model Series Priority
@@ -437,7 +462,7 @@ export async function GET(req: NextRequest) {
         const paginatedProducts = filteredProducts.slice(start, start + pageSize);
 
         return NextResponse.json({
-            products: paginatedProducts,
+            products: stripSensitiveFields(paginatedProducts),
             pagination: {
                 total,
                 page,
@@ -451,8 +476,11 @@ export async function GET(req: NextRequest) {
                 moseOptions,
                 moheOptions,
                 sizeOptions,
-                wheelSizeOptions
+                wheelSizeOptions,
+                capacityOptions
             }
+        }, {
+            headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' }
         });
 
     } catch (error) {

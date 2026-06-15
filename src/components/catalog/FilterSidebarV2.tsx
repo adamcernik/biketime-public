@@ -6,12 +6,14 @@ interface FilterSidebarV2Props {
     moseOptions: string[];
     moheOptions: string[];
     wheelSizeOptions: string[];
+    capacityOptions?: string[];
 
     // Current Filters
     selectedCategory: string;
     selectedMose: string;
     selectedMohe: string;
     selectedWheelSize: string;
+    selectedCapacity?: string;
     ebikeOnly: 'all' | 'ebike' | 'non';
     availability: 'all' | 'inStock' | 'onOrder';
 
@@ -20,6 +22,7 @@ interface FilterSidebarV2Props {
     setMose: (v: string) => void;
     setMohe: (v: string) => void;
     setWheelSize: (v: string) => void;
+    setCapacity?: (v: string) => void;
     setEbikeOnly: (v: 'all' | 'ebike' | 'non') => void;
     setAvailability: (v: 'all' | 'inStock' | 'onOrder') => void;
 
@@ -31,20 +34,31 @@ export function FilterSidebarV2({
     moseOptions,
     moheOptions,
     wheelSizeOptions,
+    capacityOptions = [],
     selectedCategory,
     selectedMose,
     selectedMohe,
     selectedWheelSize,
+    selectedCapacity = '',
     ebikeOnly,
     availability,
     setCategory,
     setMose,
     setMohe,
     setWheelSize,
+    setCapacity,
     setEbikeOnly,
     setAvailability,
 }: FilterSidebarV2Props) {
     const [showOtherWheelSizes, setShowOtherWheelSizes] = useState(false);
+    const [showOtherCapacities, setShowOtherCapacities] = useState(false);
+
+    // Show the 4 most common capacities (API returns them frequency-ranked),
+    // collapse the rest under "Ostatní" — same pattern as wheel size.
+    const byNumber = (a: string, b: string) => (parseInt(a) || 0) - (parseInt(b) || 0);
+    const mainCapacities = [...capacityOptions.slice(0, 4)].sort(byNumber);
+    const otherCapacities = [...capacityOptions.slice(4)].sort(byNumber);
+    const otherCapacitySelected = otherCapacities.includes(selectedCapacity);
 
     // Main wheel sizes that are always visible
     const mainWheelSizes = ['27.5', '28', '29'];
@@ -210,6 +224,65 @@ export function FilterSidebarV2({
                                 </div>
                             ))}
                         </div>
+                    </div>
+                    <hr className="border-zinc-100" />
+                </>
+            )}
+
+            {/* Battery Capacity (e-bikes only) */}
+            {capacityOptions.length > 0 && (ebikeOnly === 'ebike' || ebikeOnly === 'all') && (
+                <>
+                    <div>
+                        <h3 className="text-sm font-bold text-zinc-900 mb-3 uppercase tracking-wider">Kapacita baterie</h3>
+                        {(() => {
+                            const renderPill = (cap: string) => {
+                                const label = cap.toLowerCase().includes('wh') ? cap : `${cap} Wh`;
+                                const active = selectedCapacity === cap;
+                                return (
+                                    <button
+                                        key={cap}
+                                        onClick={() => setCapacity?.(active ? '' : cap)}
+                                        className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${active
+                                            ? 'border-zinc-900 bg-zinc-900 text-white'
+                                            : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300'}`}
+                                    >
+                                        {label}
+                                    </button>
+                                );
+                            };
+                            return (
+                                <div className="space-y-2">
+                                    <div className="flex flex-wrap gap-2">
+                                        {mainCapacities.map(renderPill)}
+                                    </div>
+
+                                    {otherCapacities.length > 0 && (
+                                        <>
+                                            <div
+                                                onClick={() => setShowOtherCapacities(!showOtherCapacities)}
+                                                className="flex items-center gap-2 cursor-pointer group py-1"
+                                            >
+                                                <svg
+                                                    className={`w-4 h-4 text-zinc-500 transition-transform ${showOtherCapacities || otherCapacitySelected ? 'rotate-90' : ''}`}
+                                                    fill="none"
+                                                    viewBox="0 0 24 24"
+                                                    stroke="currentColor"
+                                                >
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                                </svg>
+                                                <span className="text-sm text-zinc-600 font-medium">Ostatní</span>
+                                            </div>
+
+                                            {(showOtherCapacities || otherCapacitySelected) && (
+                                                <div className="flex flex-wrap gap-2">
+                                                    {otherCapacities.map(renderPill)}
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                            );
+                        })()}
                     </div>
                     <hr className="border-zinc-100" />
                 </>

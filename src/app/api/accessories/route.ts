@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // Re-trigger build
 import { db } from '@/lib/firebase-server';
 import { collection, getDocs } from 'firebase/firestore';
+import { stripSensitiveFields, clampInt } from '@/lib/apiSanitize';
 
 export interface AccessoryDoc {
   id: string;
@@ -9,6 +10,7 @@ export interface AccessoryDoc {
   nrLf?: string;
   ean?: string;
   produkt?: string;
+  produktCs?: string;        // český název (z admin importu)
   marke?: string;
   modell?: string;
   spezifikation?: string;
@@ -18,6 +20,8 @@ export interface AccessoryDoc {
   ekPl?: number | null;
   uvpPl?: number | null;
   uavpPl?: number | null;
+  mocCzk?: number | null;    // MOC cena (pro budoucí zobrazení)
+  vocCzk?: number | null;    // VOC cena
   image?: string;
   imageTransparent?: string;
   imageDetail1?: string;
@@ -28,6 +32,8 @@ export interface AccessoryDoc {
   category?: string; // constant: Accessories
   inStock?: boolean;
   isVisible?: boolean;
+  b2bOrderStatus?: string;   // 'skladem' | 'na_ceste' | 'na_objednavku' | 'nedostupne' | ''
+  specs?: Record<string, unknown>; // technické specifikace
 }
 
 export async function GET(req: NextRequest) {
@@ -39,8 +45,8 @@ export async function GET(req: NextRequest) {
     const qType = searchParams.get('productType') ?? '';
     const qCategorie = searchParams.get('categorie') ?? '';
     const qGroup = (searchParams.get('group') ?? '').toLowerCase();
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const pageSize = parseInt(searchParams.get('pageSize') || '24', 10);
+    const page = clampInt(searchParams.get('page'), 1, 1, 10000);
+    const pageSize = clampInt(searchParams.get('pageSize'), 24, 1, 100);
 
     const snap = await getDocs(collection(db, 'accessories'));
     const all: AccessoryDoc[] = snap.docs.map((d) => {
@@ -48,10 +54,15 @@ export async function GET(req: NextRequest) {
       return { id: d.id, ...data };
     });
 
-    // Visibility: respect explicit isVisible flag if present; otherwise default to inStock
+    // Visibility: hide unavailable items, then respect explicit flags
     const isVisible = (a: AccessoryDoc): boolean => {
+      // 1. Nedostupné vždy skrýt
+      if (a.b2bOrderStatus === 'nedostupne') return false;
+      // 2. Explicitní isVisible flag
       if (typeof a.isVisible === 'boolean') return a.isVisible;
+      // 3. Fallback na inStock
       if (typeof a.inStock === 'boolean') return a.inStock;
+      // 4. Default = visible
       return true;
     };
 
@@ -94,6 +105,7 @@ export async function GET(req: NextRequest) {
         const hay = [
           a.nrLf,
           a.ean,
+          a.produktCs,
           a.produkt,
           a.marke,
           a.modell,
@@ -120,6 +132,15 @@ export async function GET(req: NextRequest) {
       return true;
     });
 
+    // Sort by brand, then by name
+    filtered.sort((a, b) => {
+      const brandCmp = (a.marke || '').localeCompare(b.marke || '');
+      if (brandCmp !== 0) return brandCmp;
+      const nameA = a.produktCs || a.produkt || a.modell || '';
+      const nameB = b.produktCs || b.produkt || b.modell || '';
+      return nameA.localeCompare(nameB);
+    });
+
     const total = filtered.length;
     const start = Math.max(0, (page - 1) * pageSize);
     const end = Math.min(total, start + pageSize);
@@ -142,7 +163,7 @@ export async function GET(req: NextRequest) {
     const categories = Array.from(new Set(visibleItems.map(mapToGroup).filter(Boolean))).sort();
 
     return NextResponse.json({
-      items,
+      items: stripSensitiveFields(items),
       total,
       page,
       pageSize,
@@ -151,6 +172,8 @@ export async function GET(req: NextRequest) {
         brands,
         categories
       }
+    }, {
+      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' }
     });
   } catch (error) {
     console.error('Error in GET /api/accessories:', error);

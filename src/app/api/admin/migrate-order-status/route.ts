@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
+import { isAdminAuthorized } from '@/lib/adminAuth';
 
+// Endpoint is called server-to-server (curl/scripts) — no cross-origin browser access.
 const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
@@ -23,8 +24,7 @@ export async function OPTIONS() {
  *   ?dryRun=true  — preview changes without writing
  */
 export async function POST(req: NextRequest) {
-    const authHeader = req.headers.get('authorization');
-    if (!process.env.ADMIN_API_KEY || authHeader !== `Bearer ${process.env.ADMIN_API_KEY}`) {
+    if (!isAdminAuthorized(req)) {
         return NextResponse.json(
             { success: false, error: 'Unauthorized' },
             { status: 401, headers: corsHeaders }

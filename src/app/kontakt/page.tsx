@@ -18,7 +18,7 @@ export default function KontaktPage() {
             </div>
             <div className="uppercase tracking-widest text-gray-500 font-semibold mb-2">Kontakt</div>
             <div className="space-y-2 text-gray-700">
-              <p>Bořanovická 13, 182 00 Praha 8</p>
+              <p>Křižíkova 53/52, 186 00 Praha 8</p>
               <p>
                 <a href="mailto:info@biketime.cz" className="text-blue-600 hover:underline">info@biketime.cz</a>
               </p>

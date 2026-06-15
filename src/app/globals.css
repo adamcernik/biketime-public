@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 :root {
   /* Base Colors */
@@ -29,31 +30,11 @@
   --radius: 0.5rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #09090b;
-    --foreground: #fafafa;
-
-    --primary: #dc2626;
-    --primary-foreground: #ffffff;
-
-    --secondary: #27272a;
-    --secondary-foreground: #fafafa;
-
-    --accent: #27272a;
-    --accent-foreground: #fafafa;
-
-    --muted: #27272a;
-    --muted-foreground: #a1a1aa;
-
-    --card: #09090b;
-    --card-foreground: #fafafa;
-
-    --border: #27272a;
-    --input: #27272a;
-    --ring: #dc2626;
-  }
-}
+/*
+ * The site is designed light-only (white header, light cards). Do NOT flip
+ * the palette via prefers-color-scheme — dark-mode browsers would render
+ * light text on the hardcoded light backgrounds.
+ */
 
 @theme inline {
   --color-background: var(--background);
@@ -99,6 +80,10 @@
   }
 }
 
+html {
+  color-scheme: light;
+}
+
 body {
   background-color: var(--background);
   color: var(--foreground);
@@ -124,4 +109,49 @@ body {
 .logo-image {
   pointer-events: none;
   user-select: none;
+}
+
+/* Print styling — used by the tailored offer page (/nabidka/[token]) so that
+ * "Save as PDF" produces a clean, branded document with images and no site
+ * chrome or action buttons. */
+@media print {
+  /* Hide global navigation and any explicitly print-excluded UI. */
+  header,
+  footer,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Offer footer is a plain <footer> inside the page — keep it visible. */
+  .offer-page .offer-footer {
+    display: block !important;
+  }
+
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+  }
+
+  .offer-page {
+    background: #ffffff !important;
+    padding: 0 !important;
+  }
+
+  /* Never split a bike card or the header across pages. */
+  .offer-card,
+  .offer-header {
+    break-inside: avoid;
+    box-shadow: none !important;
+  }
+
+  /* Ensure backgrounds/colors print as designed. */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 }

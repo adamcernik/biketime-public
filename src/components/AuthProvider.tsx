@@ -101,8 +101,8 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (shopUser && posthog) {
+      // Identify by UID only — no PII (email) in analytics
       posthog.identify(shopUser.uid, {
-        email: shopUser.email,
         companyName: shopUser.companyName,
         role: shopUser.role,
       });

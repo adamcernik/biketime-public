@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { standardizeSize, detectCategory, sortSizes } from '@/lib/size-mapping';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
+import { guessHexFromName } from '@/lib/colorUtils';
 
 import { useAuth } from './AuthProvider';
 
@@ -40,9 +41,10 @@ interface ProductV2 {
     _isExpanded?: boolean;
     _displayColor?: string;
     manualB2BPrice?: number;
+    colors?: string[];
 }
 
-export default function ProductCardV2({ product }: { product: ProductV2 }) {
+export default function ProductCardV2({ product, detailBasePath = '/catalog', colorMappings = {}, activeCapacity = '' }: { product: ProductV2; detailBasePath?: string; colorMappings?: Record<string, string>; activeCapacity?: string }) {
     const { shopUser, hideB2BPrices } = useAuth();
 
     // ... rest of component logic ...
@@ -51,7 +53,7 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
     const category = detectCategory({ categoryPrgr: product.category, modell: product.model });
 
     // Standardize, deduplicate sizes, and count stock
-    const sizeMap = new Map<string, { label: string, count: number, inStock: boolean, onOrder: boolean }>();
+    const sizeMap = new Map<string, { label: string, count: number, inStock: boolean, onOrder: boolean, inTransit: boolean }>();
 
     if (product.variants && Array.isArray(product.variants)) {
         product.variants.forEach(variant => {
@@ -60,13 +62,14 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
             const stock = Number(variant.stock) || Number(variant.onHand) || Number(variant.qty) || Number(variant.b2bStockQuantity) || 0;
 
             if (!sizeMap.has(std)) {
-                sizeMap.set(std, { label: std, count: 0, inStock: false, onOrder: false });
+                sizeMap.set(std, { label: std, count: 0, inStock: false, onOrder: false, inTransit: false });
             }
 
             const entry = sizeMap.get(std)!;
             entry.count += stock;
-            if (stock > 0) entry.inStock = true;
-            if (variant.b2bOrderStatus === 'na_objednavku' && !entry.inStock) entry.onOrder = true;
+            if (stock > 0 || variant.b2bOrderStatus === 'skladem') entry.inStock = true;
+            if (variant.b2bOrderStatus === 'na_ceste' && !entry.inStock) entry.inTransit = true;
+            if (variant.b2bOrderStatus === 'na_objednavku' && !entry.inStock && !entry.inTransit) entry.onOrder = true;
         });
     } else if (product.sizes) {
         product.sizes.forEach(size => {
@@ -74,25 +77,54 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
             if (!sizeMap.has(std)) {
                 const inStock = (product.stockSizes || []).includes(size);
                 const onOrder = (product.onOrderSizes || []).includes(size);
-                sizeMap.set(std, { label: std, count: 0, inStock, onOrder });
+                const inTransit = ((product as any).transitSizes || []).includes(size);
+                sizeMap.set(std, { label: std, count: 0, inStock, onOrder, inTransit });
             }
         });
     }
 
     const sortedSizes = Array.from(sizeMap.values()).sort((a, b) => sortSizes(a.label, b.label));
 
+    // Battery capacity label — show the real range when a model offers several
+    // capacities (e.g. "600–800 Wh"), so the card matches the catalog filter.
+    const capacityLabel = (() => {
+        const caps = Array.from(new Set(
+            (product.variants || [])
+                .map((v: any) => (v?.capacity ? String(v.capacity).trim() : ''))
+                .filter(Boolean)
+        ));
+        if (caps.length === 0) return product.specs?.capacity || '';
+        const nums = caps
+            .map((c) => parseInt(c, 10))
+            .filter((n) => !Number.isNaN(n))
+            .sort((a, b) => a - b);
+        if (nums.length > 1 && nums[0] !== nums[nums.length - 1]) {
+            return `${nums[0]}–${nums[nums.length - 1]} Wh`;
+        }
+        return caps[0];
+    })();
+
     // Format price removed as it was unused and causing lint error
 
     const hasStock = product.hasStock || (product.stockSizes && product.stockSizes.length > 0);
-    const isOnOrder = !hasStock && (product.isOnOrder || product.b2bOrderStatus === 'na_objednavku');
+    const hasTransit = !hasStock && (product.b2bOrderStatus === 'na_ceste');
+    const isOnOrder = !hasStock && !hasTransit && (product.isOnOrder || product.b2bOrderStatus === 'na_objednavku');
 
     // Use primaryImage if available (expanded variant), otherwise first image
     const displayImage = product.primaryImage || product.images?.[0];
 
     // Always link to product ID (not variant ID)
     // If we have a specific color variant, add it as a query parameter for pre-selection
-    const baseLink = `/catalog/${product.id}`;
-    const linkHref = product.primaryColor ? `${baseLink}?color=${encodeURIComponent(product.primaryColor)}` : baseLink;
+    const baseLink = `${detailBasePath}/${product.id}`;
+    // Carry the active catalog filters into the detail page so it opens with the
+    // matching variant pre-selected (color from expanded cards, battery capacity
+    // from the capacity filter).
+    const linkParams = new URLSearchParams();
+    if (product.primaryColor) linkParams.set('color', product.primaryColor);
+    if (activeCapacity && (product.variants || []).some((v: any) => String(v?.capacity).trim() === activeCapacity)) {
+        linkParams.set('capacity', activeCapacity);
+    }
+    const linkHref = linkParams.toString() ? `${baseLink}?${linkParams.toString()}` : baseLink;
 
     return (
         <Link href={linkHref} className="group block h-full">
@@ -122,6 +154,10 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
                             <span className="text-[10px] font-bold px-2 py-1 rounded bg-green-100 text-green-700 border border-green-200 uppercase">
                                 Skladem
                             </span>
+                        ) : hasTransit ? (
+                            <span className="text-[10px] font-bold px-2 py-1 rounded bg-blue-100 text-blue-700 border border-blue-200 uppercase">
+                                Na cestě
+                            </span>
                         ) : isOnOrder ? (
                             <span className="text-[10px] font-bold px-2 py-1 rounded bg-zinc-100 text-zinc-500 border border-zinc-200 uppercase">
                                 Na objednávku
@@ -144,17 +180,43 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
                         {product.model}
                     </h3>
 
+                    {/* Color Dots */}
+                    {product.colors && product.colors.length > 0 && (
+                        <div className="flex gap-1.5 mb-2 items-center">
+                            {product.colors.slice(0, 5).map(color => {
+                                const hex = colorMappings[color] || guessHexFromName(color) || '#d1d5db';
+                                const isLight = isLightColor(hex);
+                                return (
+                                    <span
+                                        key={color}
+                                        className="w-3.5 h-3.5 rounded-full border inline-block flex-shrink-0"
+                                        style={{
+                                            backgroundColor: hex,
+                                            borderColor: isLight ? '#d4d4d8' : hex,
+                                        }}
+                                        title={color}
+                                    />
+                                );
+                            })}
+                            {product.colors.length > 5 && (
+                                <span className="text-[10px] text-zinc-400">+{product.colors.length - 5}</span>
+                            )}
+                        </div>
+                    )}
+
                     {/* Sizes */}
                     {sortedSizes.length > 0 && (
                         <div className="flex flex-wrap gap-1 mb-3">
-                            {sortedSizes.map(({ label, count, inStock, onOrder }) => (
+                            {sortedSizes.map(({ label, count, inStock, onOrder, inTransit }) => (
                                 <span
                                     key={label}
                                     className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${inStock
                                         ? 'bg-green-100 text-green-700 border-green-200'
-                                        : onOrder
-                                            ? 'bg-zinc-100 text-zinc-500 border-zinc-200'
-                                            : 'bg-zinc-50 text-zinc-400 border-zinc-100'
+                                        : inTransit
+                                            ? 'bg-blue-100 text-blue-700 border-blue-200'
+                                            : onOrder
+                                                ? 'bg-zinc-100 text-zinc-500 border-zinc-200'
+                                                : 'bg-zinc-50 text-zinc-400 border-zinc-100'
                                         }`}
                                 >
                                     {label}{count > 0 ? ` (${count})` : ''}
@@ -165,12 +227,12 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
 
                     {/* Specs Grid */}
                     <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs text-zinc-500 mb-4 mt-auto">
-                        {product.specs.capacity && (
+                        {capacityLabel && (
                             <div className="flex items-center gap-1.5">
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                 </svg>
-                                <span>{product.specs.capacity}</span>
+                                <span>{capacityLabel}</span>
                             </div>
                         )}
                         {product.specs.wheelSize && (
@@ -243,4 +305,13 @@ export default function ProductCardV2({ product }: { product: ProductV2 }) {
             </div>
         </Link>
     );
+}
+
+/** Zjistí zda je barva světlá (pro volbu borderu) */
+function isLightColor(hex: string): boolean {
+    const h = hex.replace('#', '');
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+    return (r * 299 + g * 587 + b * 114) / 1000 > 180;
 }
