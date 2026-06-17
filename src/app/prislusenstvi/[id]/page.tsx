@@ -4,6 +4,8 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { useAuth } from '@/components/AuthProvider';
+import { formatCzk, b2bAccessoryPrice, type AccessoryLevels } from '@/lib/accessoryPrice';
 
 type Accessory = {
   id: string;
@@ -22,6 +24,8 @@ type Accessory = {
   imageDetail3?: string;
   categorie?: string;
   productType?: string;
+  mocCzk?: number | null;
+  priceLevelsCzk?: AccessoryLevels;
   ekPl?: number | null;
   uvpPl?: number | null;
   uavpPl?: number | null;
@@ -132,6 +136,7 @@ function getStatusClasses(status?: string): string {
 export default function AccessoryDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id;
+  const { shopUser, hideB2BPrices } = useAuth();
   const [data, setData] = React.useState<Accessory | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -267,6 +272,31 @@ export default function AccessoryDetailPage() {
                   {data.produktCs || data.produkt || data.modell || ''}
                 </h1>
               </div>
+
+              {/* Price (retail incl. VAT for everyone; dealer price for shops) */}
+              {(() => {
+                const retail = formatCzk(data.mocCzk);
+                const b2b = shopUser && !hideB2BPrices
+                  ? b2bAccessoryPrice(data.priceLevelsCzk, shopUser.priceLevel as 'A' | 'B' | 'C' | 'D' | undefined)
+                  : null;
+                if (!retail && !b2b) return null;
+                return (
+                  <div className="space-y-2">
+                    {retail && (
+                      <div>
+                        <div className="text-3xl font-bold text-zinc-900">{retail}</div>
+                        <div className="text-xs text-zinc-500">Včetně DPH</div>
+                      </div>
+                    )}
+                    {b2b && (
+                      <div className="inline-block bg-zinc-50 p-3 rounded-xl border border-zinc-100">
+                        <div className="text-2xl font-bold text-primary">{formatCzk(b2b)}</div>
+                        <div className="text-xs text-zinc-500 uppercase tracking-wide">Nákupní cena bez DPH</div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Status badge */}
               {statusLabel && (

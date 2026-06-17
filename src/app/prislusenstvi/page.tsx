@@ -3,6 +3,8 @@
 import React, { Suspense, useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useAuth } from '@/components/AuthProvider';
+import { formatCzk, b2bAccessoryPrice, type AccessoryLevels } from '@/lib/accessoryPrice';
 
 type Accessory = {
   id: string;
@@ -18,11 +20,14 @@ type Accessory = {
   categorie?: string;
   productType?: string;
   b2bOrderStatus?: string;
+  mocCzk?: number | null;
+  priceLevelsCzk?: AccessoryLevels;
 };
 
 import { AccessoryFilterSidebar } from '@/components/catalog/AccessoryFilterSidebar';
 
 function AccessoriesContent() {
+  const { shopUser, hideB2BPrices } = useAuth();
   const [items, setItems] = useState<Accessory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -234,9 +239,28 @@ function AccessoriesContent() {
                               <h3 className="text-sm font-bold text-zinc-900 mb-2 group-hover:text-primary transition-colors line-clamp-2">
                                 {p.produktCs || p.produkt || p.modell || ''}
                               </h3>
-                              <div className="text-xs text-zinc-500 mt-auto">
+                              <div className="text-xs text-zinc-500 mb-2">
                                 {[p.categorie, p.productType].filter(Boolean).join(' · ')}
                               </div>
+                              {(() => {
+                                const retail = formatCzk(p.mocCzk);
+                                const b2b = shopUser && !hideB2BPrices
+                                  ? b2bAccessoryPrice(p.priceLevelsCzk, shopUser.priceLevel as 'A' | 'B' | 'C' | 'D' | undefined)
+                                  : null;
+                                if (!retail && !b2b) return null;
+                                return (
+                                  <div className="mt-auto pt-2">
+                                    {retail && (
+                                      <div className="text-base font-bold text-zinc-900">{retail}</div>
+                                    )}
+                                    {b2b && (
+                                      <div className="text-sm font-semibold text-primary">
+                                        {formatCzk(b2b)} <span className="text-[10px] font-normal text-zinc-400">bez DPH</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                             </div>
                           </div>
                         </Link>
