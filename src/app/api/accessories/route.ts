@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/firebase-server';
 import { collection, getDocs } from 'firebase/firestore';
 import { stripSensitiveFields, clampInt } from '@/lib/apiSanitize';
+import { hasValidAccessoryPrice } from '@/lib/accessoryPrice';
 
 export interface AccessoryDoc {
   id: string;
@@ -56,6 +57,8 @@ export async function GET(req: NextRequest) {
 
     // Visibility: hide unavailable items, then respect explicit flags
     const isVisible = (a: AccessoryDoc): boolean => {
+      // 0. Bez platné ceny z ceníku nezobrazovat vůbec
+      if (!hasValidAccessoryPrice(a)) return false;
       // 1. Nedostupné vždy skrýt
       if (a.b2bOrderStatus === 'nedostupne') return false;
       // 2. Explicitní isVisible flag

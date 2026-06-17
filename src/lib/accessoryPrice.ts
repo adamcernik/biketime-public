@@ -19,6 +19,22 @@ export function formatCzk(n?: number | null): string | null {
 }
 
 /**
+ * Whether an accessory has a real price from the Czech price list. Used to hide
+ * products that aren't priced from the ceník (e.g. leftover EUR values stuck in
+ * mocCzk). A properly-priced accessory has a positive retail MOC AND at least
+ * one positive dealer tier (Czech price lists always include A/B).
+ */
+export function hasValidAccessoryPrice(a: {
+  mocCzk?: number | null;
+  priceLevelsCzk?: AccessoryLevels;
+}): boolean {
+  const moc = Number(a.mocCzk);
+  const A = Number(a.priceLevelsCzk?.A);
+  const B = Number(a.priceLevelsCzk?.B);
+  return moc > 0 && (A > 0 || B > 0);
+}
+
+/**
  * Dealer price for a given price level. Accessories only have A/B, so C/D
  * users fall back to the best available accessory tier (B, then A).
  */
