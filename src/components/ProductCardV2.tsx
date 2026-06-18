@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { standardizeSize, detectCategory, sortSizes } from '@/lib/size-mapping';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
 import { guessHexFromName } from '@/lib/colorUtils';
+import { dealerPriceForMoc } from '@/lib/b2bPrice';
 
 import { useAuth } from './AuthProvider';
 
@@ -264,7 +265,9 @@ export default function ProductCardV2({ product, detailBasePath = '/catalog', co
                         if (!shopUser) return null;
 
                         const priceLevel = shopUser?.priceLevel as 'A' | 'B' | 'C' | 'D' | undefined;
-                        let b2bPrice = priceLevel && product.priceLevelsCzk ? product.priceLevelsCzk[priceLevel] : null;
+                        // Scale the dealer price to the displayed retail (minPrice) so VOC and
+                        // MOC stay consistent across capacities.
+                        let b2bPrice: number | null = dealerPriceForMoc(product, priceLevel, product.minPrice);
 
                         // Check for manual B2B price on the product (root level)
                         // Support both 'manualB2BPrice' (new sync) and 'b2bPrice' (legacy/manual entry)

@@ -7,6 +7,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { sortSizes, standardizeSize, detectCategory } from '@/lib/size-mapping';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
+import { dealerPriceForMoc } from '@/lib/b2bPrice';
 import { useAuth } from '../../../components/AuthProvider';
 
 interface Variant {
@@ -386,44 +387,29 @@ export default function DetailPageV2() {
                                 if (!shopUser) return null;
 
                                 const priceLevel = shopUser?.priceLevel as 'A' | 'B' | 'C' | 'D' | undefined;
-                                let b2bPrice = priceLevel && product.priceLevelsCzk ? product.priceLevelsCzk[priceLevel] : null;
 
-                                // Check for manual B2B price (Root Level)
+                                // Retail (MOC) of the currently selected variant — the same value
+                                // shown above. VOC must track this when switching battery/size.
+                                const selectedVariant = selectedSize
+                                    ? variantsInFrame.find(v =>
+                                        standardizeSize(v.size, category) === selectedSize &&
+                                        (!selectedCapacity || v.capacity === selectedCapacity))
+                                    : undefined;
+                                const currentMoc = selectedVariant ? Number(selectedVariant.price) : minPrice;
+
+                                // Dealer price = product-level priceLevelsCzk scaled to the selected
+                                // variant's MOC (dealer prices are a fixed % of MOC).
+                                let b2bPrice: number | null = dealerPriceForMoc(product, priceLevel, currentMoc);
+
+                                // Explicit overrides win over the computed level.
                                 const rootManualPrice = Number(product.manualB2BPrice) || Number((product as any).b2bPrice) || 0;
-
                                 if (rootManualPrice > 0) {
                                     b2bPrice = rootManualPrice;
-
-                                    // Refine with specific variant price if available
-                                    if (selectedSize) {
-                                        const selectedVariant = variantsInFrame.find(v =>
-                                            standardizeSize(v.size, category) === selectedSize &&
-                                            (!selectedCapacity || v.capacity === selectedCapacity)
-                                        );
-                                        if (selectedVariant && (selectedVariant as any).b2bPrice > 0) {
-                                            b2bPrice = Number((selectedVariant as any).b2bPrice);
-                                        }
-                                    }
-                                } else if (selectedSize) {
-                                    // If size is selected, look at the specific variant
-                                    const selectedVariant = variantsInFrame.find(v =>
-                                        standardizeSize(v.size, category) === selectedSize &&
-                                        (!selectedCapacity || v.capacity === selectedCapacity)
-                                    );
-
                                     if (selectedVariant && (selectedVariant as any).b2bPrice > 0) {
                                         b2bPrice = Number((selectedVariant as any).b2bPrice);
                                     }
-                                } else {
-                                    // Fallback to finding ANY stock variant with B2B price (like on card)
-                                    const stockVariant = product.variants.find((v: any) => {
-                                        const stock = Number(v.stock) || Number(v.onHand) || Number(v.qty) || Number(v.b2bStockQuantity) || 0;
-                                        return stock > 0 && (Number(v.b2bPrice) > 0);
-                                    });
-
-                                    if (stockVariant) {
-                                        b2bPrice = Number(stockVariant.b2bPrice);
-                                    }
+                                } else if (selectedVariant && (selectedVariant as any).b2bPrice > 0) {
+                                    b2bPrice = Number((selectedVariant as any).b2bPrice);
                                 }
 
                                 if (b2bPrice && !hideB2BPrices) {
