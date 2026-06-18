@@ -6,9 +6,7 @@ import { db } from '@/lib/firebase';
 import { Shop } from '@/types/Shop';
 import { MapPinIcon, GlobeAltIcon } from '@heroicons/react/24/outline';
 import ShopsMap from '@/components/ShopsMap';
-import { useJsApiLoader } from '@react-google-maps/api';
-
-const LIBRARIES: ("places" | "drawing" | "geometry" | "visualization")[] = ["places"];
+import { useGoogleMaps } from '@/lib/useGoogleMaps';
 
 export default function PublicShopsPage() {
   const [shops, setShops] = useState<Shop[]>([]);
@@ -20,11 +18,7 @@ export default function PublicShopsPage() {
   const [isNearestMode, setIsNearestMode] = useState(false);
   const resultsRef = React.useRef<HTMLDivElement>(null);
 
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
-    libraries: LIBRARIES
-  });
+  const { isLoaded } = useGoogleMaps();
 
   // Auto-scroll to results when nearest mode is active
   useEffect(() => {

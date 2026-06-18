@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { collection, getDocs, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Shop } from '@/types/Shop';
-import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
+import { GoogleMap, Marker } from '@react-google-maps/api';
+import { useGoogleMaps } from '@/lib/useGoogleMaps';
 import { MapPinIcon, GlobeAltIcon } from '@heroicons/react/24/outline';
 
 interface ShopsMapProps {
@@ -13,8 +14,6 @@ interface ShopsMapProps {
     shops?: Shop[];
 }
 
-const LIBRARIES: ("places" | "drawing" | "geometry" | "visualization")[] = ["places"];
-
 export default function ShopsMap({ className = '', height = '500px', shops: propShops, userLocationCoords, isNearestMode = false }: ShopsMapProps & { userLocationCoords?: { lat: number; lng: number } | null; isNearestMode?: boolean }) {
     const [internalShops, setInternalShops] = useState<Shop[]>([]);
     const [loading, setLoading] = useState(true);
@@ -22,11 +21,7 @@ export default function ShopsMap({ className = '', height = '500px', shops: prop
     const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
     const [map, setMap] = useState<google.maps.Map | null>(null);
 
-    const { isLoaded } = useJsApiLoader({
-        id: 'google-map-script',
-        googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
-        libraries: LIBRARIES
-    });
+    const { isLoaded } = useGoogleMaps();
 
     useEffect(() => {
         if (propShops) {
