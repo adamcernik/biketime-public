@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/firebase-server';
 import { doc, getDoc } from 'firebase/firestore';
 import { stripSensitiveFields, stripB2BPrices } from '@/lib/apiSanitize';
-import { isApprovedShopRequest } from '@/lib/userAuth';
+import { isAuthenticatedRequest } from '@/lib/userAuth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const b2b = await isApprovedShopRequest(req);
+        const b2b = await isAuthenticatedRequest(req);
         const { id } = await params;
         const docRef = doc(db, 'products_v2', id);
         const snapshot = await getDoc(docRef);

@@ -3,11 +3,11 @@ import { db } from '@/lib/firebase-server';
 import { doc, getDoc } from 'firebase/firestore';
 import { stripSensitiveFields, stripB2BPrices } from '@/lib/apiSanitize';
 import { hasValidAccessoryPrice } from '@/lib/accessoryPrice';
-import { isApprovedShopRequest } from '@/lib/userAuth';
+import { isAuthenticatedRequest } from '@/lib/userAuth';
 
 export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
-    const b2b = await isApprovedShopRequest(req);
+    const b2b = await isAuthenticatedRequest(req);
     const { id } = await ctx.params;
     const snap = await getDoc(doc(db, 'accessories', id));
     if (!snap.exists()) {

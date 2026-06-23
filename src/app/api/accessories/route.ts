@@ -4,7 +4,7 @@ import { db } from '@/lib/firebase-server';
 import { collection, getDocs } from 'firebase/firestore';
 import { stripSensitiveFields, stripB2BPrices, clampInt } from '@/lib/apiSanitize';
 import { hasValidAccessoryPrice } from '@/lib/accessoryPrice';
-import { isApprovedShopRequest } from '@/lib/userAuth';
+import { isAuthenticatedRequest } from '@/lib/userAuth';
 
 export interface AccessoryDoc {
   id: string;
@@ -40,7 +40,7 @@ export interface AccessoryDoc {
 
 export async function GET(req: NextRequest) {
   try {
-    const b2b = await isApprovedShopRequest(req);
+    const b2b = await isAuthenticatedRequest(req);
     const { searchParams } = new URL(req.url);
     const qSearch = (searchParams.get('search') ?? '').toLowerCase();
     const qBrand = searchParams.get('brand') ?? '';
