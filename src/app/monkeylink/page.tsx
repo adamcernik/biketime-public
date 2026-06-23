@@ -1,6 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 'use client';
 
+import { apiGet } from "@/lib/clientApi";
 import React from 'react';
 import { useAuth } from '@/components/AuthProvider';
 
@@ -57,7 +58,7 @@ export default function MonkeyLinkPage() {
     if (year) params.set('year', year);
     if (productType) params.set('productType', productType);
     if (categorie) params.set('categorie', categorie);
-    fetch(`/api/accessories?${params.toString()}`, { signal: ac.signal })
+    apiGet(`/api/accessories?${params.toString()}`, { signal: ac.signal })
       .then(async (r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const data = (await r.json()) as ListResponse;

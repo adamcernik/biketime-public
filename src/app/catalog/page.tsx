@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import ProductCardV2 from '@/components/ProductCardV2';
+import { apiGet } from '@/lib/clientApi';
 import { FilterSidebarV2 } from '@/components/catalog/FilterSidebarV2';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 
@@ -128,7 +129,7 @@ function CatalogNewContent() {
                 if (ebikeOnly === 'non') params.set('ebike', 'false');
                 if (availability !== 'all') params.set('availability', availability);
 
-                const res = await fetch(`/api/catalog?${params.toString()}`, { cache: 'no-store' });
+                const res = await apiGet(`/api/catalog?${params.toString()}`, { cache: 'no-store' });
                 const data = await res.json();
 
                 // Ignore responses that have been superseded by a newer request

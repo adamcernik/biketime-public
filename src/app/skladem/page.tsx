@@ -1,5 +1,6 @@
 'use client';
 
+import { apiGet } from "@/lib/clientApi";
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -48,7 +49,7 @@ export default function InStockPage() {
         params.set('page', String(page));
         params.set('pageSize', String(pageSize));
         // Intentionally omit 'year' to include all years
-        const res = await fetch(`/api/catalog?${params.toString()}`);
+        const res = await apiGet(`/api/catalog?${params.toString()}`);
         const data = await res.json();
         const chunk = (data.bikes ?? []) as Bike[];
         collected.push(...chunk);
