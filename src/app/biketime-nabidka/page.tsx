@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
+import { apiGet } from "@/lib/clientApi";
 /**
  * Biketime nabídka — client-only in-stock offer.
  * Lists every product currently in B2B stock (admin /admin/sklad → products_v2),
@@ -99,7 +100,7 @@ export default function BiketimeNabidkaPage() {
       let page = 1;
       try {
         while (true) {
-          const res = await fetch(`/api/catalog?inStock=true&page=${page}&pageSize=100`);
+          const res = await apiGet(`/api/catalog?inStock=true&page=${page}&pageSize=100`);
           const data = await res.json();
           all.push(...((data.products ?? []) as any[]));
           const totalPages = Number(data.pagination?.totalPages ?? 1) || 1;

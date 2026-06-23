@@ -1,5 +1,6 @@
 'use client';
 
+import { apiGet } from "@/lib/clientApi";
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import SimpleBikeCard from './SimpleBikeCard';
@@ -29,7 +30,7 @@ export default function FeaturedBikes() {
           setBikes(featured.slice(0, 3));
         } else {
           // Fallback to auto pick
-          const res = await fetch('/api/catalog?ebike=true&year=2026&pageSize=3');
+          const res = await apiGet('/api/catalog?ebike=true&year=2026&pageSize=3');
           const data = await res.json();
           setBikes((data?.bikes ?? []).slice(0, 3));
         }

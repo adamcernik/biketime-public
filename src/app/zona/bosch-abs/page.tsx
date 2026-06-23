@@ -1,5 +1,6 @@
 'use client';
 
+import { apiGet } from "@/lib/clientApi";
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -139,7 +140,7 @@ function FeaturedBikesList({ bikeIds }: { bikeIds: string[] }) {
         const load = async () => {
             try {
                 const promises = bikeIds.map(id =>
-                    fetch(`/api/catalog/${id}`).then(r => r.ok ? r.json() : null)
+                    apiGet(`/api/catalog/${id}`).then(r => r.ok ? r.json() : null)
                 );
 
                 const results = await Promise.all(promises);

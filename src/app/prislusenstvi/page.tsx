@@ -1,5 +1,6 @@
 'use client';
 
+import { apiGet } from "@/lib/clientApi";
 import React, { Suspense, useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -66,7 +67,7 @@ function AccessoriesContent() {
     params.set('page', String(page));
     params.set('pageSize', String(pageSize));
 
-    fetch(`/api/accessories?${params.toString()}`, { signal: ac.signal })
+    apiGet(`/api/accessories?${params.toString()}`, { signal: ac.signal })
       .then(async (r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const data = await r.json();

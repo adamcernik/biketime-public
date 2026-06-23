@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
+import { apiGet } from "@/lib/clientApi";
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
@@ -71,7 +72,7 @@ export default function DetailPageV2() {
         const load = async () => {
             setLoading(true);
             try {
-                const res = await fetch(`/api/catalog/${id}`, { cache: 'no-store' });
+                const res = await apiGet(`/api/catalog/${id}`, { cache: 'no-store' });
                 if (!res.ok) throw new Error('Failed to fetch');
                 const data = await res.json();
                 setProduct(data);

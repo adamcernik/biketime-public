@@ -1,5 +1,6 @@
 'use client';
 
+import { apiGet } from "@/lib/clientApi";
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -147,7 +148,7 @@ export default function AccessoryDetailPage() {
     const ac = new AbortController();
     setLoading(true);
     setError(null);
-    fetch(`/api/accessories/${id}`, { signal: ac.signal })
+    apiGet(`/api/accessories/${id}`, { signal: ac.signal })
       .then(async (r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return (await r.json()) as Accessory;

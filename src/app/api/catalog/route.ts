@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/firebase-server';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { sortSizes, detectCategory, standardizeSize } from '@/lib/size-mapping';
-import { stripSensitiveFields, clampInt } from '@/lib/apiSanitize';
+import { stripSensitiveFields, stripB2BPrices, clampInt } from '@/lib/apiSanitize';
+import { isAuthenticatedRequest } from '@/lib/userAuth';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,6 +58,8 @@ const mapRawToTag = (raw: string, isE: boolean): string | null => {
 
 export async function GET(req: NextRequest) {
     try {
+        // Dealer (B2B) prices are returned only to logged-in approved shop users.
+        const b2b = await isAuthenticatedRequest(req);
         const { searchParams } = new URL(req.url);
         const page = clampInt(searchParams.get('page'), 1, 1, 10000);
         const pageSize = clampInt(searchParams.get('pageSize'), 24, 1, 100);
@@ -461,8 +464,9 @@ export async function GET(req: NextRequest) {
         const start = (page - 1) * pageSize;
         const paginatedProducts = filteredProducts.slice(start, start + pageSize);
 
+        const safeProducts = stripSensitiveFields(paginatedProducts);
         return NextResponse.json({
-            products: stripSensitiveFields(paginatedProducts),
+            products: b2b ? safeProducts : stripB2BPrices(safeProducts),
             pagination: {
                 total,
                 page,
@@ -480,7 +484,8 @@ export async function GET(req: NextRequest) {
                 capacityOptions
             }
         }, {
-            headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' }
+            // Never let dealer-price responses be cached by shared CDNs.
+            headers: { 'Cache-Control': b2b ? 'private, no-store' : 'public, s-maxage=300, stale-while-revalidate=600' }
         });
 
     } catch (error) {

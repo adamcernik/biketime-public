@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 // Re-trigger build
 import { db } from '@/lib/firebase-server';
 import { collection, getDocs } from 'firebase/firestore';
-import { stripSensitiveFields, clampInt } from '@/lib/apiSanitize';
+import { stripSensitiveFields, stripB2BPrices, clampInt } from '@/lib/apiSanitize';
 import { hasValidAccessoryPrice } from '@/lib/accessoryPrice';
+import { isAuthenticatedRequest } from '@/lib/userAuth';
 
 export interface AccessoryDoc {
   id: string;
@@ -39,6 +40,7 @@ export interface AccessoryDoc {
 
 export async function GET(req: NextRequest) {
   try {
+    const b2b = await isAuthenticatedRequest(req);
     const { searchParams } = new URL(req.url);
     const qSearch = (searchParams.get('search') ?? '').toLowerCase();
     const qBrand = searchParams.get('brand') ?? '';
@@ -165,8 +167,9 @@ export async function GET(req: NextRequest) {
     // Use the mapToGroup function to get unique groups
     const categories = Array.from(new Set(visibleItems.map(mapToGroup).filter(Boolean))).sort();
 
+    const safeItems = stripSensitiveFields(items);
     return NextResponse.json({
-      items: stripSensitiveFields(items),
+      items: b2b ? safeItems : stripB2BPrices(safeItems),
       total,
       page,
       pageSize,
@@ -176,7 +179,7 @@ export async function GET(req: NextRequest) {
         categories
       }
     }, {
-      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' }
+      headers: { 'Cache-Control': b2b ? 'private, no-store' : 'public, s-maxage=300, stale-while-revalidate=600' }
     });
   } catch (error) {
     console.error('Error in GET /api/accessories:', error);
