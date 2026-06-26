@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase-server';
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebase-admin';
 import { sortSizes, detectCategory, standardizeSize } from '@/lib/size-mapping';
 import { stripSensitiveFields, stripB2BPrices, clampInt } from '@/lib/apiSanitize';
 import { isAuthenticatedRequest } from '@/lib/userAuth';
@@ -75,9 +74,8 @@ export async function GET(req: NextRequest) {
         const availabilityParam = searchParams.get('availability'); // 'all' | 'inStock' | 'onOrder' | null
 
         // Fetch priority settings
-        const settingsRef = doc(db, 'settings', 'catalog');
-        const settingsSnap = await getDoc(settingsRef);
-        const settingsData = settingsSnap.exists() ? settingsSnap.data() : {};
+        const settingsSnap = await adminDb.collection('settings').doc('catalog').get();
+        const settingsData = (settingsSnap.exists ? settingsSnap.data() : {}) as any;
         const ebikeOrder = (settingsData.ebikeModelOrder as string[]) || [];
         const regularOrder = (settingsData.regularModelOrder as string[]) || [];
 
@@ -103,9 +101,7 @@ export async function GET(req: NextRequest) {
             return idx === -1 ? 9999 : idx;
         };
 
-        const q = collection(db, 'products_v2');
-
-        const snapshot = await getDocs(q);
+        const snapshot = await adminDb.collection('products_v2').get();
         let allProducts = snapshot.docs.map(d => {
             const data = d.data();
             const product = { id: d.id, ...data } as any;

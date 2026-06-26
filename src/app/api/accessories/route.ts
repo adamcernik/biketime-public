@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-// Re-trigger build
-import { db } from '@/lib/firebase-server';
-import { collection, getDocs } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebase-admin';
 import { stripSensitiveFields, stripB2BPrices, clampInt } from '@/lib/apiSanitize';
 import { hasValidAccessoryPrice } from '@/lib/accessoryPrice';
 import { isAuthenticatedRequest } from '@/lib/userAuth';
@@ -51,7 +49,7 @@ export async function GET(req: NextRequest) {
     const page = clampInt(searchParams.get('page'), 1, 1, 10000);
     const pageSize = clampInt(searchParams.get('pageSize'), 24, 1, 100);
 
-    const snap = await getDocs(collection(db, 'accessories'));
+    const snap = await adminDb.collection('accessories').get();
     const all: AccessoryDoc[] = snap.docs.map((d) => {
       const data = d.data() as Omit<AccessoryDoc, 'id'>;
       return { id: d.id, ...data };

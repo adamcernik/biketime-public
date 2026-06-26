@@ -1,6 +1,5 @@
 import 'server-only';
-import { db } from '@/lib/firebase-server';
-import { doc, getDoc } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebase-admin';
 import type { Offer } from '@/types/Offer';
 import { DEFAULT_EUR_TO_CZK } from '@/types/Offer';
 import { SAMPLE_OFFER } from './sampleOffer';
@@ -35,8 +34,8 @@ export async function getOffer(token: string): Promise<Offer | null> {
   if (token === SAMPLE_OFFER_TOKEN) return SAMPLE_OFFER;
 
   try {
-    const snapshot = await getDoc(doc(db, OFFERS_COLLECTION, token));
-    if (!snapshot.exists()) return null;
+    const snapshot = await adminDb.collection(OFFERS_COLLECTION).doc(token).get();
+    if (!snapshot.exists) return null;
     return normalize(snapshot.id, snapshot.data() as Record<string, unknown>);
   } catch (error) {
     console.error('getOffer: failed to load offer', token, error);

@@ -1,6 +1,5 @@
 import type { MetadataRoute } from 'next';
-import { db } from '@/lib/firebase-server';
-import { collection, getDocs } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebase-admin';
 
 export const revalidate = 86400; // refresh once a day
 
@@ -24,7 +23,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Product detail pages — best effort; never fail the sitemap on a data error
   let productRoutes: MetadataRoute.Sitemap = [];
   try {
-    const snapshot = await getDocs(collection(db, 'products_v2'));
+    const snapshot = await adminDb.collection('products_v2').get();
     productRoutes = snapshot.docs.map((d) => ({
       url: `${BASE_URL}/catalog/${d.id}`,
       changeFrequency: 'weekly' as const,

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase-server';
-import { doc, getDoc } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebase-admin';
 import { stripSensitiveFields, stripB2BPrices } from '@/lib/apiSanitize';
 import { isAuthenticatedRequest } from '@/lib/userAuth';
 
@@ -10,10 +9,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     try {
         const b2b = await isAuthenticatedRequest(req);
         const { id } = await params;
-        const docRef = doc(db, 'products_v2', id);
-        const snapshot = await getDoc(docRef);
+        const snapshot = await adminDb.collection('products_v2').doc(id).get();
 
-        if (!snapshot.exists()) {
+        if (!snapshot.exists) {
             return NextResponse.json({ error: 'Product not found' }, { status: 404 });
         }
 

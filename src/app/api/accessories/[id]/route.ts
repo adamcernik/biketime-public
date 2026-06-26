@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/firebase-server';
-import { doc, getDoc } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebase-admin';
 import { stripSensitiveFields, stripB2BPrices } from '@/lib/apiSanitize';
 import { hasValidAccessoryPrice } from '@/lib/accessoryPrice';
 import { isAuthenticatedRequest } from '@/lib/userAuth';
@@ -9,8 +8,8 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   try {
     const b2b = await isAuthenticatedRequest(req);
     const { id } = await ctx.params;
-    const snap = await getDoc(doc(db, 'accessories', id));
-    if (!snap.exists()) {
+    const snap = await adminDb.collection('accessories').doc(id).get();
+    if (!snap.exists) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
     const data = snap.data() as Record<string, unknown>;
