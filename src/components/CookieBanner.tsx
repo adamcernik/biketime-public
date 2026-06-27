@@ -14,6 +14,11 @@ export default function CookieBanner() {
         if (!consent) {
             setShow(true);
         }
+
+        // Allow re-opening the banner from anywhere (e.g. footer "Spravovat cookies")
+        const reopen = () => setShow(true);
+        window.addEventListener('open-cookie-settings', reopen);
+        return () => window.removeEventListener('open-cookie-settings', reopen);
     }, []);
 
     const handleAccept = () => {

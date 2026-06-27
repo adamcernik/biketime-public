@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import logoWhiteImage from '@/assets/biketime-logo-white.png';
+import CookieSettingsButton from './CookieSettingsButton';
 
 export default function SiteFooter() {
   return (
@@ -83,7 +84,7 @@ export default function SiteFooter() {
           </div>
           <div className="flex gap-6">
             <Link href="/ochrana-osobnich-udaju" className="hover:text-white transition-colors">Ochrana osobních údajů</Link>
-            <Link href="/ochrana-osobnich-udaju" className="hover:text-white transition-colors">Cookies</Link>
+            <CookieSettingsButton />
             <Link href="/podminky-uziti" className="hover:text-white transition-colors">Podmínky užití</Link>
           </div>
         </div>

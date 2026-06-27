@@ -49,40 +49,79 @@ export default function PrivacyPolicyPage() {
                             Při používání našeho webu můžeme shromažďovat následující údaje:
                         </p>
                         <ul>
+                            <li><strong>Registrační a účetní údaje:</strong> Pokud si jako prodejce zřídíte účet do velkoobchodní sekce, zpracováváme jméno a příjmení kontaktní osoby, e-mailovou adresu, telefon, název firmy a její adresu, případně IČO. Při přihlášení přes Google získáváme z vašeho účtu jméno, e-mail a profilovou fotografii.</li>
                             <li><strong>Technické údaje:</strong> IP adresa, typ prohlížeče, operační systém, datum a čas návštěvy (prostřednictvím logů serveru a analytických nástrojů).</li>
                             <li><strong>Údaje o poloze:</strong> Pokud využijete funkci &quot;Najít nejbližší obchod&quot;, zpracováváme vaši aktuální polohu pouze pro účel vyhledání prodejen. Tato data neukládáme.</li>
                             <li><strong>Kontaktní údaje:</strong> Pokud nás kontaktujete e-mailem nebo telefonicky, zpracováváme vaše kontaktní údaje za účelem vyřízení vašeho dotazu.</li>
                         </ul>
 
-                        <h2>3. Účel zpracování</h2>
-                        <p>Vaše údaje zpracováváme za účelem:</p>
+                        <h2>3. Účel a právní základ zpracování</h2>
+                        <p>Vaše údaje zpracováváme za následujícími účely a na těchto právních základech:</p>
                         <ul>
-                            <li>Zajištění technického chodu a bezpečnosti webových stránek.</li>
-                            <li>Analýzy návštěvnosti a zlepšování našich služeb (pokud udělíte souhlas s cookies).</li>
-                            <li>Zobrazení nejbližších prodejen na mapě.</li>
-                            <li>Komunikace se zákazníky.</li>
+                            <li><strong>Vedení velkoobchodního účtu a B2B spolupráce</strong> (registrace prodejce, ověření a schválení účtu, komunikace) — právním základem je plnění smlouvy, resp. provedení opatření před jejím uzavřením (čl. 6 odst. 1 písm. b GDPR).</li>
+                            <li><strong>Zajištění technického chodu a bezpečnosti webových stránek</strong> — právním základem je náš oprávněný zájem (čl. 6 odst. 1 písm. f GDPR).</li>
+                            <li><strong>Analýza návštěvnosti a zlepšování našich služeb</strong> — pouze na základě vašeho souhlasu (čl. 6 odst. 1 písm. a GDPR), který udělujete prostřednictvím cookie lišty.</li>
+                            <li><strong>Zobrazení nejbližších prodejen na mapě</strong> — na základě vaší žádosti (čl. 6 odst. 1 písm. b GDPR).</li>
+                            <li><strong>Komunikace se zákazníky</strong> — na základě oprávněného zájmu, resp. plnění smlouvy.</li>
                         </ul>
 
-                        <h2>4. Soubory Cookie</h2>
+                        <h2>4. Doba uchování údajů</h2>
+                        <ul>
+                            <li><strong>Registrační a účetní údaje</strong> uchováváme po dobu trvání velkoobchodní spolupráce a následně po dobu nezbytnou k ochraně našich práv a ke splnění zákonných povinností.</li>
+                            <li><strong>Analytické údaje</strong> uchováváme po dobu nezbytnou pro vyhodnocení návštěvnosti, nejdéle však po dobu stanovenou nastavením příslušného nástroje.</li>
+                            <li><strong>Technické logy</strong> uchováváme po omezenou dobu nezbytnou pro zajištění bezpečnosti a provozu.</li>
+                            <li>Souhlas se zpracováním můžete kdykoli odvolat; tím není dotčena zákonnost zpracování před jeho odvoláním.</li>
+                        </ul>
+
+                        <h2>5. Příjemci a zpracovatelé</h2>
+                        <p>
+                            Vaše údaje nepředáváme třetím stranám za účelem marketingu. K naplnění výše uvedených účelů
+                            však využíváme spolehlivé poskytovatele služeb (zpracovatele), kteří pro nás údaje zpracovávají
+                            na základě smluv o zpracování osobních údajů:
+                        </p>
+                        <ul>
+                            <li><strong>Google / Firebase</strong> (Google Ireland Ltd.) — přihlašování a databáze účtů.</li>
+                            <li><strong>Resend</strong> — odesílání transakčních e-mailů (potvrzení registrace, schválení účtu).</li>
+                            <li><strong>PostHog</strong> — analytika návštěvnosti a nahrávání relací (pouze s vaším souhlasem).</li>
+                            <li><strong>Vercel</strong> — hosting a provoz webových stránek.</li>
+                            <li><strong>Google Maps</strong> (Google Ireland Ltd.) — zobrazení map a vyhledání prodejen.</li>
+                        </ul>
+                        <p>
+                            Analytická data ve službě PostHog zpracováváme na serverech v Evropské unii (EU instance).
+                            Někteří další poskytovatelé (např. hosting) mohou údaje zpracovávat i mimo Evropský hospodářský
+                            prostor; v takovém případě je přenos zajištěn na základě odpovídajících záruk dle GDPR
+                            (zejména standardních smluvních doložek schválených Evropskou komisí).
+                        </p>
+
+                        <h2>6. Soubory Cookie</h2>
                         <p>
                             Náš web používá soubory cookie. Cookie jsou malé textové soubory, které se ukládají do vašeho zařízení.
                         </p>
                         <ul>
-                            <li><strong>Nezbytné cookies:</strong> Jsou nutné pro fungování webu (např. uložení vašeho souhlasu s cookies).</li>
-                            <li><strong>Analytické cookies:</strong> Pomáhají nám měřit návštěvnost a analyzovat chování uživatelů na webu. Využíváme službu PostHog, která nám umožňuje analyzovat průchod webem a nahrávat relace (session recording) za účelem odhalování chyb a zlepšování použitelnosti. Veškerá data jsou zpracovávána anonymizovaně. Tyto nástroje používáme pouze s vaším souhlasem.</li>
+                            <li><strong>Nezbytné cookies:</strong> Jsou nutné pro fungování webu (např. uložení vašeho souhlasu s cookies nebo udržení přihlášení). Tyto cookies se ukládají bez nutnosti souhlasu.</li>
+                            <li><strong>Analytické cookies:</strong> Pomáhají nám měřit návštěvnost a analyzovat chování uživatelů na webu. Využíváme službu PostHog, která nám umožňuje analyzovat průchod webem a nahrávat relace (session recording) za účelem odhalování chyb a zlepšování použitelnosti. Údaje zpracováváme pseudonymizovaně, tedy bez přímých identifikátorů, jako je e-mailová adresa. Tyto nástroje aktivujeme až poté, co k tomu udělíte souhlas.</li>
                         </ul>
                         <p>
-                            Nastavení cookies můžete kdykoli změnit ve svém prohlížeči nebo prostřednictvím naší cookie lišty.
+                            Nastavení cookies můžete kdykoli změnit prostřednictvím odkazu „Spravovat cookies&quot; v patičce webu
+                            nebo v nastavení svého prohlížeče.
                         </p>
 
-                        <h2>5. Vaše práva</h2>
+                        <h2>7. Vaše práva</h2>
                         <p>V souvislosti se zpracováním osobních údajů máte právo:</p>
                         <ul>
                             <li>Požadovat přístup k vašim osobním údajům.</li>
                             <li>Požadovat opravu nebo výmaz vašich osobních údajů.</li>
-                            <li>Vznést námitku proti zpracování.</li>
+                            <li>Požadovat omezení zpracování.</li>
+                            <li>Na přenositelnost vašich údajů.</li>
+                            <li>Vznést námitku proti zpracování založenému na oprávněném zájmu.</li>
                             <li>Odvolat souhlas se zpracováním (např. u cookies).</li>
+                            <li>Podat stížnost u dozorového úřadu, kterým je Úřad pro ochranu osobních údajů (<a href="https://www.uoou.cz" target="_blank" rel="noopener noreferrer">www.uoou.cz</a>).</li>
                         </ul>
+                        <p>
+                            Pro uplatnění svých práv nebo s jakýmkoli dotazem ohledně zpracování osobních údajů nás
+                            kontaktujte na adrese{' '}
+                            <a href="mailto:info@biketime.cz">info@biketime.cz</a>.
+                        </p>
                     </div>
                 </div>
             </div>
