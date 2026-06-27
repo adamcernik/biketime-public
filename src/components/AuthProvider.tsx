@@ -170,6 +170,18 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
           firebaseUser.email!,
           registrationData
         );
+
+        // Notify info@biketime.cz of the new registration. Best-effort.
+        try {
+          const token = await firebaseUser.getIdToken();
+          await fetch('/api/registration-notify', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(registrationData),
+          });
+        } catch (e) {
+          console.error('Registration notify failed:', e);
+        }
       }
 
       // Refresh user data
