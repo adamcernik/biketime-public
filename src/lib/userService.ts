@@ -54,7 +54,7 @@ export class UserService {
         email: string;
         displayName?: string;
         photoURL?: string;
-    }): Promise<ShopUser> {
+    }): Promise<ShopUser & { isNewRegistration?: boolean }> {
         try {
             const existingUser = await this.getUserByUid(userInfo.uid);
             const now = Timestamp.now();
@@ -111,7 +111,10 @@ export class UserService {
                     role: UserRole.PENDING,
                     createdAt: now.toDate(),
                     updatedAt: now.toDate(),
-                    lastLoginAt: now.toDate()
+                    lastLoginAt: now.toDate(),
+                    // Transient flag (not persisted): this pending account was just
+                    // created → AuthProvider fires the registration-ack e-mail once.
+                    isNewRegistration: true
                 };
             }
         } catch (error) {

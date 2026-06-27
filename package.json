@@ -18,7 +18,8 @@
     "next": "^15.5.19",
     "posthog-js": "^1.315.0",
     "react": "19.1.2",
-    "react-dom": "19.1.2"
+    "react-dom": "19.1.2",
+    "resend": "^6.16.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

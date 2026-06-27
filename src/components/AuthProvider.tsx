@@ -67,6 +67,21 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       setShopUser(userData);
+
+      // First sign-up / email registration → send the "we're processing your
+      // registration" e-mail once. Best-effort: never block or fail the login.
+      if (userData.isNewRegistration) {
+        try {
+          const token = await firebaseUser.getIdToken();
+          await fetch('/api/registration-email', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: firebaseUser.displayName || undefined }),
+          });
+        } catch (e) {
+          console.error('Registration e-mail trigger failed:', e);
+        }
+      }
     } catch (error) {
       console.error('Error refreshing user data:', error);
       setShopUser(null);

@@ -41,3 +41,23 @@ export async function isAuthenticatedRequest(request: Request): Promise<boolean>
     return false;
   }
 }
+
+/**
+ * Verifies the request's Firebase ID token and returns the user's identity
+ * (uid/email/name) from the token, or null. Lets a route act on the
+ * authenticated user's OWN email only — never an attacker-supplied address.
+ */
+export async function getVerifiedUser(
+  request: Request,
+): Promise<{ uid: string; email?: string; name?: string } | null> {
+  try {
+    const header = request.headers.get('authorization') || '';
+    if (!header.startsWith('Bearer ')) return null;
+    const token = header.slice(7).trim();
+    if (!token) return null;
+    const decoded = await verifierAuth().verifyIdToken(token);
+    return { uid: decoded.uid, email: decoded.email, name: decoded.name };
+  } catch {
+    return null;
+  }
+}
