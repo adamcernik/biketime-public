@@ -1,8 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, query } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { Shop } from '@/types/Shop';
 import { GoogleMap, Marker } from '@react-google-maps/api';
 import { useGoogleMaps } from '@/lib/useGoogleMaps';
@@ -30,16 +28,11 @@ export default function ShopsMap({ className = '', height = '500px', shops: prop
         }
 
         const loadShops = async () => {
-            if (!db) return;
             setLoading(true);
             try {
-                const col = collection(db, 'shops');
-                const q = query(col);
-                const snap = await getDocs(q);
-                const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Shop));
-                // Sort by order
-                docs.sort((a, b) => (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER));
-                setInternalShops(docs);
+                const res = await fetch('/api/shops');
+                const data = await res.json();
+                setInternalShops((data.shops ?? []) as Shop[]);
             } catch (err) {
                 console.error('Error loading shops:', err);
                 setError('Nepodařilo se načíst seznam prodejen.');

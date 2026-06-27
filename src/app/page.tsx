@@ -3,16 +3,14 @@ import Image from 'next/image';
 import FeaturedBikes from '@/components/FeaturedBikes';
 import HeroCarousel, { CarouselSlide } from '@/components/HeroCarousel';
 import ShopsMap from '@/components/ShopsMap';
-import { db } from '@/lib/firebase';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebase-admin';
 
 // Revalidate every hour
 export const revalidate = 60;
 
 async function getSlides() {
   try {
-    const q = query(collection(db, 'carousel_slides'), where('isVisible', '==', true));
-    const snapshot = await getDocs(q);
+    const snapshot = await adminDb.collection('carousel_slides').where('isVisible', '==', true).get();
     const slides = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CarouselSlide));
     // Sort by order (asc) or createdAt (desc) if order is missing
     return slides.sort((a, b) => {

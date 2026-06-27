@@ -2,8 +2,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 
 interface BullsModel {
   id?: string;
@@ -20,34 +18,12 @@ export default function BullsBikesPage() {
   useEffect(() => {
     const fetchModels = async () => {
       try {
-        // Try to fetch sorted by order
-        const q = query(collection(db, 'bulls_models'), orderBy('order', 'asc'));
-        const querySnapshot = await getDocs(q);
-
-        const loadedModels: BullsModel[] = [];
-        querySnapshot.forEach((doc) => {
-          loadedModels.push({ id: doc.id, ...doc.data() } as BullsModel);
-        });
-
-        setModels(loadedModels);
+        // Server returns models sorted by `order` (read via Admin SDK).
+        const res = await fetch('/api/bulls-models');
+        const data = await res.json();
+        setModels((data.models ?? []) as BullsModel[]);
       } catch (error) {
         console.error("Error fetching models:", error);
-        // Fallback: fetch without sort if index missing
-        if ((error as { code?: string }).code === 'failed-precondition') {
-          try {
-            const simpleQ = collection(db, 'bulls_models');
-            const simpleSnap = await getDocs(simpleQ);
-            const simpleModels: BullsModel[] = [];
-            simpleSnap.forEach((doc) => {
-              simpleModels.push({ id: doc.id, ...doc.data() } as BullsModel);
-            });
-            // Client side sort if needed
-            simpleModels.sort((a, b) => (a.order || 0) - (b.order || 0));
-            setModels(simpleModels);
-          } catch (innerError) {
-            console.error("Fatal error fetching models:", innerError);
-          }
-        }
       } finally {
         setLoading(false);
       }

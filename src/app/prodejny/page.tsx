@@ -1,8 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, query } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { Shop } from '@/types/Shop';
 import { MapPinIcon, GlobeAltIcon } from '@heroicons/react/24/outline';
 import ShopsMap from '@/components/ShopsMap';
@@ -37,16 +35,12 @@ export default function PublicShopsPage() {
 
   useEffect(() => {
     const loadShops = async () => {
-      if (!db) return;
       setLoading(true);
       try {
-        const col = collection(db, 'shops');
-        const q = query(col);
-        const snap = await getDocs(q);
-        const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Shop));
-        // Sort by order initially
-        docs.sort((a, b) => (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER));
-        setShops(docs);
+        const res = await fetch('/api/shops');
+        const data = await res.json();
+        // Server already returns shops sorted by `order`.
+        setShops((data.shops ?? []) as Shop[]);
       } catch (err) {
         console.error('Error loading shops:', err);
         setError('Nepodařilo se načíst seznam prodejen.');

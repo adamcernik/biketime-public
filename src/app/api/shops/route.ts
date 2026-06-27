@@ -1,30 +1,25 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/firebase-server';
-import { collection, getDocs, query } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebase-admin';
 
-type Shop = {
-  name: string;
-  address: string;
-  website?: string;
-};
+// Public shops list, served server-side via the Admin SDK so the browser never
+// opens a direct client-side Firestore connection (which strict privacy browsers
+// block). Returns full shop docs (no sensitive data — names/addresses/coords/links)
+// so the map and listing have lat/lng/order.
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    const q = query(collection(db, 'shops'));
-    const snap = await getDocs(q);
-    const shops = snap.docs.map((d) => {
-      const data = d.data() as Partial<Shop>;
-      return {
-        id: d.id,
-        name: String(data.name ?? ''),
-        address: String(data.address ?? ''),
-        website: data.website ? String(data.website) : undefined,
-      };
-    });
-    return NextResponse.json({ shops });
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json({ shops: [] }, { status: 500 });
+    const snap = await adminDb.collection('shops').get();
+    const shops = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    shops.sort((a: any, b: any) => (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER));
+    return NextResponse.json(
+      { shops },
+      { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } },
+    );
+  } catch (error) {
+    console.error('Shops API error:', error);
+    return NextResponse.json({ shops: [] }, { status: 200 });
   }
 }
 
