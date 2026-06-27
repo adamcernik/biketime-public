@@ -49,9 +49,21 @@ function getFirebaseAdminApp() {
     }
 
     if (!serviceAccount) {
-        // Development fallback: warn but don't crash yet, it might work if GCloud CLI is logged in locally
-        console.warn('⚠️ No Service Account found. Admin SDK might act as default credentials or fail.');
-        return initializeApp();
+        // No credentials resolved. Log WHICH env vars the runtime actually sees
+        // (presence only, never values) so we can tell whether Vercel is failing
+        // to inject them. THROW instead of initializeApp() with no creds: a
+        // credential-less app would be cached by getApps() and poison every later
+        // request on this instance. Throwing keeps getApps() empty so the next
+        // request re-attempts and self-heals once the env is present.
+        console.error('Firebase Admin: no service account resolved. env presence:', JSON.stringify({
+            base64: !!process.env.FIREBASE_SERVICE_ACCOUNT_BASE64,
+            json: !!process.env.FIREBASE_SERVICE_ACCOUNT_JSON,
+            projectId: !!process.env.FIREBASE_PROJECT_ID,
+            clientEmail: !!process.env.FIREBASE_CLIENT_EMAIL,
+            privateKey: !!process.env.FIREBASE_PRIVATE_KEY,
+            privateKeyLen: (process.env.FIREBASE_PRIVATE_KEY || '').length,
+        }));
+        throw new Error('Firebase Admin: no service account credentials found in environment.');
     }
 
     return initializeApp({
