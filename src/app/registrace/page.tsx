@@ -248,6 +248,27 @@ export default function RegistrationPage() {
                         </div>
                     ) : (
                         <form onSubmit={handleSubmit} className="space-y-6">
+                            {/* Progress: phase 1 (sign-in) done, phase 2 (company details) now */}
+                            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-5">
+                                <div className="flex items-center gap-3 text-sm">
+                                    <span className="inline-flex items-center gap-2 font-semibold text-green-700">
+                                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-green-600 text-xs text-white">✓</span>
+                                        Přihlášení
+                                    </span>
+                                    <span className="h-px flex-1 bg-zinc-200" />
+                                    <span className="inline-flex items-center gap-2 font-semibold text-zinc-900">
+                                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs text-white">2</span>
+                                        Firemní údaje
+                                    </span>
+                                </div>
+                                <p className="mt-4 text-sm text-zinc-600">
+                                    Skvělé, první krok máte za sebou — máme váš e-mail{' '}
+                                    <strong className="text-zinc-900">{firebaseUser?.email}</strong>.
+                                    Teď už jen potřebujeme základní údaje o vaší firmě, abychom vám mohli
+                                    zpřístupnit velkoobchodní&nbsp;(B2B) ceny a kompletní katalog kol BULLS.
+                                </p>
+                            </div>
+
                             {error && (
                                 <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4">
                                     {error}

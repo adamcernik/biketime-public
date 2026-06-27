@@ -4,6 +4,7 @@ import "./globals.css";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import RegistrationBanner from "@/components/RegistrationBanner";
+import B2BPromoToast from "@/components/B2BPromoToast";
 import AuthProvider from "@/components/AuthProvider";
 import CookieBanner from "@/components/CookieBanner";
 import CSPostHogProvider from '@/components/PostHogProvider'
@@ -73,6 +74,7 @@ export default function RootLayout({
             {children}
             <SiteFooter />
             <CookieBanner />
+            <B2BPromoToast />
           </CSPostHogProvider>
         </AuthProvider>
       </body>
