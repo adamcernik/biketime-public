@@ -67,21 +67,10 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       setShopUser(userData);
-
-      // First sign-up / email registration → send the "we're processing your
-      // registration" e-mail once. Best-effort: never block or fail the login.
-      if (userData.isNewRegistration) {
-        try {
-          const token = await firebaseUser.getIdToken();
-          await fetch('/api/registration-email', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: firebaseUser.displayName || undefined }),
-          });
-        } catch (e) {
-          console.error('Registration e-mail trigger failed:', e);
-        }
-      }
+      // NOTE: the "we're processing your registration" e-mail is NOT sent here.
+      // Signing in (Google/e-mail) only creates a bare pending account — it is
+      // not a completed registration. The e-mail fires from registerShop once
+      // the company form is submitted (see below).
     } catch (error) {
       console.error('Error refreshing user data:', error);
       setShopUser(null);
@@ -171,16 +160,23 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
           registrationData
         );
 
-        // Notify info@biketime.cz of the new registration. Best-effort.
+        // Registration COMPLETE → e-mail the customer ("we're processing it")
+        // and notify info@biketime.cz. Best-effort; never block registration.
         try {
           const token = await firebaseUser.getIdToken();
-          await fetch('/api/registration-notify', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify(registrationData),
-          });
+          const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+          await Promise.allSettled([
+            fetch('/api/registration-email', {
+              method: 'POST', headers,
+              body: JSON.stringify({ name: registrationData.firstName }),
+            }),
+            fetch('/api/registration-notify', {
+              method: 'POST', headers,
+              body: JSON.stringify(registrationData),
+            }),
+          ]);
         } catch (e) {
-          console.error('Registration notify failed:', e);
+          console.error('Registration e-mails failed:', e);
         }
       }
 

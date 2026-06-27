@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
+import RegistrationBanner from "@/components/RegistrationBanner";
 import AuthProvider from "@/components/AuthProvider";
 import CookieBanner from "@/components/CookieBanner";
 import CSPostHogProvider from '@/components/PostHogProvider'
@@ -68,6 +69,7 @@ export default function RootLayout({
               <PostHogPageView />
             </Suspense>
             <SiteHeader />
+            <RegistrationBanner />
             {children}
             <SiteFooter />
             <CookieBanner />

@@ -19,7 +19,12 @@ export default function LoginPage() {
   const [resetSent, setResetSent] = useState(false);
 
   useEffect(() => {
-    if (shopUser) {
+    if (!shopUser) return;
+    // Signed in but registration not completed (no company details yet) →
+    // guide them to finish it instead of dropping them on the homepage.
+    if (!shopUser.companyName) {
+      router.push('/registrace');
+    } else {
       router.push('/');
     }
   }, [shopUser, router]);
