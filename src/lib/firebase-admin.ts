@@ -5,9 +5,25 @@ import { getAuth } from 'firebase-admin/auth';
 // This file is designed to run ONLY on the server side (Node.js environment).
 // It uses "firebase-admin" to bypass Firestore security rules for admin tasks.
 
+// Dedicated name for OUR credentialed admin app. Must NOT be the default app
+// nor share a name with the credential-less verifier app in userAuth.ts
+// ('id-token-verifier'). See the reuse note below.
+const ADMIN_APP_NAME = 'admin-credentialed';
+
 function getFirebaseAdminApp() {
-    if (getApps().length > 0) {
-        return getApps()[0];
+    // Reuse ONLY our own credentialed app — look it up by name. Do NOT return
+    // getApps()[0]: userAuth.ts registers a SEPARATE credential-less admin app
+    // ('id-token-verifier', projectId only) for ID-token verification. If that
+    // verifier app was registered first on this serverless instance (which
+    // happens whenever a route calls isAuthenticatedRequest() before its first
+    // adminDb access — e.g. /api/catalog), getApps()[0] would return it, and
+    // getFirestore() on a credential-less app fails at read time with
+    // "Could not load the default credentials." That race poisoned random
+    // serverless instances and caused the intermittent catalog/accessories
+    // outages. Matching by name makes adminDb always use the credentialed app.
+    const existing = getApps().find((a) => a.name === ADMIN_APP_NAME);
+    if (existing) {
+        return existing;
     }
 
     // Parse the Service Account form environment variable
@@ -69,7 +85,7 @@ function getFirebaseAdminApp() {
     return initializeApp({
         credential: cert(serviceAccount),
         // databaseURL: `https://${serviceAccount.projectId}.firebaseio.com` // Optional for Firestore
-    });
+    }, ADMIN_APP_NAME);
 }
 
 // Lazy initialization: credentials are parsed on first use, not at import time.
