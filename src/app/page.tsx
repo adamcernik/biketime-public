@@ -105,7 +105,7 @@ export default async function Home() {
                 <Link href="/catalog" className="inline-flex items-center justify-center px-8 py-4 rounded-full bg-primary text-white font-medium hover:bg-red-700 transition-colors shadow-lg shadow-red-900/20">
                   Prohlédnout katalog
                 </Link>
-                <Link href="/kontakt" className="inline-flex items-center justify-center px-8 py-4 rounded-full bg-white/10 text-white font-medium hover:bg-white/20 backdrop-blur-sm transition-colors border border-white/10">
+                <Link href="/registrace" className="inline-flex items-center justify-center px-8 py-4 rounded-full bg-white/10 text-white font-medium hover:bg-white/20 backdrop-blur-sm transition-colors border border-white/10">
                   Staňte se partnerem
                 </Link>
               </div>
