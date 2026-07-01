@@ -15,7 +15,12 @@ export default function CSPostHogProvider({
             const hasConsent = typeof window !== 'undefined' && localStorage.getItem('cookie-consent') === 'accepted'
 
             posthog.init(posthogToken, {
-                api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com',
+                // First-party reverse proxy (see next.config.ts rewrites) so ad
+                // blockers don't drop events. Must NOT read NEXT_PUBLIC_POSTHOG_HOST
+                // here — that env var points at eu.i.posthog.com and would bypass
+                // the proxy. ui_host keeps in-app links pointing at the real EU UI.
+                api_host: '/relay',
+                ui_host: 'https://eu.posthog.com',
                 person_profiles: 'identified_only',
                 capture_pageview: false, // We handle this manually in PostHogPageView
                 opt_out_capturing_by_default: !hasConsent,
