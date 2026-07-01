@@ -19,7 +19,14 @@ export default function CSPostHogProvider({
                 person_profiles: 'identified_only',
                 capture_pageview: false, // We handle this manually in PostHogPageView
                 opt_out_capturing_by_default: !hasConsent,
-                persistence: hasConsent ? 'localStorage+cookie' : 'memory'
+                persistence: hasConsent ? 'localStorage+cookie' : 'memory',
+                // Session replay must stay pseudonymous (privacy policy promise):
+                // mask every input field so no typed PII (registration form —
+                // name, e-mail, phone, company) is ever recorded. Page text stays
+                // visible so replays remain useful for debugging UX.
+                session_recording: {
+                    maskAllInputs: true,
+                },
             })
         }
     }, [])
