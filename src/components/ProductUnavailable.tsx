@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import SimpleBikeCard, { SimpleBikeCardProps } from './SimpleBikeCard';
+import TrackEvent from './TrackEvent';
 
 interface ProductUnavailableProps {
     modelLabel: string;
@@ -16,6 +17,10 @@ export default function ProductUnavailable({ modelLabel, searchTerm, successor, 
 
     return (
         <main className="min-h-screen bg-zinc-50">
+            <TrackEvent
+                event="product_unavailable_shown"
+                props={{ requested_model: modelLabel, has_successor: !!successor }}
+            />
             <div className="container-custom section-padding">
                 <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900">
                     {modelLabel ? `${modelLabel} už není v nabídce` : 'Toto kolo už není v nabídce'}

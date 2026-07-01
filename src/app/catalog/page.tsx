@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef, Suspense } from 'react';
 import ProductCardV2 from '@/components/ProductCardV2';
 import { apiGet } from '@/lib/clientApi';
+import { track } from '@/lib/analytics';
 import { FilterSidebarV2 } from '@/components/catalog/FilterSidebarV2';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 
@@ -146,6 +147,15 @@ function CatalogNewContent() {
                     setFilters(data.filters || {});
                     setTotal(data.pagination?.total || 0);
                     setTotalPages(data.pagination?.totalPages || 1);
+
+                    // Track real text searches (not filter-only or pagination loads).
+                    // results_count === 0 flags demand we can't fulfil — a gap in the catalog.
+                    if (debouncedSearch && page === 1) {
+                        track('catalog_search', {
+                            query: debouncedSearch,
+                            results_count: data.pagination?.total || 0,
+                        });
+                    }
                 }
             } catch (e) {
                 if (reqId !== reqIdRef.current) return;

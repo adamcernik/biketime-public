@@ -6,6 +6,7 @@ import { onAuthStateChanged, signInWithPopup, signOut, User as FirebaseUser, cre
 import { ShopUser, ShopRegistrationData } from '@/types/User';
 import { UserService } from '@/lib/userService';
 import { usePostHog } from 'posthog-js/react';
+import { track } from '@/lib/analytics';
 
 type AuthContextValue = {
   firebaseUser: FirebaseUser | null;
@@ -143,14 +144,17 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     signInWithGoogle: async () => {
       if (!auth || !googleProvider) return;
       await signInWithPopup(auth, googleProvider);
+      track('signed_in', { method: 'google' });
     },
     signUpWithEmail: async (email, password) => {
       if (!auth) return;
       await createUserWithEmailAndPassword(auth, email, password);
+      track('signed_in', { method: 'email', is_new_account: true });
     },
     signInWithEmail: async (email, password) => {
       if (!auth) return;
       await signInWithEmailAndPassword(auth, email, password);
+      track('signed_in', { method: 'email' });
     },
     resetPassword: async (email) => {
       if (!auth) return;
@@ -178,6 +182,9 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
           firebaseUser.email!,
           registrationData
         );
+
+        // Key B2B conversion — a brand-new dealer completed the company form.
+        track('registration_completed', { company_name: registrationData.companyName });
 
         // Registration COMPLETE → e-mail the customer ("we're processing it")
         // and notify info@biketime.cz. Best-effort; never block registration.

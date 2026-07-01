@@ -2,7 +2,8 @@
 'use client';
 
 import { apiGet } from "@/lib/clientApi";
-import { useEffect, useState } from 'react';
+import { track } from '@/lib/analytics';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { sortSizes, standardizeSize, detectCategory } from '@/lib/size-mapping';
@@ -66,6 +67,16 @@ export default function ProductDetailClient({ id }: { id: string }) {
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
+    // Fire once per product when a logged-in dealer actually sees B2B prices.
+    // Measures dealer engagement, distinct from anonymous product_viewed.
+    const dealerPricesTracked = useRef(false);
+    useEffect(() => {
+        if (!dealerPricesTracked.current && product && shopUser?.hasAccess && !hideB2BPrices) {
+            dealerPricesTracked.current = true;
+            track('dealer_prices_shown', { product_id: id, price_level: shopUser.priceLevel });
+        }
+    }, [product, shopUser, hideB2BPrices, id]);
+
     useEffect(() => {
         const load = async () => {
             setLoading(true);
@@ -74,6 +85,13 @@ export default function ProductDetailClient({ id }: { id: string }) {
                 if (!res.ok) throw new Error('Failed to fetch');
                 const data = await res.json();
                 setProduct(data);
+
+                track('product_viewed', {
+                    product_id: id,
+                    brand: data.brand,
+                    model: data.model,
+                    category: data.category,
+                });
 
                 // Check if color/capacity are specified in URL parameters (carried
                 // from the catalog filters) so we open on the matching variant.
