@@ -103,17 +103,36 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
   const posthog = usePostHog();
 
+  // Track analytics consent so we (re-)identify once the user accepts cookies,
+  // even if they signed in *before* accepting (PostHog drops identify while opted out).
+  const [analyticsConsent, setAnalyticsConsent] = useState(false);
   useEffect(() => {
-    if (shopUser && posthog) {
-      // Identify by UID only — no PII (email) in analytics
+    const read = () => setAnalyticsConsent(localStorage.getItem('cookie-consent') === 'accepted');
+    read();
+    window.addEventListener('cookie-consent-changed', read);
+    return () => window.removeEventListener('cookie-consent-changed', read);
+  }, []);
+
+  useEffect(() => {
+    if (!posthog) return;
+    if (shopUser && analyticsConsent) {
+      // Signed-in, registered B2B user who has consented to analytics.
+      // Send name + company so the person is recognizable — but NOT the e-mail
+      // (data minimization: name + company already identifies; e-mail adds no
+      // analytical value and is the most sensitive identifier).
+      const fullName =
+        shopUser.displayName?.trim() ||
+        `${shopUser.firstName ?? ''} ${shopUser.lastName ?? ''}`.trim() ||
+        undefined;
       posthog.identify(shopUser.uid, {
+        name: fullName,
         companyName: shopUser.companyName,
         role: shopUser.role,
       });
-    } else if (!firebaseUser && posthog) {
+    } else if (!firebaseUser) {
       posthog.reset();
     }
-  }, [shopUser, firebaseUser, posthog]);
+  }, [shopUser, firebaseUser, posthog, analyticsConsent]);
 
   const value = useMemo<AuthContextValue>(() => ({
     firebaseUser,

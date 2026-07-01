@@ -26,6 +26,8 @@ export default function CookieBanner() {
         setShow(false);
         posthog?.opt_in_capturing();
         posthog?.set_config({ persistence: 'localStorage+cookie' });
+        // Let AuthProvider (re-)identify the signed-in user now that analytics is allowed.
+        window.dispatchEvent(new Event('cookie-consent-changed'));
     };
 
     const handleDecline = () => {
@@ -33,6 +35,7 @@ export default function CookieBanner() {
         setShow(false);
         posthog?.opt_out_capturing();
         posthog?.set_config({ persistence: 'memory' });
+        window.dispatchEvent(new Event('cookie-consent-changed'));
     };
 
     return (

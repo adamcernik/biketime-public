@@ -99,7 +99,7 @@ export default function PrivacyPolicyPage() {
                         </p>
                         <ul>
                             <li><strong>Nezbytné cookies:</strong> Jsou nutné pro fungování webu (např. uložení vašeho souhlasu s cookies nebo udržení přihlášení). Tyto cookies se ukládají bez nutnosti souhlasu.</li>
-                            <li><strong>Analytické cookies:</strong> Pomáhají nám měřit návštěvnost a analyzovat chování uživatelů na webu. Využíváme službu PostHog, která nám umožňuje analyzovat průchod webem a nahrávat relace (session recording) za účelem odhalování chyb a zlepšování použitelnosti. Údaje zpracováváme pseudonymizovaně, tedy bez přímých identifikátorů, jako je e-mailová adresa. Tyto nástroje aktivujeme až poté, co k tomu udělíte souhlas.</li>
+                            <li><strong>Analytické cookies:</strong> Pomáhají nám měřit návštěvnost a analyzovat chování uživatelů na webu. Využíváme službu PostHog, která nám umožňuje analyzovat průchod webem a nahrávat relace (session recording) za účelem odhalování chyb a zlepšování použitelnosti. U nepřihlášených návštěvníků zpracováváme tyto údaje pseudonymizovaně, tedy bez přímých identifikátorů. Pokud jste přihlášeni do velkoobchodního účtu, přiřazujeme analytická data k vašemu účtu (jméno kontaktní osoby, název firmy a role), abychom rozuměli tomu, jak partneři web používají; vaši e-mailovou adresu do analytického nástroje nepředáváme. Tyto nástroje aktivujeme až poté, co k tomu udělíte souhlas.</li>
                         </ul>
                         <p>
                             Nastavení cookies můžete kdykoli změnit prostřednictvím odkazu „Spravovat cookies&quot; v patičce webu
