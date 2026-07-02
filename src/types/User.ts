@@ -44,6 +44,7 @@ export interface CompanyDetails {
     isVatPayer?: boolean;
     aresVerifiedAt?: string | null; // ISO timestamp; null/absent = neověřeno
     aresEditedAfterVerify?: boolean; // user changed an auto-filled field after lookup
+    aresTerminated?: boolean;     // ARES lists the company as zaniklá — flag only, never auto-block (§6.4)
     isForeignCompany?: boolean;   // true = registration without ARES (checkbox)
 }
 

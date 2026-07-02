@@ -10,13 +10,22 @@ export const runtime = 'nodejs';
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h — ARES updates daily
 
+// Also called cross-origin by the admin dashboard (see admin params below).
+const ADMIN_ORIGIN = process.env.B2B_ADMIN_URL || 'https://b2b.biketime.cz';
+const CORS = {
+    'Access-Control-Allow-Origin': ADMIN_ORIGIN,
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+};
+
 type AresError =
     | 'INVALID_ICO'
     | 'NOT_FOUND'
     | 'COMPANY_TERMINATED'
     | 'DUPLICATE'
     | 'RATE_LIMITED'
-    | 'ARES_UNAVAILABLE';
+    | 'ARES_UNAVAILABLE'
+    | 'FORBIDDEN';
 
 // HTTP status per error — the client maps these to the UX in the spec (§3.3).
 const STATUS: Record<AresError, number> = {
@@ -26,10 +35,16 @@ const STATUS: Record<AresError, number> = {
     DUPLICATE: 409,
     RATE_LIMITED: 429,
     ARES_UNAVAILABLE: 503,
+    FORBIDDEN: 403,
 };
 
-function fail(error: AresError, extra?: Record<string, unknown>) {
-    return NextResponse.json({ ok: false, error, ...extra }, { status: STATUS[error] });
+const ok = (body: Record<string, unknown>) =>
+    NextResponse.json({ ok: true, ...body }, { headers: CORS });
+const fail = (error: AresError, extra?: Record<string, unknown>) =>
+    NextResponse.json({ ok: false, error, ...extra }, { status: STATUS[error], headers: CORS });
+
+export function OPTIONS() {
+    return new NextResponse(null, { status: 204, headers: CORS });
 }
 
 export async function POST(request: Request) {
@@ -40,42 +55,75 @@ export async function POST(request: Request) {
     const allowed = await rateLimit(`ares:${ip}`, 60, 60);
     if (!allowed) return fail('RATE_LIMITED');
 
-    // 2. Parse + validate IČO server-side (never trust the client).
+    // 2. Parse + validate server-side (never trust the client).
     let ico = '';
+    let targetUid: string | undefined;
+    let forceRefresh = false;
+    let includeRaw = false;
     try {
-        const body = (await request.json()) as { ico?: string };
+        const body = (await request.json()) as {
+            ico?: string;
+            targetUid?: string;
+            forceRefresh?: boolean;
+            includeRaw?: boolean;
+        };
         ico = normalizeIco(String(body?.ico ?? ''));
+        targetUid = typeof body?.targetUid === 'string' ? body.targetUid : undefined;
+        forceRefresh = body?.forceRefresh === true;
+        includeRaw = body?.includeRaw === true;
     } catch {
         return fail('INVALID_ICO');
     }
     if (!isValidIco(ico)) return fail('INVALID_ICO');
 
-    // Optional caller identity: registration is anonymous, but the self-service
-    // "doplňte IČO" flow is authenticated — we must NOT flag the caller's own
-    // record as a duplicate of itself.
+    // Optional caller identity: registration is anonymous, the self-service
+    // flow is authenticated, and the admin dashboard sends admin params.
     const caller = await getVerifiedUser(request);
 
+    // Admin-only params: targetUid (lookup on behalf of a partner — exclude
+    // THEIR record from the duplicity check, not the admin's), forceRefresh
+    // ("Znovu ověřit" bypasses the cache), includeRaw (poweradmin debugging).
+    let isAdmin = false;
+    let isPowerAdmin = false;
+    if (targetUid !== undefined || forceRefresh || includeRaw) {
+        if (!caller) return fail('FORBIDDEN');
+        const callerDoc = await adminDb.collection('users').doc(caller.uid).get();
+        const role = callerDoc.exists ? (callerDoc.data()?.role as string | undefined) : undefined;
+        isPowerAdmin = role === 'poweradmin';
+        isAdmin = role === 'admin' || isPowerAdmin;
+        if (!isAdmin) return fail('FORBIDDEN');
+        if (includeRaw && !isPowerAdmin) return fail('FORBIDDEN');
+    }
+
     // 3. Duplicity check BEFORE hitting ARES (avoids needless upstream calls).
+    // Excluded uid: the partner being edited (admin flow) or the caller (self-service).
+    const excludeUid = isAdmin && targetUid ? targetUid : caller?.uid;
     const dup = await adminDb
         .collection('users')
         .where('company.ico', '==', ico)
         .limit(2)
         .get();
-    const foreignDup = dup.docs.find((d) => d.id !== caller?.uid);
+    const foreignDup = dup.docs.find((d) => d.id !== excludeUid);
     if (foreignDup) {
         await logLookup(ico, ip, 'duplicate');
         const email = foreignDup.data()?.email as string | undefined;
         return fail('DUPLICATE', email ? { existingEmail: email } : undefined);
     }
 
-    // 4. Cache lookup (24h TTL enforced in app logic).
+    // 4. Cache lookup (24h TTL in app logic; admins may force-skip).
     const cacheRef = adminDb.collection('aresCache').doc(ico);
-    const cached = await cacheRef.get();
-    if (cached.exists) {
-        const { data, cachedAt } = cached.data() as { data: CompanyData; cachedAt: number };
-        if (Date.now() - cachedAt < CACHE_TTL_MS) {
-            await logLookup(ico, ip, 'cache_hit');
-            return NextResponse.json({ ok: true, data });
+    if (!forceRefresh) {
+        const cached = await cacheRef.get();
+        if (cached.exists) {
+            const { data, cachedAt, raw } = cached.data() as {
+                data: CompanyData;
+                cachedAt: number;
+                raw?: Record<string, unknown>;
+            };
+            if (Date.now() - cachedAt < CACHE_TTL_MS) {
+                await logLookup(ico, ip, 'cache_hit');
+                return ok({ data, ...(includeRaw ? { raw } : {}) });
+            }
         }
     }
 
@@ -94,7 +142,7 @@ export async function POST(request: Request) {
         return fail('ARES_UNAVAILABLE');
     }
 
-    // 6. Cache the mapped subset + raw (raw stays server-side only).
+    // 6. Cache the mapped subset + raw (raw leaves the server only for poweradmin).
     await cacheRef.set({
         data: result.data,
         raw: result.raw,
@@ -103,7 +151,7 @@ export async function POST(request: Request) {
     });
 
     await logLookup(ico, ip, 'ok');
-    return NextResponse.json({ ok: true, data: result.data });
+    return ok({ data: result.data, ...(includeRaw ? { raw: result.raw } : {}) });
 }
 
 async function logLookup(ico: string, ip: string, result: string, error?: string) {
