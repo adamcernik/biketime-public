@@ -13,22 +13,28 @@ export const runtime = 'nodejs';
 export const maxDuration = 300;
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-const ADMIN_ORIGIN = process.env.B2B_ADMIN_URL || 'https://b2b.biketime.cz';
-const CORS = {
-    'Access-Control-Allow-Origin': ADMIN_ORIGIN,
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+const ALLOWED_ORIGINS = [
+    process.env.B2B_ADMIN_URL || 'https://b2b.biketime.cz',
+    'http://localhost:3010',
+];
+const corsFor = (request: Request) => {
+    const origin = request.headers.get('origin') || '';
+    return {
+        'Access-Control-Allow-Origin': ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0],
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+    };
 };
-const json = (body: unknown, status = 200) =>
-    NextResponse.json(body, { status, headers: CORS });
 
-export function OPTIONS() {
-    return new NextResponse(null, { status: 204, headers: CORS });
+export function OPTIONS(request: Request) {
+    return new NextResponse(null, { status: 204, headers: corsFor(request) });
 }
 
 type Entry = { uid: string; ico: string; companyName: string };
 
 export async function POST(request: Request) {
+    const json = (body: unknown, status = 200) =>
+        NextResponse.json(body, { status, headers: corsFor(request) });
     const caller = await getVerifiedUser(request);
     if (!caller) return json({ error: 'Unauthorized' }, 401);
 

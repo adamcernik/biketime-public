@@ -11,11 +11,18 @@ export const runtime = 'nodejs';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h — ARES updates daily
 
 // Also called cross-origin by the admin dashboard (see admin params below).
-const ADMIN_ORIGIN = process.env.B2B_ADMIN_URL || 'https://b2b.biketime.cz';
-const CORS = {
-    'Access-Control-Allow-Origin': ADMIN_ORIGIN,
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+// Reflect the origin from an allowlist so local admin dev (:3010) works too.
+const ALLOWED_ORIGINS = [
+    process.env.B2B_ADMIN_URL || 'https://b2b.biketime.cz',
+    'http://localhost:3010',
+];
+const corsFor = (request: Request) => {
+    const origin = request.headers.get('origin') || '';
+    return {
+        'Access-Control-Allow-Origin': ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0],
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+    };
 };
 
 type AresError =
@@ -38,16 +45,17 @@ const STATUS: Record<AresError, number> = {
     FORBIDDEN: 403,
 };
 
-const ok = (body: Record<string, unknown>) =>
-    NextResponse.json({ ok: true, ...body }, { headers: CORS });
-const fail = (error: AresError, extra?: Record<string, unknown>) =>
-    NextResponse.json({ ok: false, error, ...extra }, { status: STATUS[error], headers: CORS });
-
-export function OPTIONS() {
-    return new NextResponse(null, { status: 204, headers: CORS });
+export function OPTIONS(request: Request) {
+    return new NextResponse(null, { status: 204, headers: corsFor(request) });
 }
 
 export async function POST(request: Request) {
+    const CORS = corsFor(request);
+    const ok = (body: Record<string, unknown>) =>
+        NextResponse.json({ ok: true, ...body }, { headers: CORS });
+    const fail = (error: AresError, extra?: Record<string, unknown>) =>
+        NextResponse.json({ ok: false, error, ...extra }, { status: STATUS[error], headers: CORS });
+
     const ip =
         request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
 
