@@ -6,9 +6,20 @@ import {
     Timestamp,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { ShopUser, UserRole, PriceLevel, ShopRegistrationData } from '../types/User';
+import { ShopUser, UserRole, PriceLevel, ShopRegistrationData, CompanyDetails } from '../types/User';
 
 const USERS_COLLECTION = 'users';
+
+// Firestore (client SDK) rejects `undefined` field values (ignoreUndefinedProperties
+// is not set). Keep only defined keys before writing the company block.
+function cleanCompany(company?: CompanyDetails): CompanyDetails | undefined {
+    if (!company) return undefined;
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(company)) {
+        if (v !== undefined) out[k] = v;
+    }
+    return Object.keys(out).length ? (out as CompanyDetails) : undefined;
+}
 
 export class UserService {
 
@@ -33,6 +44,7 @@ export class UserService {
                 lastName: userData.lastName,
                 companyAddress: userData.companyAddress,
                 phone: userData.phone,
+                company: userData.company,
                 priceLevel: userData.priceLevel as PriceLevel,
                 hasAccess: userData.hasAccess || false,
                 role: userData.role as UserRole || UserRole.PENDING,
@@ -131,6 +143,7 @@ export class UserService {
     ): Promise<ShopUser> {
         try {
             const now = Timestamp.now();
+            const company = cleanCompany(registrationData.company);
 
             const userData = {
                 uid,
@@ -140,6 +153,7 @@ export class UserService {
                 lastName: registrationData.lastName,
                 companyAddress: registrationData.companyAddress,
                 phone: registrationData.phone,
+                ...(company ? { company } : {}),
                 hasAccess: false,
                 role: UserRole.PENDING,
                 createdAt: now,
@@ -177,6 +191,7 @@ export class UserService {
     ): Promise<void> {
         try {
             const now = Timestamp.now();
+            const company = cleanCompany(registrationData.company);
 
             await updateDoc(doc(db, USERS_COLLECTION, uid), {
                 companyName: registrationData.companyName,
@@ -184,6 +199,7 @@ export class UserService {
                 lastName: registrationData.lastName,
                 companyAddress: registrationData.companyAddress,
                 phone: registrationData.phone,
+                ...(company ? { company } : {}),
                 updatedAt: now
             });
         } catch (error) {
@@ -191,6 +207,27 @@ export class UserService {
             throw error;
         }
     }
+    // Save the structured company block (self-service IČO fill-in from the
+    // client zone). Optionally mirrors legalName/address into the flat legacy
+    // fields — only when they are empty, never overwriting the partner's own
+    // wording without consent. Full-map write is safe here: the banner only
+    // shows when no company.ico exists yet.
+    static async updateCompanyData(
+        uid: string,
+        company: CompanyDetails,
+        mirror?: { companyName?: string; companyAddress?: string }
+    ): Promise<void> {
+        const now = Timestamp.now();
+        const clean = cleanCompany(company);
+
+        await updateDoc(doc(db, USERS_COLLECTION, uid), {
+            ...(mirror?.companyName ? { companyName: mirror.companyName } : {}),
+            ...(mirror?.companyAddress ? { companyAddress: mirror.companyAddress } : {}),
+            ...(clean ? { company: clean } : {}),
+            updatedAt: now
+        });
+    }
+
     // Update user data (for client zone)
     static async updateUserData(
         uid: string,

@@ -4,9 +4,49 @@ import { useAuth } from '@/components/AuthProvider';
 import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { isValidIco, normalizeIco } from '@/lib/validation/ico';
+import type { CompanyData } from '@/lib/ares';
+import type { CompanyDetails } from '@/types/User';
+
+type MergeMode = 'overwrite' | 'fillEmpty';
+
+const initialForm = {
+    ico: '',
+    companyName: '',
+    firstName: '',
+    lastName: '',
+    street: '',
+    city: '',
+    zip: '',
+    vatId: '',
+    email: '',
+    phone: '',
+    isForeignCompany: false,
+};
+
+// ARES fields that count as "auto-filled" — editing one after a lookup flips the
+// verified badge to "(upraveno)" so admins see the data diverged from ARES.
+const ARES_FIELDS = ['companyName', 'street', 'city', 'zip', 'vatId'] as const;
+
+function lookupErrorMessage(code: string): string {
+    switch (code) {
+        case 'INVALID_ICO':
+            return 'Neplatné IČO. Zkontrolujte, že má 8 číslic.';
+        case 'NOT_FOUND':
+            return 'Firmu jsme v ARES nenašli. Zkontrolujte IČO, nebo zaškrtněte „Zahraniční firma / firma není v ARES“ a vyplňte údaje ručně.';
+        case 'COMPANY_TERMINATED':
+            return 'Firma s tímto IČO je v ARES vedena jako zaniklá. Kontaktujte prosím naši podporu.';
+        case 'RATE_LIMITED':
+            return 'Příliš mnoho pokusů. Zkuste to prosím za chvíli.';
+        case 'ARES_UNAVAILABLE':
+            return 'Registr ARES je momentálně nedostupný. Vyplňte prosím údaje ručně.';
+        default:
+            return 'Načtení z ARES se nepodařilo. Vyplňte prosím údaje ručně.';
+    }
+}
 
 export default function RegistrationPage() {
-    const { firebaseUser, shopUser, signInWithGoogle, signUpWithEmail, loading } = useAuth(); // Added signUpWithEmail
+    const { firebaseUser, shopUser, signInWithGoogle, signUpWithEmail, loading, registerShop } = useAuth();
     const router = useRouter();
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -16,24 +56,28 @@ export default function RegistrationPage() {
     const [showEmailForm, setShowEmailForm] = useState(false);
     const [authData, setAuthData] = useState({ email: '', password: '' });
 
-    const [formData, setFormData] = useState({
-        companyName: '',
-        firstName: '',
-        lastName: '',
-        companyAddress: '',
-        email: '',
-        phone: '',
-    });
+    const [formData, setFormData] = useState(initialForm);
 
-    const { registerShop } = useAuth(); // Destructure separately to avoid linter issues if needed, or just keep above
+    // ARES lookup state
+    const [aresLoading, setAresLoading] = useState(false);
+    const [aresError, setAresError] = useState<string | null>(null);
+    const [aresErrorCode, setAresErrorCode] = useState<string | null>(null);
+    const [dupEmail, setDupEmail] = useState<string | null>(null);
+    // The applied ARES payload + when it was verified (null = not verified yet).
+    const [aresApplied, setAresApplied] = useState<{ data: CompanyData; verifiedAt: string } | null>(null);
+    const [aresEdited, setAresEdited] = useState(false);
+    const [pendingMerge, setPendingMerge] = useState<CompanyData | null>(null);
+
+    const terminated = aresErrorCode === 'COMPANY_TERMINATED';
+    const canLookup = isValidIco(normalizeIco(formData.ico)) && !aresLoading;
+    const addressFilled = !!(formData.street && formData.city && formData.zip);
+    // Business rule (§3.1): valid IČO + ARES verify, OR address + foreign checkbox.
+    const meetsIdentityRule = (!!aresApplied && !terminated) || (addressFilled && formData.isForeignCompany);
 
     // Prefill email if user is already signed in
     useEffect(() => {
         if (firebaseUser?.email) {
-            setFormData(prev => ({
-                ...prev,
-                email: firebaseUser.email || ''
-            }));
+            setFormData(prev => ({ ...prev, email: firebaseUser.email || '' }));
         }
     }, [firebaseUser]);
 
@@ -50,7 +94,6 @@ export default function RegistrationPage() {
         setSubmitting(true);
         try {
             await signUpWithEmail(authData.email, authData.password);
-            // On success, firebaseUser will update, and the UI will switch to shop details form
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             console.error('Email sign up error:', err);
@@ -63,24 +106,134 @@ export default function RegistrationPage() {
         }
     };
 
-    const handleSubmit = async (e: FormEvent) => {
-        // ... (existing logic)
-        e.preventDefault();
-        setError(null);
-        setSubmitting(true);
+    // Apply ARES data into the form. mode 'fillEmpty' keeps the user's own input,
+    // 'overwrite' replaces it. legalName maps to companyName.
+    const applyAresData = (data: CompanyData, mode: MergeMode = 'overwrite') => {
+        const keep = (current: string, incoming: string) =>
+            mode === 'fillEmpty' && current ? current : incoming;
+
+        setFormData(prev => ({
+            ...prev,
+            ico: data.ico,
+            companyName: keep(prev.companyName, data.legalName),
+            street: keep(prev.street, data.street),
+            city: keep(prev.city, data.city),
+            zip: keep(prev.zip, data.zip),
+            vatId: keep(prev.vatId, data.vatId ?? ''),
+        }));
+        setAresApplied({ data, verifiedAt: new Date().toISOString() });
+        setAresEdited(false);
+        setAresError(null);
+        setAresErrorCode(null);
+        setPendingMerge(null);
+    };
+
+    const handleLookup = async () => {
+        const ico = normalizeIco(formData.ico);
+        if (!isValidIco(ico)) {
+            setAresError(lookupErrorMessage('INVALID_ICO'));
+            return;
+        }
+        setAresLoading(true);
+        setAresError(null);
+        setAresErrorCode(null);
+        setDupEmail(null);
 
         try {
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+            // Send the ID token so the server's duplicity check can exclude our
+            // own (pending) account — a returning user completing registration
+            // must not be flagged as a duplicate of themselves.
+            if (firebaseUser) {
+                try { headers.Authorization = `Bearer ${await firebaseUser.getIdToken()}`; } catch { /* anon fallback */ }
+            }
+            const res = await fetch('/api/company-lookup', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({ ico }),
+            });
+            const json = await res.json();
+
+            if (!json.ok) {
+                setAresErrorCode(json.error);
+                if (json.error === 'DUPLICATE') {
+                    setDupEmail(json.existingEmail ?? null);
+                    setAresError('Firma s tímto IČO už je u nás registrovaná.');
+                } else {
+                    setAresError(lookupErrorMessage(json.error));
+                }
+                return;
+            }
+
+            const data = json.data as CompanyData;
+            const hasExistingData = ARES_FIELDS.some(f => (formData[f] as string).trim());
+            if (hasExistingData) {
+                setPendingMerge(data); // show smart-merge modal
+            } else {
+                applyAresData(data);
+            }
+        } catch {
+            setAresErrorCode('ARES_UNAVAILABLE');
+            setAresError(lookupErrorMessage('ARES_UNAVAILABLE'));
+        } finally {
+            setAresLoading(false);
+        }
+    };
+
+    const handleSubmit = async (e: FormEvent) => {
+        e.preventDefault();
+        setError(null);
+
+        if (terminated) {
+            setError('Firma je v ARES vedena jako zaniklá — registraci nelze dokončit. Kontaktujte podporu.');
+            return;
+        }
+        if (!meetsIdentityRule) {
+            setError('Zadejte platné IČO a načtěte údaje z ARES, nebo vyplňte adresu a zaškrtněte „Zahraniční firma / firma není v ARES“.');
+            return;
+        }
+
+        setSubmitting(true);
+        try {
             if (!firebaseUser) {
-                setError('Nejprve se přihlaste.'); // Should not happen
+                setError('Nejprve se přihlaste.');
                 setSubmitting(false);
                 return;
             }
-            // Register the shop
-            await registerShop(formData);
+
+            const companyAddress = [formData.street, `${formData.zip} ${formData.city}`.trim()]
+                .filter(Boolean)
+                .join('\n');
+
+            const company: CompanyDetails = {
+                legalName: formData.companyName,
+                street: formData.street,
+                city: formData.city,
+                zip: formData.zip,
+                country: aresApplied?.data.country ?? 'CZ',
+                aresVerifiedAt: aresApplied?.verifiedAt ?? null,
+                isForeignCompany: formData.isForeignCompany,
+            };
+            if (formData.ico) company.ico = normalizeIco(formData.ico);
+            if (formData.vatId) company.vatId = formData.vatId;
+            if (aresApplied) {
+                if (aresApplied.data.legalFormCode) company.legalFormCode = aresApplied.data.legalFormCode;
+                if (aresApplied.data.foundedAt) company.foundedAt = aresApplied.data.foundedAt;
+                company.isVatPayer = aresApplied.data.isVatPayer;
+                if (aresEdited) company.aresEditedAfterVerify = true;
+            }
+
+            await registerShop({
+                companyName: formData.companyName,
+                firstName: formData.firstName,
+                lastName: formData.lastName,
+                companyAddress,
+                email: formData.email,
+                phone: formData.phone,
+                company,
+            });
             setSuccess(true);
-            setTimeout(() => {
-                router.push('/');
-            }, 3000);
+            setTimeout(() => router.push('/'), 3000);
         } catch (err) {
             console.error('Registration error:', err);
             setError('Chyba při registraci. Zkuste to prosím znovu.');
@@ -90,7 +243,12 @@ export default function RegistrationPage() {
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+        // Editing an auto-filled field after verify → flag divergence from ARES.
+        if (aresApplied && (ARES_FIELDS as readonly string[]).includes(name)) {
+            setAresEdited(true);
+        }
     };
 
     if (success) {
@@ -127,7 +285,6 @@ export default function RegistrationPage() {
 
                     {!firebaseUser ? (
                         <div className="text-center py-8">
-                            {/* Auth Options */}
                             {!showEmailForm ? (
                                 <>
                                     <p className="text-zinc-600 mb-6">
@@ -275,6 +432,67 @@ export default function RegistrationPage() {
                                 </div>
                             )}
 
+                            {/* IČO lookup — the fast path. Fields below stay editable regardless. */}
+                            <div className="rounded-xl border border-zinc-200 p-5">
+                                <label htmlFor="ico" className="block text-sm font-medium text-zinc-700 mb-2">
+                                    IČO <span className="font-normal text-zinc-400">(doporučeno pro české firmy)</span>
+                                </label>
+                                <div className="flex flex-col sm:flex-row gap-3">
+                                    <input
+                                        type="text"
+                                        id="ico"
+                                        name="ico"
+                                        inputMode="numeric"
+                                        value={formData.ico}
+                                        onChange={handleChange}
+                                        className="flex-1 px-4 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        placeholder="27604977"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={handleLookup}
+                                        disabled={!canLookup}
+                                        className="inline-flex items-center justify-center gap-2 bg-primary text-white py-2 px-5 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                                    >
+                                        {aresLoading ? (
+                                            <>
+                                                <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.37 0 0 5.37 0 12h4z" />
+                                                </svg>
+                                                Načítám…
+                                            </>
+                                        ) : (
+                                            <>🔍 Načíst z ARES</>
+                                        )}
+                                    </button>
+                                </div>
+                                <p className="text-xs text-zinc-500 mt-2">
+                                    Zadejte IČO a firemní údaje doplníme za vás z registru ARES.
+                                </p>
+
+                                {aresApplied && !aresError && (
+                                    <p className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-green-700">
+                                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-green-600 text-[11px] text-white">✓</span>
+                                        {aresEdited ? 'Ověřeno v ARES (upraveno)' : 'Ověřeno v ARES'}
+                                    </p>
+                                )}
+
+                                {aresError && (
+                                    <div className="mt-3 text-sm bg-amber-50 border border-amber-200 text-amber-800 rounded-lg p-3">
+                                        {aresError}
+                                        {aresErrorCode === 'DUPLICATE' && (
+                                            <Link
+                                                href={dupEmail ? `/login?email=${encodeURIComponent(dupEmail)}` : '/login'}
+                                                className="ml-1 font-semibold underline"
+                                            >
+                                                Přihlásit se
+                                            </Link>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label htmlFor="companyName" className="block text-sm font-medium text-zinc-700 mb-2">
@@ -359,37 +577,102 @@ export default function RegistrationPage() {
                                     placeholder="vas@email.cz"
                                 />
                                 <p className="text-xs text-zinc-500 mt-1">
-                                    Email z vašeho Google účtu
+                                    Email z vašeho přihlášení
                                 </p>
                             </div>
 
-                            <div>
-                                <label htmlFor="companyAddress" className="block text-sm font-medium text-zinc-700 mb-2">
-                                    Adresa firmy <span className="text-red-500">*</span>
-                                </label>
-                                <textarea
-                                    id="companyAddress"
-                                    name="companyAddress"
-                                    required
-                                    rows={3}
-                                    value={formData.companyAddress}
-                                    onChange={handleChange}
-                                    className="w-full px-4 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
-                                    placeholder="Ulice, číslo popisné&#10;PSČ Město"
-                                />
+                            {/* Structured address — filled from ARES or by hand */}
+                            <div className="space-y-6">
+                                <div>
+                                    <label htmlFor="street" className="block text-sm font-medium text-zinc-700 mb-2">
+                                        Ulice a č.p. <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="street"
+                                        name="street"
+                                        required
+                                        value={formData.street}
+                                        onChange={handleChange}
+                                        className="w-full px-4 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        placeholder="Ulice 123/4"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="md:col-span-2">
+                                        <label htmlFor="city" className="block text-sm font-medium text-zinc-700 mb-2">
+                                            Město <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            id="city"
+                                            name="city"
+                                            required
+                                            value={formData.city}
+                                            onChange={handleChange}
+                                            className="w-full px-4 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                            placeholder="Praha"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="zip" className="block text-sm font-medium text-zinc-700 mb-2">
+                                            PSČ <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            id="zip"
+                                            name="zip"
+                                            required
+                                            value={formData.zip}
+                                            onChange={handleChange}
+                                            className="w-full px-4 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                            placeholder="11000"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label htmlFor="vatId" className="block text-sm font-medium text-zinc-700 mb-2">
+                                        DIČ <span className="font-normal text-zinc-400">(nepovinné)</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        id="vatId"
+                                        name="vatId"
+                                        value={formData.vatId}
+                                        onChange={handleChange}
+                                        className="w-full px-4 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        placeholder="CZ27604977"
+                                    />
+                                </div>
                             </div>
+
+                            {/* Manual / foreign path */}
+                            <label className="flex items-start gap-3 rounded-lg border border-zinc-200 p-4 cursor-pointer hover:bg-zinc-50">
+                                <input
+                                    type="checkbox"
+                                    name="isForeignCompany"
+                                    checked={formData.isForeignCompany}
+                                    onChange={e => setFormData(prev => ({ ...prev, isForeignCompany: e.target.checked }))}
+                                    className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-primary focus:ring-primary"
+                                />
+                                <span className="text-sm text-zinc-700">
+                                    <span className="font-medium">Zahraniční firma / firma není v ARES</span>
+                                    <br />
+                                    <span className="text-zinc-500">Registrace půjde do ruční kontroly.</span>
+                                </span>
+                            </label>
 
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                                 <p className="text-sm text-blue-900">
                                     <strong>Co se stane po registraci?</strong><br />
-                                    Po odeslání formuláře vás budeme kontaktovat e-mailem. Následně nastavíme vaši cenovou skupinu (A-F) a přístupová práva.
+                                    Po odeslání formuláře vás budeme kontaktovat e-mailem. Následně nastavíme vaši cenovou skupinu (A-D) a přístupová práva.
                                 </p>
                             </div>
 
                             <div className="flex gap-4">
                                 <button
                                     type="submit"
-                                    disabled={submitting}
+                                    disabled={submitting || terminated}
                                     className="flex-1 bg-primary text-white py-3 px-6 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {submitting ? 'Probíhá registrace...' : 'Registrovat prodejnu'}
@@ -405,6 +688,46 @@ export default function RegistrationPage() {
                     )}
                 </div>
             </div>
+
+            {/* Smart-merge modal — shown when a lookup would overwrite user input */}
+            {pendingMerge && (
+                <MergeModal
+                    onCancel={() => setPendingMerge(null)}
+                    onApply={(mode) => applyAresData(pendingMerge, mode)}
+                />
+            )}
         </main>
+    );
+}
+
+function MergeModal({ onCancel, onApply }: { onCancel: () => void; onApply: (mode: MergeMode) => void }) {
+    const [mode, setMode] = useState<MergeMode>('fillEmpty');
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+                <h3 className="text-lg font-bold text-zinc-900 mb-2">Nalezena data v ARES</h3>
+                <p className="text-sm text-zinc-600 mb-4">
+                    Už jste vyplnili některá pole. Co s nimi chcete udělat?
+                </p>
+                <div className="space-y-2">
+                    <label className="flex items-center gap-3 rounded-lg border border-zinc-200 p-3 cursor-pointer hover:bg-zinc-50">
+                        <input type="radio" name="merge" checked={mode === 'fillEmpty'} onChange={() => setMode('fillEmpty')} className="text-primary focus:ring-primary" />
+                        <span className="text-sm text-zinc-800">Doplnit jen prázdná pole <span className="text-zinc-400">(doporučeno)</span></span>
+                    </label>
+                    <label className="flex items-center gap-3 rounded-lg border border-zinc-200 p-3 cursor-pointer hover:bg-zinc-50">
+                        <input type="radio" name="merge" checked={mode === 'overwrite'} onChange={() => setMode('overwrite')} className="text-primary focus:ring-primary" />
+                        <span className="text-sm text-zinc-800">Přepsat vše daty z ARES</span>
+                    </label>
+                </div>
+                <div className="mt-6 flex justify-end gap-3">
+                    <button onClick={onCancel} className="px-4 py-2 text-sm font-medium text-zinc-600 hover:text-zinc-900">
+                        Zrušit
+                    </button>
+                    <button onClick={() => onApply(mode)} className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-primary/90">
+                        Použít
+                    </button>
+                </div>
+            </div>
+        </div>
     );
 }
