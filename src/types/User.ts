@@ -15,6 +15,12 @@ export interface ShopUser {
     // Price level (A, B, C, D, E, F)
     priceLevel?: PriceLevel;
 
+    // Structured company / ARES data (all optional — legacy users have none).
+    // companyName/companyAddress above stay the canonical display fields; ARES
+    // fills these AND mirrors legalName→companyName so the rest of the app is
+    // unaffected. Price level lives in root priceLevel and is NEVER touched here.
+    company?: CompanyDetails;
+
     // Access and timestamps
     hasAccess: boolean;
     role: UserRole;
@@ -23,6 +29,22 @@ export interface ShopUser {
     lastLoginAt?: Date;
     approvedBy?: string;
     approvedAt?: Date;
+}
+
+export interface CompanyDetails {
+    ico?: string;                 // 8 digits, indexed (duplicity check + lookup)
+    vatId?: string | null;        // DIČ — absent for non-VAT payers
+    legalName?: string;           // obchodní jméno z ARES
+    street?: string;
+    city?: string;
+    zip?: string;                 // no spaces
+    country?: string;             // "CZ", "SK", ...
+    legalFormCode?: string | null;
+    foundedAt?: string | null;    // ISO date
+    isVatPayer?: boolean;
+    aresVerifiedAt?: string | null; // ISO timestamp; null/absent = neověřeno
+    aresEditedAfterVerify?: boolean; // user changed an auto-filled field after lookup
+    isForeignCompany?: boolean;   // true = registration without ARES (checkbox)
 }
 
 export enum PriceLevel {
@@ -46,4 +68,7 @@ export interface ShopRegistrationData {
     companyAddress: string;
     email: string;
     phone: string;
+    // Optional structured company/ARES block. When present it is persisted to
+    // ShopUser.company; legalName is mirrored into companyName by the form.
+    company?: CompanyDetails;
 }
