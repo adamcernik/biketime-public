@@ -9,7 +9,7 @@ import logoImage from '@/assets/biketime-logo.png';
 import UserAuthButton from './UserAuthButton';
 import { useAuth } from './AuthProvider';
 
-const navItems: { href: string; label: string }[] = [
+const navItems: { href: string; label: string; highlight?: boolean }[] = [
   { href: '/catalog', label: 'Katalog kol' },
   { href: '/prislusenstvi', label: 'Příslušenství' },
   { href: '/prodejny', label: 'Prodejny' },
@@ -18,11 +18,19 @@ const navItems: { href: string; label: string }[] = [
   { href: '/kontakt', label: 'Kontakt' },
 ];
 
+// Dealer-only entry — shown after an approved shop user signs in. Rendering is
+// hydration-safe: shopUser is null during SSR and the initial client render.
+const preorderItem = { href: '/predobjednavky', label: 'Předobjednávky 2027', highlight: true };
+
 export default function SiteHeader() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
   const { shopUser } = useAuth();
+
+  const visibleNavItems = shopUser?.hasAccess
+    ? [...navItems.slice(0, 1), preorderItem, ...navItems.slice(1)]
+    : navItems;
 
   useEffect(() => {
     setMounted(true);
@@ -81,11 +89,11 @@ export default function SiteHeader() {
 
         {/* Desktop Menu */}
         <nav className="hidden md:flex items-center gap-8">
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="text-sm font-medium text-zinc-600 hover:text-primary transition-colors uppercase tracking-wide"
+              className={`text-sm font-medium transition-colors uppercase tracking-wide ${item.highlight ? 'text-primary hover:text-primary/80' : 'text-zinc-600 hover:text-primary'}`}
             >
               {item.label}
             </Link>
@@ -121,11 +129,11 @@ export default function SiteHeader() {
             className={`fixed inset-0 bg-white z-40 flex flex-col justify-center items-center gap-8 transition-all duration-300 md:hidden ${open ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'
               }`}
           >
-            {navItems.map((item) => (
+            {visibleNavItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="text-2xl font-semibold text-zinc-800 hover:text-primary transition-colors"
+                className={`text-2xl font-semibold transition-colors ${item.highlight ? 'text-primary hover:text-primary/80' : 'text-zinc-800 hover:text-primary'}`}
                 onClick={() => setOpen(false)}
               >
                 {item.label}
