@@ -227,7 +227,12 @@ export default function ProductDetailClient({ id }: { id: string }) {
 
     let priceDisplay;
 
-    if (selectedSize) {
+    // Preorder products (2027) have no CZK prices yet — every variant.price is 0.
+    const pricesUnknown = !minPrice && !maxPrice;
+
+    if (pricesUnknown) {
+        priceDisplay = <span className="text-2xl font-semibold text-zinc-500">Cena bude upřesněna</span>;
+    } else if (selectedSize) {
         const selectedVariant = variantsInFrame.find(v =>
             standardizeSize(v.size, category) === selectedSize &&
             (!selectedCapacity || v.capacity === selectedCapacity)

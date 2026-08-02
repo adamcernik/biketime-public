@@ -29,6 +29,7 @@ interface ProductV2 {
     };
     hasStock?: boolean;
     isOnOrder?: boolean;
+    preorderOnly?: boolean;
     b2bOrderStatus?: string;
     sizes?: string[];
     stockSizes?: string[];
@@ -151,7 +152,11 @@ export default function ProductCardV2({ product, detailBasePath = '/catalog', co
 
                     {/* Badges */}
                     <div className="absolute top-4 left-4 flex flex-col gap-2">
-                        {hasStock ? (
+                        {product.preorderOnly ? (
+                            <span className="text-[10px] font-bold px-2 py-1 rounded bg-amber-100 text-amber-700 border border-amber-200 uppercase">
+                                Předobjednávka
+                            </span>
+                        ) : hasStock ? (
                             <span className="text-[10px] font-bold px-2 py-1 rounded bg-green-100 text-green-700 border border-green-200 uppercase">
                                 Skladem
                             </span>
@@ -249,7 +254,9 @@ export default function ProductCardV2({ product, detailBasePath = '/catalog', co
                     <div className="mt-4 flex items-end justify-between">
                         <div>
                             <div className="text-xl font-bold text-zinc-900">
-                                {product.minPrice === product.maxPrice ? (
+                                {!product.minPrice ? (
+                                    <span className="text-sm font-medium text-zinc-500">Cena bude upřesněna</span>
+                                ) : product.minPrice === product.maxPrice ? (
                                     new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(product.minPrice)
                                 ) : (
                                     <>

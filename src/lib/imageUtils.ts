@@ -61,6 +61,13 @@ function extractFilename(url: string): string | null {
 function extractBrandId(url: string): string | null {
     if (!url) return null;
 
+    // New-style CDN source URLs (2027 CSV): cdn-assets.zeg.de/brands/{id}/hub_main/…
+    // The id is per product line, so it MUST come from the URL, not the brand map.
+    const cdnBrandMatch = url.match(/cdn-assets\.zeg\.de\/brands\/(\d+)\//i);
+    if (cdnBrandMatch) {
+        return cdnBrandMatch[1];
+    }
+
     const match = url.match(/assets\.zeg\.de\/(\d+)\//i);
     if (match) {
         return match[1];
