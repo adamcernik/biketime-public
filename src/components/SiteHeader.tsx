@@ -18,8 +18,11 @@ const navItems: { href: string; label: string; highlight?: boolean }[] = [
   { href: '/kontakt', label: 'Kontakt' },
 ];
 
-// Dealer-only entry — shown after an approved shop user signs in. Rendering is
-// hydration-safe: shopUser is null during SSR and the initial client render.
+// Dealer-only entry — currently hidden from the menu on purpose (the page
+// stays reachable directly at /predobjednavky). To show it again to approved
+// dealers, set SHOW_PREORDER_NAV = true. Rendering is hydration-safe:
+// shopUser is null during SSR and the initial client render.
+const SHOW_PREORDER_NAV = false;
 const preorderItem = { href: '/predobjednavky', label: 'Předobjednávky 2027', highlight: true };
 
 export default function SiteHeader() {
@@ -28,7 +31,7 @@ export default function SiteHeader() {
   const [mounted, setMounted] = useState(false);
   const { shopUser } = useAuth();
 
-  const visibleNavItems = shopUser?.hasAccess
+  const visibleNavItems = SHOW_PREORDER_NAV && shopUser?.hasAccess
     ? [...navItems.slice(0, 1), preorderItem, ...navItems.slice(1)]
     : navItems;
 
