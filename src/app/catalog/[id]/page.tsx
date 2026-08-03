@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import { adminDb } from '@/lib/firebase-admin';
 import { findReplacementsForMissing } from '@/lib/catalog-fallback';
+import { isProductPubliclyVisible } from '@/lib/preorderVisibility';
 import ProductDetailClient from './ProductDetailClient';
 import ProductUnavailable from '@/components/ProductUnavailable';
 
@@ -12,6 +14,7 @@ async function getBasic(id: string): Promise<{ brand: string; model: string; yea
     const snap = await adminDb.collection('products_v2').doc(id).get();
     if (!snap.exists) return null;
     const d = snap.data() as Record<string, unknown>;
+    if (!(await isProductPubliclyVisible(id, d))) return null;
     return { brand: String(d.brand ?? ''), model: String(d.model ?? ''), year: d.year };
 }
 
@@ -31,6 +34,9 @@ export default async function CatalogDetailPage({ params }: { params: Promise<{ 
     const snap = await adminDb.collection('products_v2').doc(id).get();
 
     if (snap.exists) {
+        // Preorder-only bikes (no prices yet) are hidden from the public web
+        // until the preorder section opens and includes them.
+        if (!(await isProductPubliclyVisible(id, snap.data()))) notFound();
         return <ProductDetailClient id={id} />;
     }
 

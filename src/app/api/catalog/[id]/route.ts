@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { stripSensitiveFields, stripB2BPrices } from '@/lib/apiSanitize';
 import { isAuthenticatedRequest } from '@/lib/userAuth';
+import { isProductPubliclyVisible } from '@/lib/preorderVisibility';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +17,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         }
 
         const productData = snapshot.data();
+
+        // Preorder-only bikes stay invisible until the preorder section
+        // opens and includes them (mirrors the detail page gating).
+        if (!(await isProductPubliclyVisible(snapshot.id, productData))) {
+            return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+        }
         
         // Ensure variants have nrLf or fallback to ID if possible?
         // In products_v2, variants usually look like { id: '...', size: '...', nrLf: '...' }
