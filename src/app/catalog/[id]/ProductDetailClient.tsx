@@ -238,7 +238,11 @@ export default function ProductDetailClient({ id }: { id: string }) {
             (!selectedCapacity || v.capacity === selectedCapacity)
         );
         if (selectedVariant) {
-            priceDisplay = new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(selectedVariant.price);
+            // Partially priced products (ceník misses some variants): the
+            // selected variant may have no price yet.
+            priceDisplay = Number(selectedVariant.price) > 0
+                ? new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(selectedVariant.price)
+                : <span className="text-2xl font-semibold text-zinc-500">Cena bude upřesněna</span>;
         }
     }
 

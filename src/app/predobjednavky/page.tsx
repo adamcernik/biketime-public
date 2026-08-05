@@ -16,6 +16,17 @@ import { useAuth } from '@/components/AuthProvider';
 import { apiGet } from '@/lib/clientApi';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
 import { sortSizes } from '@/lib/size-mapping';
+import { dealerPriceForMoc } from '@/lib/b2bPrice';
+
+const fmtCzk = (n: number) =>
+  new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(n);
+
+/** Ceník 2027 kategorie — order-volume based dealer prices (bez DPH). */
+const CATEGORY_LABELS: { level: 'A' | 'B' | 'C'; label: string }[] = [
+  { level: 'A', label: 'bez předobjednávky' },
+  { level: 'B', label: 'do 500 tis.' },
+  { level: 'C', label: 'nad 500 tis.' },
+];
 
 interface ConfigRow {
   key: string;
@@ -50,6 +61,7 @@ function ProductBlock({
   quantities: Record<string, number>;
   setQty: (productId: string, variantId: string, qty: number) => void;
 }) {
+  const { hideB2BPrices } = useAuth();
   const [expanded, setExpanded] = useState(false);
   const rows = useMemo(() => buildConfigRows(product), [product]);
   const image = product.primaryImage || product.images?.[0];
@@ -84,6 +96,12 @@ function ProductBlock({
               .filter(Boolean)
               .join(' · ')}
           </div>
+          {product.minPrice > 0 && (
+            <div className="text-sm font-bold text-zinc-900 mt-0.5">
+              {product.minPrice === product.maxPrice ? fmtCzk(product.minPrice) : `od ${fmtCzk(product.minPrice)}`}
+              <span className="text-[10px] font-normal text-zinc-400 ml-1">MOC s DPH</span>
+            </div>
+          )}
         </div>
 
         {inOrder > 0 && (
@@ -104,12 +122,34 @@ function ProductBlock({
               Zobrazit detail kola →
             </Link>
           </div>
-          {rows.map((row) => (
+          {rows.map((row) => {
+            const rowMoc = Number(row.variants.find((v: any) => Number(v.price) > 0)?.price) || 0;
+            return (
             <div key={row.key} className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl bg-zinc-50 px-3 py-2">
               <div className="text-sm text-zinc-700 min-w-[180px] flex-1">
                 <span className="font-medium">{row.color}</span>
                 {row.frameShape && <span className="text-zinc-400"> · {row.frameShape}</span>}
                 {row.capacity && <span className="text-zinc-400"> · {row.capacity}</span>}
+                <div className="text-xs mt-0.5">
+                  {rowMoc > 0 ? (
+                    <>
+                      <span className="font-semibold text-zinc-900">{fmtCzk(rowMoc)}</span>
+                      <span className="text-zinc-400"> MOC</span>
+                      {!hideB2BPrices && CATEGORY_LABELS.map(({ level, label }) => {
+                        const voc = dealerPriceForMoc(product, level, rowMoc);
+                        return voc ? (
+                          <span key={level} className="text-zinc-500">
+                            {' · '}
+                            <span className="font-medium text-primary">{level}: {fmtCzk(voc)}</span>
+                            <span className="text-zinc-400"> ({label})</span>
+                          </span>
+                        ) : null;
+                      })}
+                    </>
+                  ) : (
+                    <span className="text-zinc-400">Cena bude upřesněna</span>
+                  )}
+                </div>
               </div>
               <div className="flex flex-wrap gap-2">
                 {row.variants.map((v: any) => {
@@ -134,7 +174,8 @@ function ProductBlock({
                 })}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
@@ -142,7 +183,7 @@ function ProductBlock({
 }
 
 export default function PredobjednavkyPage() {
-  const { firebaseUser, shopUser, loading } = useAuth();
+  const { firebaseUser, shopUser, loading, hideB2BPrices, toggleHideB2BPrices } = useAuth();
   const [data, setData] = useState<{ enabled: boolean; title: string; products: any[] } | null>(null);
   const [loadingData, setLoadingData] = useState(true);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
@@ -271,11 +312,22 @@ export default function PredobjednavkyPage() {
   return (
     <main className="min-h-screen bg-zinc-50 py-10 px-4 pb-32">
       <div className="max-w-5xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-zinc-900">{data?.title || 'Předobjednávky 2027'}</h1>
-          <p className="text-zinc-600 mt-1">
-            Vyberte varianty a počty kusů, které chcete předobjednat. Ceny budou upřesněny po vydání ceníku.
-          </p>
+        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-zinc-900">{data?.title || 'Předobjednávky 2027'}</h1>
+            <p className="text-zinc-600 mt-1">
+              Vyberte varianty a počty kusů, které chcete předobjednat.
+            </p>
+            <p className="text-xs text-zinc-500 mt-1">
+              VOC kategorie (bez DPH): <strong>A</strong> bez předobjednávky · <strong>B</strong> předobjednávka do 500 000 Kč · <strong>C</strong> předobjednávka nad 500 000 Kč
+            </p>
+          </div>
+          <button
+            onClick={toggleHideB2BPrices}
+            className="text-sm font-medium px-4 py-2 border border-zinc-300 rounded-lg hover:bg-zinc-100 transition-colors"
+          >
+            {hideB2BPrices ? 'Zobrazit VOC ceny' : 'Skrýt VOC ceny'}
+          </button>
         </div>
 
         {submittedOrderId && (

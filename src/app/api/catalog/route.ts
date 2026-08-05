@@ -104,7 +104,9 @@ export async function GET(req: NextRequest) {
         const snapshot = await adminDb.collection('products_v2').get();
         // Preorder-only products (e.g. model year 2027) never appear in the
         // regular catalog — they are served exclusively by /api/preorders.
-        let allProducts = snapshot.docs.filter(d => d.get('preorderOnly') !== true).map(d => {
+        // Archived products (dropped from the current ceník, no stock) are
+        // hidden everywhere.
+        let allProducts = snapshot.docs.filter(d => d.get('preorderOnly') !== true && d.get('archived') !== true).map(d => {
             const data = d.data();
             const product = { id: d.id, ...data } as any;
 

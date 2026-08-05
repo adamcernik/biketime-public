@@ -22,7 +22,7 @@ const navItems: { href: string; label: string; highlight?: boolean }[] = [
 // stays reachable directly at /predobjednavky). To show it again to approved
 // dealers, set SHOW_PREORDER_NAV = true. Rendering is hydration-safe:
 // shopUser is null during SSR and the initial client render.
-const SHOW_PREORDER_NAV = false;
+const SHOW_PREORDER_NAV = true;
 const preorderItem = { href: '/predobjednavky', label: 'Předobjednávky 2027', highlight: true };
 
 export default function SiteHeader() {

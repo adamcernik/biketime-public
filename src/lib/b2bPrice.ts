@@ -46,7 +46,10 @@ export function dealerPriceForMoc(
   currentMoc: number | undefined | null,
 ): number | null {
   if (!level) return null;
-  const base = Number(product.priceLevelsCzk?.[level]) || 0;
+  // Season 2027 ceník has only kategorie A–C (order-volume based) while
+  // dealers may still hold legacy level D — fall back to kategorie A (the
+  // base "bez předobjednávky" price) when the user's level is absent.
+  const base = Number(product.priceLevelsCzk?.[level]) || Number(product.priceLevelsCzk?.A) || 0;
   if (base <= 0) return null;
   const moc = Number(currentMoc);
   if (!(moc > 0)) return base;
