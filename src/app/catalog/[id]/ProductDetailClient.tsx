@@ -58,6 +58,11 @@ export default function ProductDetailClient({ id }: { id: string }) {
     const [selectedCapacity, setSelectedCapacity] = useState<string>('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
+    // ZEG CDN generates size variants on demand — the very first request for a
+    // variant can be slow or fail. When the optimized URL errors, fall back to
+    // the original source image (which always exists).
+    const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
+    const markImageFailed = (url: string) => setFailedImages((f) => (f[url] ? f : { ...f, [url]: true }));
 
     // Detect mobile on mount and resize
     useEffect(() => {
@@ -285,13 +290,14 @@ export default function ProductDetailClient({ id }: { id: string }) {
                             {mainImage ? (
                                 <>
                                     <Image
-                                        src={getOptimizedImageUrl(mainImage, 'large', product.brand)}
+                                        src={failedImages[mainImage] ? mainImage : getOptimizedImageUrl(mainImage, 'large', product.brand)}
                                         alt={`${product.brand} ${product.model}`}
                                         fill
                                         sizes="(min-width: 1024px) 50vw, 100vw"
                                         className="object-contain p-8 mix-blend-multiply transition-transform duration-500 group-hover:scale-105"
                                         priority
                                         unoptimized
+                                        onError={() => markImageFailed(mainImage)}
                                     />
                                     <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur rounded-full p-2 shadow-sm text-zinc-600">
                                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -349,12 +355,13 @@ export default function ProductDetailClient({ id }: { id: string }) {
                                             >
                                                 {image ? (
                                                     <Image
-                                                        src={getOptimizedImageUrl(image, 'thumbnail', product.brand)}
+                                                        src={failedImages[image] ? image : getOptimizedImageUrl(image, 'thumbnail', product.brand)}
                                                         alt={color}
                                                         fill
                                                         className="object-contain p-1 mix-blend-multiply"
                                                         sizes="80px"
                                                         unoptimized
+                                                        onError={() => markImageFailed(image)}
                                                     />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center bg-zinc-50 text-xs text-zinc-400 p-1 text-center">
