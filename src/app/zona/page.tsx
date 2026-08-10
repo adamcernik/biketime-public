@@ -103,6 +103,26 @@ export default function ClientZonePage() {
           <IcoPromptBanner shopUser={shopUser} firebaseUser={firebaseUser} onDone={refreshUserData} />
         )}
 
+        <Link
+          href="/zona/faktury"
+          className="mb-6 flex items-center justify-between bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-shadow group"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="font-semibold text-zinc-900">Moje faktury</h2>
+              <p className="text-sm text-zinc-500">Zobrazení a stažení faktur vystavených na vaši firmu</p>
+            </div>
+          </div>
+          <svg className="w-5 h-5 text-zinc-400 group-hover:text-zinc-600 group-hover:translate-x-0.5 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </Link>
+
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <div className="p-8">
             <div className="mb-6 pb-6 border-b border-zinc-100">

@@ -1,6 +1,7 @@
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
+import { getStorage } from 'firebase-admin/storage';
 
 // This file is designed to run ONLY on the server side (Node.js environment).
 // It uses "firebase-admin" to bypass Firestore security rules for admin tasks.
@@ -104,3 +105,12 @@ function lazy<T extends object>(factory: () => T): T {
 
 export const adminDb = lazy(() => getFirestore(getFirebaseAdminApp()));
 export const adminAuth = lazy(() => getAuth(getFirebaseAdminApp()));
+
+/** Storage bucket projektu (faktury aj.) — jméno z env, stejné jako web SDK. */
+export const adminBucket = lazy(() =>
+    getStorage(getFirebaseAdminApp()).bucket(
+        process.env.FIREBASE_STORAGE_BUCKET ||
+        process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ||
+        'btb2b-90b2f.firebasestorage.app',
+    ),
+);
