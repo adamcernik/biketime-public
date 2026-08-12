@@ -44,6 +44,12 @@ interface Product {
     maxPrice: number;
     priceLevelsCzk?: Partial<Record<'A' | 'B' | 'C' | 'D', number>>;
     manualB2BPrice?: number;
+    zeg?: {
+        best: number;
+        nextKw: number;
+        variants: Record<string, { s: number; kw: number }>;
+        updatedAt: string;
+    };
 }
 
 export default function ProductDetailClient({ id }: { id: string }) {
@@ -617,10 +623,26 @@ export default function ProductDetailClient({ id }: { id: string }) {
 
                                     const nrLfToShow = selectedVariant?.nrLf || selectedVariant?.id;
 
-                                    if (nrLfToShow) {
+                                    // Dostupnost u výrobce (ZEG feed) pro vybranou variantu
+                                    const zegVariant = selectedVariant?.id != null
+                                        ? product.zeg?.variants?.[String(selectedVariant.id)]
+                                        : undefined;
+                                    const zegLine = zegVariant ? (
+                                        zegVariant.s === 2 ? <span className="font-medium text-emerald-600">skladem</span>
+                                        : zegVariant.s === 1 ? <span className="font-medium text-amber-600">omezené množství</span>
+                                        : zegVariant.kw > 0 ? <span className="font-medium text-sky-600">očekáváme od {zegVariant.kw}. týdne</span>
+                                        : <span className="font-medium text-zinc-500">vyprodáno</span>
+                                    ) : null;
+
+                                    if (nrLfToShow || zegLine) {
                                         return (
-                                            <div className="pt-2 mt-2 border-t border-zinc-100">
-                                                ID produktu (NRLF): <span className="font-mono font-medium text-zinc-700">{nrLfToShow}</span>
+                                            <div className="pt-2 mt-2 border-t border-zinc-100 space-y-1">
+                                                {zegLine && <div>Dostupnost u výrobce: {zegLine}</div>}
+                                                {nrLfToShow && (
+                                                    <div>
+                                                        ID produktu (NRLF): <span className="font-mono font-medium text-zinc-700">{nrLfToShow}</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         );
                                     }

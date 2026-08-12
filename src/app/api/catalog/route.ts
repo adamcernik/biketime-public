@@ -72,6 +72,7 @@ export async function GET(req: NextRequest) {
         const ebikeParam = searchParams.get('ebike'); // 'true' | 'false' | null
         const inStockParam = searchParams.get('inStock'); // 'true' | null (backward compat for /skladem)
         const availabilityParam = searchParams.get('availability'); // 'all' | 'inStock' | 'onOrder' | null
+        const zegParam = searchParams.get('zeg'); // 'true' | null — dostupné u výrobce (ZEG feed)
 
         // Fetch priority settings
         const settingsSnap = await adminDb.collection('settings').doc('catalog').get();
@@ -310,6 +311,11 @@ export async function GET(req: NextRequest) {
             baseProducts = baseProducts.filter(p => p.hasStock);
         } else if (availabilityParam === 'onOrder') {
             baseProducts = baseProducts.filter(p => p.isOnOrder);
+        }
+
+        // Dostupnost u výrobce (ZEG): statusy 1 (nízká) a 2 (normální/vysoká)
+        if (zegParam === 'true') {
+            baseProducts = baseProducts.filter(p => p.zeg && (p.zeg.best === 1 || p.zeg.best === 2));
         }
 
         // Rule: Hide 2022-2024 models if they are not in stock and not on order

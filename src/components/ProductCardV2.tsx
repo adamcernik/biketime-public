@@ -44,6 +44,7 @@ interface ProductV2 {
     _displayColor?: string;
     manualB2BPrice?: number;
     colors?: string[];
+    zeg?: { best: number; nextKw: number };
 }
 
 export default function ProductCardV2({ product, detailBasePath = '/catalog', colorMappings = {}, activeCapacity = '' }: { product: ProductV2; detailBasePath?: string; colorMappings?: Record<string, string>; activeCapacity?: string }) {
@@ -112,6 +113,11 @@ export default function ProductCardV2({ product, detailBasePath = '/catalog', co
     const hasTransit = !hasStock && (product.b2bOrderStatus === 'na_ceste');
     const isOnOrder = !hasStock && !hasTransit && (product.isOnOrder || product.b2bOrderStatus === 'na_objednavku');
 
+    // Dostupnost u výrobce (ZEG feed): best 2 = skladem, 1 = omezeně; jinak
+    // případný nejbližší kalendářní týden příští dostupnosti.
+    const zegBest: number | undefined = product.zeg?.best;
+    const zegNextKw: number = product.zeg?.nextKw || 0;
+
     // Use primaryImage if available (expanded variant), otherwise first image
     const displayImage = product.primaryImage || product.images?.[0];
 
@@ -167,6 +173,19 @@ export default function ProductCardV2({ product, detailBasePath = '/catalog', co
                         ) : isOnOrder ? (
                             <span className="text-[10px] font-bold px-2 py-1 rounded bg-zinc-100 text-zinc-500 border border-zinc-200 uppercase">
                                 Na objednávku
+                            </span>
+                        ) : null}
+                        {zegBest === 2 ? (
+                            <span className="text-[10px] font-bold px-2 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase">
+                                U výrobce skladem
+                            </span>
+                        ) : zegBest === 1 ? (
+                            <span className="text-[10px] font-bold px-2 py-1 rounded bg-amber-50 text-amber-700 border border-amber-200 uppercase">
+                                U výrobce omezeně
+                            </span>
+                        ) : zegNextKw > 0 ? (
+                            <span className="text-[10px] font-bold px-2 py-1 rounded bg-sky-50 text-sky-700 border border-sky-200 uppercase">
+                                U výrobce od {zegNextKw}. týdne
                             </span>
                         ) : null}
                     </div>
