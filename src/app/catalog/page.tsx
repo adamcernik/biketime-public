@@ -7,11 +7,15 @@ import { apiGet } from '@/lib/clientApi';
 import { track } from '@/lib/analytics';
 import { FilterSidebarV2 } from '@/components/catalog/FilterSidebarV2';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useAuth } from '@/components/AuthProvider';
 
 function CatalogNewContent() {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+    // Dostupnost u výrobce (ZEG) je jen pro přihlášené — server ji anonymním
+    // stejně nepošle, tak jim nenabízíme ani filtr.
+    const { firebaseUser } = useAuth();
 
     const [products, setProducts] = useState<any[]>([]);
     const [filters, setFilters] = useState<any>({});
@@ -222,7 +226,7 @@ function CatalogNewContent() {
                             setCapacity={setSelectedCapacity}
                             setEbikeOnly={setEbikeOnly}
                             setAvailability={setAvailability}
-                            setZegOnly={setZegOnly}
+                            setZegOnly={firebaseUser ? setZegOnly : undefined}
                             total={total}
                         />
                     </div>
@@ -264,7 +268,7 @@ function CatalogNewContent() {
                                 setCapacity={setSelectedCapacity}
                                 setEbikeOnly={setEbikeOnly}
                                 setAvailability={setAvailability}
-                                setZegOnly={setZegOnly}
+                                setZegOnly={firebaseUser ? setZegOnly : undefined}
                                 total={total}
                             />
                         </div>

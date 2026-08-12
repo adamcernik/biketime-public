@@ -313,8 +313,10 @@ export async function GET(req: NextRequest) {
             baseProducts = baseProducts.filter(p => p.isOnOrder);
         }
 
-        // Dostupnost u výrobce (ZEG): statusy 1 (nízká) a 2 (normální/vysoká)
-        if (zegParam === 'true') {
+        // Dostupnost u výrobce (ZEG): statusy 1 (nízká) a 2 (normální/vysoká).
+        // Jen pro přihlášené — anonymní request by jinak přes filtr nepřímo
+        // vyčetl dostupnost, kterou mu sanitizace z odpovědi odstraní.
+        if (zegParam === 'true' && b2b) {
             baseProducts = baseProducts.filter(p => p.zeg && (p.zeg.best === 1 || p.zeg.best === 2));
         }
 

@@ -24,11 +24,11 @@ export function stripSensitiveFields<T>(value: T): T {
 }
 
 /**
- * Dealer (B2B) selling-price fields. Shown only to logged-in approved shop
- * users — stripped from anonymous/public responses so dealer pricing is never
- * exposed to the public (or to shared CDN caches).
+ * Dealer (B2B) fields. Shown only to logged-in approved shop users — stripped
+ * from anonymous/public responses so dealer pricing (and supplier availability
+ * from the ZEG feed) is never exposed to the public (or to shared CDN caches).
  */
-const B2B_PRICE_FIELDS = new Set(['priceLevelsCzk', 'manualB2BPrice', 'b2bPrice', 'katA', 'katB']);
+const B2B_PRICE_FIELDS = new Set(['priceLevelsCzk', 'manualB2BPrice', 'b2bPrice', 'katA', 'katB', 'zeg']);
 
 /** Recursively removes dealer/B2B selling-price fields from a payload. */
 export function stripB2BPrices<T>(value: T): T {
