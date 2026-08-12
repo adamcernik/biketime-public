@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { sortSizes, standardizeSize, detectCategory } from '@/lib/size-mapping';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
 import { dealerPriceForMoc } from '@/lib/b2bPrice';
+import { zegKwLabel } from '@/lib/zegDisplay';
 import { useAuth } from '../../../components/AuthProvider';
 
 interface Variant {
@@ -627,10 +628,11 @@ export default function ProductDetailClient({ id }: { id: string }) {
                                     const zegVariant = selectedVariant?.id != null
                                         ? product.zeg?.variants?.[String(selectedVariant.id)]
                                         : undefined;
+                                    const zegKw = zegVariant ? zegKwLabel(zegVariant.kw) : null;
                                     const zegLine = zegVariant ? (
                                         zegVariant.s === 2 ? <span className="font-medium text-emerald-600">skladem</span>
                                         : zegVariant.s === 1 ? <span className="font-medium text-amber-600">omezené množství</span>
-                                        : zegVariant.kw > 0 ? <span className="font-medium text-sky-600">očekáváme od {zegVariant.kw}. týdne</span>
+                                        : zegKw ? <span className="font-medium text-sky-600">očekáváme {zegKw}</span>
                                         : <span className="font-medium text-zinc-500">vyprodáno</span>
                                     ) : null;
 

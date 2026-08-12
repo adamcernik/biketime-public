@@ -7,6 +7,7 @@ import { standardizeSize, detectCategory, sortSizes } from '@/lib/size-mapping';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
 import { guessHexFromName } from '@/lib/colorUtils';
 import { dealerPriceForMoc } from '@/lib/b2bPrice';
+import { zegKwLabel } from '@/lib/zegDisplay';
 
 import { useAuth } from './AuthProvider';
 
@@ -116,7 +117,7 @@ export default function ProductCardV2({ product, detailBasePath = '/catalog', co
     // Dostupnost u výrobce (ZEG feed): best 2 = skladem, 1 = omezeně; jinak
     // případný nejbližší kalendářní týden příští dostupnosti.
     const zegBest: number | undefined = product.zeg?.best;
-    const zegNextKw: number = product.zeg?.nextKw || 0;
+    const zegKw = zegKwLabel(product.zeg?.nextKw || 0);
 
     // Use primaryImage if available (expanded variant), otherwise first image
     const displayImage = product.primaryImage || product.images?.[0];
@@ -170,12 +171,7 @@ export default function ProductCardV2({ product, detailBasePath = '/catalog', co
                             <span className="text-[10px] font-bold px-2 py-1 rounded bg-blue-100 text-blue-700 border border-blue-200 uppercase">
                                 Na cestě
                             </span>
-                        ) : isOnOrder ? (
-                            <span className="text-[10px] font-bold px-2 py-1 rounded bg-zinc-100 text-zinc-500 border border-zinc-200 uppercase">
-                                Na objednávku
-                            </span>
-                        ) : null}
-                        {zegBest === 2 ? (
+                        ) : zegBest === 2 ? (
                             <span className="text-[10px] font-bold px-2 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase">
                                 U výrobce skladem
                             </span>
@@ -183,9 +179,13 @@ export default function ProductCardV2({ product, detailBasePath = '/catalog', co
                             <span className="text-[10px] font-bold px-2 py-1 rounded bg-amber-50 text-amber-700 border border-amber-200 uppercase">
                                 U výrobce omezeně
                             </span>
-                        ) : zegNextKw > 0 ? (
+                        ) : zegKw ? (
                             <span className="text-[10px] font-bold px-2 py-1 rounded bg-sky-50 text-sky-700 border border-sky-200 uppercase">
-                                U výrobce od {zegNextKw}. týdne
+                                U výrobce {zegKw}
+                            </span>
+                        ) : isOnOrder ? (
+                            <span className="text-[10px] font-bold px-2 py-1 rounded bg-zinc-100 text-zinc-500 border border-zinc-200 uppercase">
+                                Na objednávku
                             </span>
                         ) : null}
                     </div>
