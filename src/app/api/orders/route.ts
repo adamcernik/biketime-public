@@ -4,6 +4,7 @@ import { getVerifiedUser } from '@/lib/userAuth';
 import { rateLimit } from '@/lib/rateLimit';
 import { dealerPriceForMoc } from '@/lib/b2bPrice';
 import { sendOrderAck, sendOrderNotifyToAdmin, OrderEmailItem } from '@/lib/orderEmail';
+import { isVariantOrderable } from '@/lib/availability';
 
 export const dynamic = 'force-dynamic';
 
@@ -97,6 +98,15 @@ export async function POST(request: NextRequest) {
             const variant = variants.find(v => String(v.id) === line.variantId);
             if (!variant) {
                 return NextResponse.json({ error: `Varianta ${line.variantId} neexistuje.` }, { status: 400 });
+            }
+
+            // Stejné pravidlo dostupnosti jako UI — klientovi nevěříme.
+            if (!isVariantOrderable(product, variant)) {
+                const label = `${product.brand || ''} ${product.model || ''}${variant.size ? `, vel. ${variant.size}` : ''}`.trim();
+                return NextResponse.json(
+                    { error: `${label} není aktuálně dostupné — odeberte položku z košíku.` },
+                    { status: 400 },
+                );
             }
 
             // Závazná VOC — stejná logika jako na detailu, ale ze serverových dat:
