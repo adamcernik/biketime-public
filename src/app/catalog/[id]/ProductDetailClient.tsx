@@ -581,8 +581,29 @@ export default function ProductDetailClient({ id }: { id: string }) {
 
                                     // Skladové informace vidí jen přihlášení partneři
                                     const inStock = !!shopUser && stock > 0;
-                                    const onOrder = !!shopUser && !inStock && !!onOrderVariant;
                                     const isSelected = selectedSize === size;
+
+                                    // Dostupnost u výrobce (ZEG) pro tuto velikost — zelená
+                                    // výplň chipu = náš sklad, barevná tečka = stav u výrobce.
+                                    const zegV = shopUser && variant?.id != null
+                                        ? product.zeg?.variants?.[String(variant.id)]
+                                        : undefined;
+                                    const zegState = zegV
+                                        ? (zegV.s === 2 ? 'stock' : zegV.s === 1 ? 'low' : zegV.kw > 0 ? 'date' : 'out')
+                                        : null;
+                                    const zegDotCls =
+                                        zegState === 'stock' ? 'bg-green-500'
+                                        : zegState === 'low' ? 'bg-amber-500'
+                                        : zegState === 'date' ? 'bg-sky-500'
+                                        : null;
+
+                                    const tooltip = !shopUser ? undefined : [
+                                        inStock ? `Skladem u nás (${stock} ks)` : null,
+                                        zegState === 'stock' ? 'U výrobce skladem'
+                                            : zegState === 'low' ? 'U výrobce omezeně'
+                                            : zegState === 'date' ? `U výrobce ${zegKwLabel(zegV!.kw) || ''}`
+                                            : zegState === 'out' ? 'U výrobce vyprodáno' : null,
+                                    ].filter(Boolean).join(' · ') || 'Aktuálně nedostupné';
 
                                     if (!variant && selectedCapacity) return null; // Don't show size if not available in this capacity
 
@@ -590,29 +611,51 @@ export default function ProductDetailClient({ id }: { id: string }) {
                                         <div key={size} className="relative group">
                                             <button
                                                 onClick={() => setSelectedSize(size)}
+                                                title={tooltip}
                                                 className={`h-12 px-4 rounded-lg border text-sm font-medium transition-all flex items-center gap-2
                                                     ${isSelected
                                                         ? 'border-zinc-900 bg-zinc-900 text-white'
                                                         : inStock
-                                                            ? 'border-green-200 bg-green-50 text-green-800 hover:border-green-300'
-                                                            : onOrder
-                                                                ? 'border-zinc-300 bg-zinc-50 text-zinc-600 hover:border-zinc-400'
-                                                                : 'border-zinc-200 bg-white text-zinc-900 hover:border-zinc-300 hover:shadow-sm'
+                                                            ? 'border-green-300 bg-green-100 text-green-900 hover:border-green-400'
+                                                            : !shopUser
+                                                                ? 'border-zinc-200 bg-white text-zinc-900 hover:border-zinc-300 hover:shadow-sm'
+                                                                : zegDotCls
+                                                                    ? 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300'
+                                                                    : 'border-zinc-200 bg-zinc-50 text-zinc-400 hover:border-zinc-300'
                                                     }
                                                 `}
                                             >
                                                 <span>{size}{shopUser && stock > 0 ? ` (${stock})` : ''}</span>
-                                                {inStock && !isSelected && (
-                                                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                                                )}
-                                                {onOrder && !isSelected && (
-                                                    <span className="w-2 h-2 rounded-full bg-zinc-400"></span>
+                                                {/* Tečka stavu u výrobce — viditelná i na vybraném chipu */}
+                                                {shopUser && !inStock && zegDotCls && (
+                                                    <span className={`w-2 h-2 rounded-full ${zegDotCls}`}></span>
                                                 )}
                                             </button>
                                         </div>
                                     );
                                 })}
                             </div>
+
+                            {/* Legenda barev — jen pro přihlášené */}
+                            {shopUser && (
+                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-zinc-500 mb-4">
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <span className="w-3 h-3 rounded bg-green-100 border border-green-300 inline-block" /> skladem u nás
+                                    </span>
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> u výrobce skladem
+                                    </span>
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" /> u výrobce omezeně
+                                    </span>
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-sky-500 inline-block" /> u výrobce později
+                                    </span>
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <span className="w-3 h-3 rounded bg-zinc-50 border border-zinc-200 inline-block" /> nedostupné
+                                    </span>
+                                </div>
+                            )}
 
                             <div className="text-xs text-zinc-400 mt-2 space-y-1">
                                 <div>Vybraná barva: <span className="font-medium text-zinc-700">{selectedColor}</span></div>
