@@ -167,7 +167,12 @@ export default function ProductCardV2({ product, detailBasePath = '/catalog', co
                             <span className="text-[10px] font-bold px-2 py-1 rounded bg-green-600 text-white uppercase shadow-sm">
                                 Skladem
                             </span>
-                        ) : zegBest === 2 ? (
+                        ) : null}
+                        {/* Dostupnost u výrobce se zobrazuje i vedle našeho skladu
+                            („máme poslední kus, ale dá se dovézt") — tlumený styl
+                            zajišťuje, že nekonkuruje hlavnímu štítku. U předobjednávek
+                            ji skrýváme, tam nedává smysl. */}
+                        {!product.preorderOnly && (zegBest === 2 ? (
                             // Sklad výrobce (Německo) = záměrně tlumené, jen barevná tečka
                             <span className="text-[10px] font-medium px-2 py-1 rounded bg-white/90 text-zinc-600 border border-zinc-200 uppercase inline-flex items-center gap-1.5">
                                 <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
@@ -183,7 +188,7 @@ export default function ProductCardV2({ product, detailBasePath = '/catalog', co
                                 <span className="w-1.5 h-1.5 rounded-full bg-sky-500 shrink-0" />
                                 U výrobce {zegKw}
                             </span>
-                        ) : null}
+                        ) : null)}
                     </div>
                 </div>
 
