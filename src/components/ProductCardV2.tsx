@@ -157,7 +157,7 @@ export default function ProductCardV2({ product, detailBasePath = '/catalog', co
                     )}
 
                     {/* Badges */}
-                    <div className="absolute top-4 left-4 flex flex-col gap-2">
+                    <div className="absolute top-4 left-4 flex flex-col items-start gap-2">
                         {product.preorderOnly ? (
                             <span className="text-[10px] font-bold px-2 py-1 rounded bg-amber-100 text-amber-700 border border-amber-200 uppercase">
                                 Předobjednávka
