@@ -156,11 +156,14 @@ export default function ProductCardV2({ product, detailBasePath = '/catalog', co
                         </div>
                     )}
 
-                    {/* Badges */}
-                    <div className="absolute top-4 left-4 flex flex-col items-start gap-2">
+                    {/* Badges — skladové informace vidí jen přihlášení partneři,
+                        anonymní návštěvník má čistý katalog bez stavů skladu. */}
+                    {shopUser && <div className="absolute top-4 left-4 flex flex-col items-start gap-2">
                         {product.preorderOnly ? (
+                            // Nový ročník, který ještě nevznikl — místo žargonu
+                            // „Předobjednávka" ukazujeme rovnou termín, když ho známe.
                             <span className="text-[10px] font-bold px-2 py-1 rounded bg-amber-100 text-amber-700 border border-amber-200 uppercase">
-                                Předobjednávka
+                                {zegKw ? `Očekáváme ${zegKw}` : 'Připravujeme'}
                             </span>
                         ) : hasStock ? (
                             // Náš sklad = nejsilnější signál: plná sytá zelená
@@ -169,9 +172,10 @@ export default function ProductCardV2({ product, detailBasePath = '/catalog', co
                             </span>
                         ) : null}
                         {/* Dostupnost u výrobce se zobrazuje vedle hlavního štítku
-                            („máme poslední kus, ale dá se dovézt"; u předobjednávek
-                            říká, odkdy zboží reálně bude) — tlumený styl zajišťuje,
-                            že hlavnímu štítku nekonkuruje. */}
+                            („máme poslední kus, ale dá se dovézt") — tlumený styl
+                            zajišťuje, že hlavnímu štítku nekonkuruje. U předobjednávek
+                            se termín propsal do hlavního štítku, druhý řádek má smysl
+                            jen když je zboží u výrobce už teď (např. TOKEE LITE). */}
                         {(zegBest === 2 ? (
                             // Sklad výrobce (Německo) = záměrně tlumené, jen barevná tečka
                             <span className="text-[10px] font-medium px-2 py-1 rounded bg-white/90 text-zinc-600 border border-zinc-200 uppercase inline-flex items-center gap-1.5">
@@ -183,13 +187,13 @@ export default function ProductCardV2({ product, detailBasePath = '/catalog', co
                                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
                                 U výrobce omezeně
                             </span>
-                        ) : zegKw ? (
+                        ) : zegKw && !product.preorderOnly ? (
                             <span className="text-[10px] font-medium px-2 py-1 rounded bg-white/90 text-zinc-600 border border-zinc-200 uppercase inline-flex items-center gap-1.5">
                                 <span className="w-1.5 h-1.5 rounded-full bg-sky-500 shrink-0" />
                                 U výrobce {zegKw}
                             </span>
                         ) : null)}
-                    </div>
+                    </div>}
                 </div>
 
                 {/* Content */}
@@ -230,22 +234,25 @@ export default function ProductCardV2({ product, detailBasePath = '/catalog', co
                         </div>
                     )}
 
-                    {/* Sizes */}
+                    {/* Sizes — skladové obarvení a počty kusů jen pro přihlášené,
+                        anonymní vidí neutrální výčet velikostí. */}
                     {sortedSizes.length > 0 && (
                         <div className="flex flex-wrap gap-1 mb-3">
                             {sortedSizes.map(({ label, count, inStock, onOrder, inTransit }) => (
                                 <span
                                     key={label}
-                                    className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${inStock
-                                        ? 'bg-green-100 text-green-700 border-green-200'
-                                        : inTransit
-                                            ? 'bg-blue-100 text-blue-700 border-blue-200'
-                                            : onOrder
-                                                ? 'bg-zinc-100 text-zinc-500 border-zinc-200'
-                                                : 'bg-zinc-50 text-zinc-400 border-zinc-100'
+                                    className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${!shopUser
+                                        ? 'bg-zinc-50 text-zinc-500 border-zinc-100'
+                                        : inStock
+                                            ? 'bg-green-100 text-green-700 border-green-200'
+                                            : inTransit
+                                                ? 'bg-blue-100 text-blue-700 border-blue-200'
+                                                : onOrder
+                                                    ? 'bg-zinc-100 text-zinc-500 border-zinc-200'
+                                                    : 'bg-zinc-50 text-zinc-400 border-zinc-100'
                                         }`}
                                 >
-                                    {label}{count > 0 ? ` (${count})` : ''}
+                                    {label}{shopUser && count > 0 ? ` (${count})` : ''}
                                 </span>
                             ))}
                         </div>

@@ -17,6 +17,8 @@ interface FilterSidebarV2Props {
     ebikeOnly: 'all' | 'ebike' | 'non';
     availability: 'all' | 'inStock' | 'onOrder';
     zegOnly?: boolean;
+    /** Skladové filtry (Dostupnost) — jen pro přihlášené partnery. */
+    showStockFilters?: boolean;
 
     // Setters
     setCategory: (v: string) => void;
@@ -45,6 +47,7 @@ export function FilterSidebarV2({
     ebikeOnly,
     availability,
     zegOnly = false,
+    showStockFilters = true,
     setCategory,
     setMose,
     setMohe,
@@ -96,7 +99,8 @@ export function FilterSidebarV2({
                 </button>
             </div>
 
-            {/* Availability Toggles */}
+            {/* Availability Toggles — skladové informace jen pro přihlášené */}
+            {showStockFilters && (<>
             <div>
                 <h3 className="text-sm font-bold text-zinc-900 mb-3 uppercase tracking-wider">Dostupnost</h3>
                 <div className="space-y-3">
@@ -139,6 +143,7 @@ export function FilterSidebarV2({
             </div>
 
             <hr className="border-zinc-100" />
+            </>)}
 
             {/* Categories */}
             <div>

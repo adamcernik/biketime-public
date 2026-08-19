@@ -13,9 +13,9 @@ function CatalogNewContent() {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
-    // Dostupnost u výrobce (ZEG) je jen pro přihlášené — server ji anonymním
-    // stejně nepošle, tak jim nenabízíme ani filtr.
-    const { firebaseUser } = useAuth();
+    // Skladové informace (naše i ZEG) jsou jen pro přihlášené partnery —
+    // anonymní návštěvník vidí čistý katalog bez stavů skladu a filtrů dostupnosti.
+    const { shopUser } = useAuth();
 
     const [products, setProducts] = useState<any[]>([]);
     const [filters, setFilters] = useState<any>({});
@@ -226,7 +226,8 @@ function CatalogNewContent() {
                             setCapacity={setSelectedCapacity}
                             setEbikeOnly={setEbikeOnly}
                             setAvailability={setAvailability}
-                            setZegOnly={firebaseUser ? setZegOnly : undefined}
+                            setZegOnly={shopUser ? setZegOnly : undefined}
+                            showStockFilters={!!shopUser}
                             total={total}
                         />
                     </div>
@@ -268,7 +269,8 @@ function CatalogNewContent() {
                                 setCapacity={setSelectedCapacity}
                                 setEbikeOnly={setEbikeOnly}
                                 setAvailability={setAvailability}
-                                setZegOnly={firebaseUser ? setZegOnly : undefined}
+                                setZegOnly={shopUser ? setZegOnly : undefined}
+                                showStockFilters={!!shopUser}
                                 total={total}
                             />
                         </div>

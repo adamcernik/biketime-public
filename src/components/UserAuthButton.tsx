@@ -125,6 +125,16 @@ export default function UserAuthButton() {
                         Klientská zóna
                     </Link>
                     <Link
+                        href="/zona/objednavky"
+                        onClick={() => setDropdownOpen(false)}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100"
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                        </svg>
+                        Moje objednávky
+                    </Link>
+                    <Link
                         href="/zona/faktury"
                         onClick={() => setDropdownOpen(false)}
                         className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100"

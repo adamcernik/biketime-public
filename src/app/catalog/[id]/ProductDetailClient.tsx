@@ -10,6 +10,7 @@ import { sortSizes, standardizeSize, detectCategory } from '@/lib/size-mapping';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
 import { dealerPriceForMoc } from '@/lib/b2bPrice';
 import { zegKwLabel } from '@/lib/zegDisplay';
+import { useCart } from '@/components/CartProvider';
 import { useAuth } from '../../../components/AuthProvider';
 
 interface Variant {
@@ -55,9 +56,12 @@ interface Product {
 
 export default function ProductDetailClient({ id }: { id: string }) {
     const { shopUser, hideB2BPrices } = useAuth();
+    const { addItem } = useCart();
     // const router = useRouter(); // Unused variable removed
 
     const [product, setProduct] = useState<Product | null>(null);
+    const [cartQty, setCartQty] = useState(1);
+    const [addedToCart, setAddedToCart] = useState(false);
     const [loading, setLoading] = useState(true);
     const [selectedColor, setSelectedColor] = useState<string>('');
     const [selectedFrameShape, setSelectedFrameShape] = useState<string>('');
@@ -575,8 +579,9 @@ export default function ProductDetailClient({ id }: { id: string }) {
                                     const variant = inStockVariant || onOrderVariant || variants[0];
                                     const stock = variant ? (Number(variant.stock) || Number(variant.onHand) || Number(variant.qty) || Number(variant.b2bStockQuantity) || 0) : 0;
 
-                                    const inStock = stock > 0;
-                                    const onOrder = !inStock && !!onOrderVariant;
+                                    // Skladové informace vidí jen přihlášení partneři
+                                    const inStock = !!shopUser && stock > 0;
+                                    const onOrder = !!shopUser && !inStock && !!onOrderVariant;
                                     const isSelected = selectedSize === size;
 
                                     if (!variant && selectedCapacity) return null; // Don't show size if not available in this capacity
@@ -596,7 +601,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
                                                     }
                                                 `}
                                             >
-                                                <span>{size}{stock > 0 ? ` (${stock})` : ''}</span>
+                                                <span>{size}{shopUser && stock > 0 ? ` (${stock})` : ''}</span>
                                                 {inStock && !isSelected && (
                                                     <span className="w-2 h-2 rounded-full bg-green-500"></span>
                                                 )}
@@ -651,6 +656,84 @@ export default function ProductDetailClient({ id }: { id: string }) {
                                     return null;
                                 })()}
                             </div>
+
+                            {/* Přidání do košíku — jen schválení partneři */}
+                            {shopUser?.hasAccess && (() => {
+                                const selectedVariant = selectedSize
+                                    ? variantsInFrame.find(v =>
+                                        standardizeSize(v.size, category) === selectedSize &&
+                                        (!selectedCapacity || v.capacity === selectedCapacity))
+                                    : undefined;
+
+                                const handleAdd = () => {
+                                    if (!selectedVariant || !product) return;
+                                    // Zobrazovací VOC — stejná logika jako cenový blok výše;
+                                    // závaznou cenu počítá server při odeslání objednávky.
+                                    const priceLevel = shopUser?.priceLevel as 'A' | 'B' | 'C' | 'D' | undefined;
+                                    const moc = Number(selectedVariant.price) || null;
+                                    let dealerPrice: number | null = dealerPriceForMoc(product, priceLevel, moc);
+                                    const rootManualPrice = Number(product.manualB2BPrice) || Number((product as any).b2bPrice) || 0;
+                                    if ((selectedVariant as any).b2bPrice > 0) {
+                                        dealerPrice = Number((selectedVariant as any).b2bPrice);
+                                    } else if (rootManualPrice > 0) {
+                                        dealerPrice = rootManualPrice;
+                                    }
+
+                                    addItem({
+                                        productId: product.id,
+                                        variantId: String(selectedVariant.id),
+                                        brand: product.brand,
+                                        model: product.model,
+                                        year: product.year,
+                                        color: selectedColor || selectedVariant.color,
+                                        size: selectedSize,
+                                        frameShape: activeFrameShape || selectedVariant.frameShape,
+                                        capacity: selectedCapacity || selectedVariant.capacity,
+                                        image: selectedVariant.images?.[0] || product.images?.[0],
+                                        moc,
+                                        dealerPrice,
+                                    }, cartQty);
+                                    setAddedToCart(true);
+                                    setTimeout(() => setAddedToCart(false), 2500);
+                                };
+
+                                return (
+                                    <div className="mt-6 pt-6 border-t border-zinc-100">
+                                        <div className="flex items-center gap-3 flex-wrap">
+                                            <div className="flex items-center border border-zinc-200 rounded-lg overflow-hidden">
+                                                <button
+                                                    onClick={() => setCartQty(q => Math.max(1, q - 1))}
+                                                    className="w-10 h-11 text-zinc-500 hover:bg-zinc-50 text-lg font-medium"
+                                                    aria-label="Méně kusů"
+                                                >−</button>
+                                                <span className="w-10 text-center text-sm font-semibold text-zinc-900">{cartQty}</span>
+                                                <button
+                                                    onClick={() => setCartQty(q => Math.min(99, q + 1))}
+                                                    className="w-10 h-11 text-zinc-500 hover:bg-zinc-50 text-lg font-medium"
+                                                    aria-label="Více kusů"
+                                                >+</button>
+                                            </div>
+                                            <button
+                                                onClick={handleAdd}
+                                                disabled={!selectedVariant}
+                                                className={`flex-1 min-w-[200px] h-11 rounded-lg font-bold text-sm uppercase tracking-wide transition-all ${!selectedVariant
+                                                    ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
+                                                    : addedToCart
+                                                        ? 'bg-green-600 text-white'
+                                                        : 'bg-zinc-900 text-white hover:bg-zinc-800'
+                                                    }`}
+                                            >
+                                                {addedToCart ? '✓ Přidáno do košíku' : selectedVariant ? 'Přidat do košíku' : 'Vyberte velikost'}
+                                            </button>
+                                        </div>
+                                        {addedToCart && (
+                                            <Link href="/kosik" className="inline-block mt-3 text-sm text-primary font-medium hover:underline">
+                                                Přejít do košíku →
+                                            </Link>
+                                        )}
+                                    </div>
+                                );
+                            })()}
                         </div>
 
                         <div className="prose prose-zinc max-w-none">
