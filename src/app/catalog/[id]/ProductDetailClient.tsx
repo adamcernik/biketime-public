@@ -743,29 +743,34 @@ export default function ProductDetailClient({ id }: { id: string }) {
                                 return (
                                     <div className="mt-6 pt-6 border-t border-zinc-100">
                                         <div className="flex items-center gap-3 flex-wrap">
-                                            <div className="flex items-center border border-zinc-200 rounded-lg overflow-hidden">
+                                            <div className="flex items-center border border-zinc-200 rounded-xl overflow-hidden h-14">
                                                 <button
                                                     onClick={() => setCartQty(q => Math.max(1, q - 1))}
-                                                    className="w-10 h-11 text-zinc-500 hover:bg-zinc-50 text-lg font-medium"
+                                                    className="w-12 h-full text-zinc-500 hover:bg-zinc-50 text-xl font-medium"
                                                     aria-label="Méně kusů"
                                                 >−</button>
-                                                <span className="w-10 text-center text-sm font-semibold text-zinc-900">{cartQty}</span>
+                                                <span className="w-10 text-center text-base font-semibold text-zinc-900">{cartQty}</span>
                                                 <button
                                                     onClick={() => setCartQty(q => Math.min(99, q + 1))}
-                                                    className="w-10 h-11 text-zinc-500 hover:bg-zinc-50 text-lg font-medium"
+                                                    className="w-12 h-full text-zinc-500 hover:bg-zinc-50 text-xl font-medium"
                                                     aria-label="Více kusů"
                                                 >+</button>
                                             </div>
                                             <button
                                                 onClick={handleAdd}
                                                 disabled={!selectedVariant}
-                                                className={`flex-1 min-w-[200px] h-11 rounded-lg font-bold text-sm uppercase tracking-wide transition-all ${!selectedVariant
-                                                    ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
+                                                className={`flex-1 min-w-[220px] h-14 rounded-xl font-bold text-base tracking-wide transition-all inline-flex items-center justify-center gap-2.5 shadow-sm ${!selectedVariant
+                                                    ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed shadow-none'
                                                     : addedToCart
                                                         ? 'bg-green-600 text-white'
-                                                        : 'bg-zinc-900 text-white hover:bg-zinc-800'
+                                                        : 'bg-primary text-white hover:bg-primary/90 hover:shadow-md'
                                                     }`}
                                             >
+                                                {!addedToCart && selectedVariant && (
+                                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                                    </svg>
+                                                )}
                                                 {addedToCart ? '✓ Přidáno do košíku' : selectedVariant ? 'Přidat do košíku' : 'Vyberte velikost'}
                                             </button>
                                         </div>
