@@ -163,19 +163,24 @@ export default function ProductCardV2({ product, detailBasePath = '/catalog', co
                                 Předobjednávka
                             </span>
                         ) : hasStock ? (
-                            <span className="text-[10px] font-bold px-2 py-1 rounded bg-green-100 text-green-700 border border-green-200 uppercase">
+                            // Náš sklad = nejsilnější signál: plná sytá zelená
+                            <span className="text-[10px] font-bold px-2 py-1 rounded bg-green-600 text-white uppercase shadow-sm">
                                 Skladem
                             </span>
                         ) : zegBest === 2 ? (
-                            <span className="text-[10px] font-bold px-2 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 uppercase">
+                            // Sklad výrobce (Německo) = záměrně tlumené, jen barevná tečka
+                            <span className="text-[10px] font-medium px-2 py-1 rounded bg-white/90 text-zinc-600 border border-zinc-200 uppercase inline-flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
                                 U výrobce skladem
                             </span>
                         ) : zegBest === 1 ? (
-                            <span className="text-[10px] font-bold px-2 py-1 rounded bg-amber-50 text-amber-700 border border-amber-200 uppercase">
+                            <span className="text-[10px] font-medium px-2 py-1 rounded bg-white/90 text-zinc-600 border border-zinc-200 uppercase inline-flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
                                 U výrobce omezeně
                             </span>
                         ) : zegKw ? (
-                            <span className="text-[10px] font-bold px-2 py-1 rounded bg-sky-50 text-sky-700 border border-sky-200 uppercase">
+                            <span className="text-[10px] font-medium px-2 py-1 rounded bg-white/90 text-zinc-600 border border-zinc-200 uppercase inline-flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-sky-500 shrink-0" />
                                 U výrobce {zegKw}
                             </span>
                         ) : null}
