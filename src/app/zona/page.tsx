@@ -103,6 +103,28 @@ export default function ClientZonePage() {
           <IcoPromptBanner shopUser={shopUser} firebaseUser={firebaseUser} onDone={refreshUserData} />
         )}
 
+        {shopUser?.hasAccess && (
+          <Link
+            href="/zona/cenik"
+            className="mb-6 flex items-center justify-between bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-shadow group"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m-6 4h6m-6 4h4m-9 5V4a1 1 0 011-1h10.586a1 1 0 01.707.293l2.414 2.414a1 1 0 01.293.707V20a1 1 0 01-1 1H6a1 1 0 01-1-1z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="font-semibold text-zinc-900">Dealerský ceník</h2>
+                <p className="text-sm text-zinc-500">Kompletní ceník pro vaši cenovou hladinu, export do XLS a PDF</p>
+              </div>
+            </div>
+            <svg className="w-5 h-5 text-zinc-400 group-hover:text-zinc-600 group-hover:translate-x-0.5 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+        )}
+
         <Link
           href="/zona/faktury"
           className="mb-6 flex items-center justify-between bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-shadow group"

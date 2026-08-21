@@ -52,3 +52,13 @@ export function variantAvailability(product: ProductLike, variant: VariantLike):
 export function isVariantOrderable(product: ProductLike, variant: VariantLike): boolean {
     return variantAvailability(product, variant) !== 'none';
 }
+
+/** České popisky stavů — sdílené UI ceníku a exporty. */
+export const AVAILABILITY_LABELS: Record<VariantAvailabilityState, string> = {
+    'ours': 'skladem',
+    'zeg-stock': 'u výrobce',
+    'zeg-low': 'u výrobce omezeně',
+    'zeg-date': 'u výrobce později',
+    'on-order': 'na objednávku',
+    'none': 'nedostupné',
+};
