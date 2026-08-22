@@ -53,6 +53,7 @@ function buildXlsx(rows: CenikRow[], level: string, companyName: string, date: s
         { header: 'Kategorie', width: 14 },
         { header: 'Model', width: 30 },
         { header: 'Rok', width: 7 },
+        { header: 'Typ', width: 14 },
         { header: 'Barva', width: 22 },
         { header: 'Baterie', width: 10 },
         { header: 'Velikost', width: 10 },
@@ -76,6 +77,7 @@ function buildXlsx(rows: CenikRow[], level: string, companyName: string, date: s
                 row.category,
                 `${row.model}`,
                 row.year || '',
+                row.preorder ? 'předobjednávka' : '',
                 row.color,
                 row.capacity ? (row.capacity.toLowerCase().includes('wh') ? row.capacity : `${row.capacity} Wh`) : '',
                 size.size,
@@ -83,8 +85,8 @@ function buildXlsx(rows: CenikRow[], level: string, companyName: string, date: s
                 row.moc ?? '',
                 row.voc ?? '',
             ]);
-            r.getCell(10).numFmt = '#,##0 "Kč"';
             r.getCell(11).numFmt = '#,##0 "Kč"';
+            r.getCell(12).numFmt = '#,##0 "Kč"';
         }
     }
     return wb.xlsx.writeBuffer();

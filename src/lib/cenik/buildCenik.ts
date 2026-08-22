@@ -26,6 +26,8 @@ export interface CenikRow {
     year: number;
     category: string;
     isEbike: boolean;
+    /** Předobjednávkový ročník — objednává se přes /predobjednavky */
+    preorder: boolean;
     color: string;
     capacity?: string;
     image?: string;
@@ -65,8 +67,9 @@ export async function buildCenik(level: 'A' | 'B' | 'C' | 'D' | undefined): Prom
 
     snapshot.forEach((doc) => {
         const p = doc.data() as any;
-        // Archivované a předobjednávkové (2027 bez cen) do ceníku nepatří
-        if (p.archived === true || p.preorderOnly === true) return;
+        // Archivované do ceníku nepatří. Předobjednávkové ročníky (2027) ANO —
+        // ceny už mají, jen se objednávají přes předobjednávky; označíme je.
+        if (p.archived === true) return;
         const variants: any[] = Array.isArray(p.variants) ? p.variants : [];
         if (variants.length === 0) return;
 
@@ -114,6 +117,7 @@ export async function buildCenik(level: 'A' | 'B' | 'C' | 'D' | undefined): Prom
                 year: Number(p.year) || 0,
                 category,
                 isEbike: isE,
+                preorder: p.preorderOnly === true,
                 color,
                 capacity: capacity || undefined,
                 image: groupVariants.find((v) => v.images?.[0])?.images?.[0] || p.images?.[0],

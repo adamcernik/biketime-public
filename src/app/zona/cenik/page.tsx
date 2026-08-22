@@ -24,6 +24,7 @@ interface CenikRow {
     year: number;
     category: string;
     isEbike: boolean;
+    preorder?: boolean;
     color: string;
     capacity?: string;
     image?: string;
@@ -309,6 +310,9 @@ export default function CenikPage() {
                                                 {row.model}
                                             </Link>
                                             <span className="text-zinc-400 ml-1.5 text-xs">{row.year}</span>
+                                            {row.preorder && (
+                                                <span className="ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200 uppercase align-middle">předobjednávka</span>
+                                            )}
                                         </td>
                                         <td className="p-3 text-zinc-600">
                                             {[row.color, row.capacity ? (row.capacity.toLowerCase().includes('wh') ? row.capacity : `${row.capacity} Wh`) : ''].filter(Boolean).join(' · ')}

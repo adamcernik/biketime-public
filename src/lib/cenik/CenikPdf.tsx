@@ -125,7 +125,7 @@ function RowView({ row, withImages, image }: { row: CenikRow; withImages: boolea
                 </View>
             )}
             <View style={styles.colModel}>
-                <Text style={styles.model}>{row.model} ({row.year})</Text>
+                <Text style={styles.model}>{row.model} ({row.year}){row.preorder ? ' · předobjednávka' : ''}</Text>
                 <Text style={styles.variant}>
                     {[row.color, row.capacity ? (row.capacity.toLowerCase().includes('wh') ? row.capacity : `${row.capacity} Wh`) : ''].filter(Boolean).join(' · ')}
                 </Text>
