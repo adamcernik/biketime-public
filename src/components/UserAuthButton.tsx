@@ -102,15 +102,18 @@ export default function UserAuthButton() {
                     )}
                     {shopUser.priceLevel && (
                         <div className="px-4 py-2 border-b border-gray-200 flex items-center justify-between">
-                            <span className="text-sm text-gray-700">Skrýt VOC</span>
+                            {/* Stejná sémantika jako /zona/katalog: zapnuto = VOC se zobrazují */}
+                            <span className="text-sm text-gray-700">Zobrazovat VOC</span>
                             <button
+                                role="switch"
+                                aria-checked={!hideB2BPrices}
                                 onClick={(e) => {
                                     e.stopPropagation(); // Prevent closing dropdown
                                     toggleHideB2BPrices();
                                 }}
-                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${hideB2BPrices ? 'bg-primary' : 'bg-gray-200'}`}
+                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${!hideB2BPrices ? 'bg-primary' : 'bg-gray-200'}`}
                             >
-                                <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${hideB2BPrices ? 'translate-x-5' : 'translate-x-1'}`} />
+                                <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${!hideB2BPrices ? 'translate-x-5' : 'translate-x-1'}`} />
                             </button>
                         </div>
                     )}
