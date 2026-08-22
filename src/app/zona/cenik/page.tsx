@@ -48,7 +48,7 @@ const AVAIL_BADGE: Record<VariantAvailabilityState, string> = {
 type SortKey = 'model' | 'moc' | 'voc' | 'year' | 'category';
 
 export default function CenikPage() {
-    const { firebaseUser, shopUser, loading } = useAuth();
+    const { firebaseUser, shopUser } = useAuth();
     const [rows, setRows] = useState<CenikRow[]>([]);
     const [level, setLevel] = useState<string>('');
     const [fetching, setFetching] = useState(true);
@@ -181,31 +181,18 @@ export default function CenikPage() {
         }
     };
 
-    if (loading) {
+    if (!shopUser?.hasAccess) {
         return (
-            <main className="min-h-screen bg-zinc-50 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-            </main>
-        );
-    }
-
-    if (!firebaseUser || !shopUser?.hasAccess) {
-        return (
-            <main className="min-h-screen bg-zinc-50 flex items-center justify-center px-4">
-                <div className="bg-white rounded-3xl border border-zinc-100 shadow-sm p-10 text-center max-w-md">
-                    <h1 className="text-xl font-bold text-zinc-900 mb-2">Ceník je pro partnery</h1>
-                    <p className="text-sm text-zinc-500 mb-6">Dealerský ceník vidí jen přihlášení a schválení obchodníci.</p>
-                    <Link href="/login" className="inline-block px-6 py-3 bg-zinc-900 text-white font-bold rounded-xl">
-                        Přihlásit se
-                    </Link>
-                </div>
-            </main>
+            <div className="bg-white rounded-3xl border border-zinc-100 shadow-sm p-10 text-center">
+                <h1 className="text-xl font-bold text-zinc-900 mb-2">Ceník je pro partnery</h1>
+                <p className="text-sm text-zinc-500">Dealerský ceník uvidíte po schválení vašeho účtu.</p>
+            </div>
         );
     }
 
     return (
-        <main className="min-h-screen bg-zinc-50 pb-20">
-            <div className="container-custom py-8">
+        <div>
+            <div>
                 <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-6">
                     <div>
                         <h1 className="text-2xl font-bold text-zinc-900">Dealerský ceník</h1>
@@ -414,6 +401,6 @@ export default function CenikPage() {
                     </div>
                 </div>
             )}
-        </main>
+        </div>
     );
 }

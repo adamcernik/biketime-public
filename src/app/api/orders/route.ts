@@ -75,6 +75,14 @@ export async function POST(request: NextRequest) {
             if (!product) {
                 return NextResponse.json({ error: `Produkt ${line.productId} neexistuje.` }, { status: 400 });
             }
+            // Předobjednávkové ročníky mají vlastní flow (preorder_orders) — do
+            // běžných objednávek nepatří, i kdyby klient guard obešel.
+            if (product.preorderOnly === true) {
+                return NextResponse.json(
+                    { error: `${product.brand || ''} ${product.model || ''} je předobjednávkové kolo — objednejte ho v sekci Předobjednávky.`.trim() },
+                    { status: 400 },
+                );
+            }
             const variants: Record<string, unknown>[] = Array.isArray(product.variants) ? product.variants as Record<string, unknown>[] : [];
             const variant = variants.find(v => String(v.id) === line.variantId);
             if (!variant) {

@@ -47,6 +47,7 @@ interface Product {
     maxPrice: number;
     priceLevelsCzk?: Partial<Record<'A' | 'B' | 'C' | 'D', number>>;
     manualB2BPrice?: number;
+    preorderOnly?: boolean;
     zeg?: {
         best: number;
         nextKw: number;
@@ -703,8 +704,22 @@ export default function ProductDetailClient({ id }: { id: string }) {
                                 })()}
                             </div>
 
-                            {/* Přidání do košíku — jen schválení partneři */}
-                            {shopUser?.hasAccess && (() => {
+                            {/* Předobjednávkové kolo (nový ročník) nejde do běžného košíku —
+                                objednává se přes předobjednávkovou sekci. */}
+                            {shopUser?.hasAccess && product.preorderOnly && (
+                                <div className="mt-6 pt-6 border-t border-zinc-100">
+                                    <Link
+                                        href="/predobjednavky"
+                                        className="w-full h-14 rounded-xl font-bold text-base tracking-wide inline-flex items-center justify-center gap-2.5 bg-amber-500 text-white hover:bg-amber-600 shadow-sm transition-all"
+                                    >
+                                        Předobjednat
+                                    </Link>
+                                    <p className="text-xs text-zinc-400 mt-2">Nový ročník — objednává se v sekci Předobjednávky, ne přes běžný košík.</p>
+                                </div>
+                            )}
+
+                            {/* Přidání do košíku — jen schválení partneři, ne předobjednávky */}
+                            {shopUser?.hasAccess && !product.preorderOnly && (() => {
                                 const selectedVariant = selectedSize
                                     ? variantsInFrame.find(v =>
                                         standardizeSize(v.size, category) === selectedSize &&
