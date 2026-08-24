@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import logoImage from '@/assets/biketime-logo.png';
 import UserAuthButton from './UserAuthButton';
+import CartButton from './CartButton';
 import { useAuth } from './AuthProvider';
 
 const navItems: { href: string; label: string; highlight?: boolean }[] = [
@@ -101,11 +102,13 @@ export default function SiteHeader() {
               {item.label}
             </Link>
           ))}
+          <CartButton />
         </nav>
 
         {/* Mobile Controls (Avatar + Hamburger) */}
         {mounted && (
-          <div className="flex items-center gap-4 md:hidden z-50">
+          <div className="flex items-center gap-2 md:hidden z-50">
+            <CartButton />
             {shopUser && <UserAuthButton />}
 
             <button

@@ -7,11 +7,15 @@ import { apiGet } from '@/lib/clientApi';
 import { track } from '@/lib/analytics';
 import { FilterSidebarV2 } from '@/components/catalog/FilterSidebarV2';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useAuth } from '@/components/AuthProvider';
 
 function CatalogNewContent() {
     const router = useRouter();
     const pathname = usePathname();
     const searchParams = useSearchParams();
+    // Skladové informace (naše i ZEG) jsou jen pro přihlášené partnery —
+    // anonymní návštěvník vidí čistý katalog bez stavů skladu a filtrů dostupnosti.
+    const { shopUser } = useAuth();
 
     const [products, setProducts] = useState<any[]>([]);
     const [filters, setFilters] = useState<any>({});
@@ -27,6 +31,7 @@ function CatalogNewContent() {
     const [selectedCapacity, setSelectedCapacity] = useState<string>('');
     const [ebikeOnly, setEbikeOnly] = useState<'all' | 'ebike' | 'non'>('ebike');
     const [availability, setAvailability] = useState<'all' | 'inStock' | 'onOrder'>('all');
+    const [zegOnly, setZegOnly] = useState(false);
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
     const [initialized, setInitialized] = useState(false);
@@ -59,6 +64,7 @@ function CatalogNewContent() {
             : avail === 'onOrder' ? 'onOrder'
             : (searchParams.get('inStock') === 'true' ? 'inStock' : 'all')
         );
+        setZegOnly(searchParams.get('zeg') === 'true');
         setSearch(searchParams.get('search') || '');
         setPage(Number(searchParams.get('page')) || 1);
 
@@ -81,6 +87,7 @@ function CatalogNewContent() {
         if (selectedWheelSize) params.set('wheelSize', selectedWheelSize);
         if (selectedCapacity) params.set('capacity', selectedCapacity);
         if (availability !== 'all') params.set('availability', availability);
+        if (zegOnly) params.set('zeg', 'true');
         if (ebikeOnly === 'ebike') params.set('ebike', 'true');
         if (ebikeOnly === 'non') params.set('ebike', 'false');
         if (debouncedSearch) params.set('search', debouncedSearch);
@@ -96,12 +103,12 @@ function CatalogNewContent() {
         // This effect is now strictly for synchronizing STATE -> URL
         // The other effect handles URL -> STATE
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [initialized, selectedCategory, selectedMose, selectedMohe, selectedYear, selectedSize, selectedWheelSize, selectedCapacity, availability, ebikeOnly, debouncedSearch, page]);
+    }, [initialized, selectedCategory, selectedMose, selectedMohe, selectedYear, selectedSize, selectedWheelSize, selectedCapacity, availability, zegOnly, ebikeOnly, debouncedSearch, page]);
 
     // Reset page on filter change (except pagination itself)
     useEffect(() => {
         setPage(1);
-    }, [selectedCategory, selectedMose, selectedMohe, selectedYear, selectedSize, selectedWheelSize, selectedCapacity, availability, ebikeOnly, debouncedSearch]);
+    }, [selectedCategory, selectedMose, selectedMohe, selectedYear, selectedSize, selectedWheelSize, selectedCapacity, availability, zegOnly, ebikeOnly, debouncedSearch]);
 
     // Guards against out-of-order responses: when filters change quickly (e.g.
     // a URL-initialized load firing a default + a filtered request), only the
@@ -129,6 +136,7 @@ function CatalogNewContent() {
                 if (ebikeOnly === 'ebike') params.set('ebike', 'true');
                 if (ebikeOnly === 'non') params.set('ebike', 'false');
                 if (availability !== 'all') params.set('availability', availability);
+                if (zegOnly) params.set('zeg', 'true');
 
                 const res = await apiGet(`/api/catalog?${params.toString()}`, { cache: 'no-store' });
                 const data = await res.json();
@@ -169,7 +177,7 @@ function CatalogNewContent() {
             }
         };
         load();
-    }, [selectedCategory, selectedMose, selectedMohe, selectedYear, selectedSize, selectedWheelSize, selectedCapacity, availability, ebikeOnly, debouncedSearch, page]);
+    }, [selectedCategory, selectedMose, selectedMohe, selectedYear, selectedSize, selectedWheelSize, selectedCapacity, availability, zegOnly, ebikeOnly, debouncedSearch, page]);
 
     return (
         <main className="min-h-screen bg-zinc-50 pb-20">
@@ -210,6 +218,7 @@ function CatalogNewContent() {
                             selectedCapacity={selectedCapacity}
                             ebikeOnly={ebikeOnly}
                             availability={availability}
+                            zegOnly={zegOnly}
                             setCategory={setSelectedCategory}
                             setMose={setSelectedMose}
                             setMohe={setSelectedMohe}
@@ -217,6 +226,8 @@ function CatalogNewContent() {
                             setCapacity={setSelectedCapacity}
                             setEbikeOnly={setEbikeOnly}
                             setAvailability={setAvailability}
+                            setZegOnly={shopUser ? setZegOnly : undefined}
+                            showStockFilters={!!shopUser}
                             total={total}
                         />
                     </div>
@@ -250,6 +261,7 @@ function CatalogNewContent() {
                                 selectedCapacity={selectedCapacity}
                                 ebikeOnly={ebikeOnly}
                                 availability={availability}
+                                zegOnly={zegOnly}
                                 setCategory={setSelectedCategory}
                                 setMose={setSelectedMose}
                                 setMohe={setSelectedMohe}
@@ -257,6 +269,8 @@ function CatalogNewContent() {
                                 setCapacity={setSelectedCapacity}
                                 setEbikeOnly={setEbikeOnly}
                                 setAvailability={setAvailability}
+                                setZegOnly={shopUser ? setZegOnly : undefined}
+                                showStockFilters={!!shopUser}
                                 total={total}
                             />
                         </div>
@@ -303,6 +317,7 @@ function CatalogNewContent() {
                                                 setSelectedWheelSize('');
                                                 setSelectedCapacity('');
                                                 setAvailability('all');
+                                                setZegOnly(false);
                                                 setEbikeOnly('ebike');
                                                 setSearch('');
                                             }}

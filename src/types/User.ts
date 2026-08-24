@@ -27,6 +27,9 @@ export interface ShopUser {
     createdAt: Date;
     updatedAt: Date;
     lastLoginAt?: Date;
+    /** Žádost o zrušení účtu (ISO) — vyřizuje operátor ručně */
+    deletionRequestedAt?: string;
+    deletionReason?: string | null;
     approvedBy?: string;
     approvedAt?: Date;
 }

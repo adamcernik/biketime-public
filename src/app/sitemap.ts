@@ -15,6 +15,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/kola-bulls`, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${BASE_URL}/kontakt`, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${BASE_URL}/ke-stazeni`, changeFrequency: 'monthly', priority: 0.4 },
+    { url: `${BASE_URL}/navody/pinion`, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${BASE_URL}/size-guide`, changeFrequency: 'monthly', priority: 0.4 },
     { url: `${BASE_URL}/podminky-uziti`, changeFrequency: 'yearly', priority: 0.2 },
     { url: `${BASE_URL}/ochrana-osobnich-udaju`, changeFrequency: 'yearly', priority: 0.2 },

@@ -149,6 +149,18 @@ body {
     box-shadow: none !important;
   }
 
+  /* Guide pages (/navody/*) — print as a clean document. */
+  .guide-page {
+    background: #ffffff !important;
+    padding: 0 !important;
+  }
+
+  .guide-section {
+    break-inside: avoid;
+    box-shadow: none !important;
+    border-color: #e4e4e7 !important;
+  }
+
   /* Ensure backgrounds/colors print as designed. */
   * {
     -webkit-print-color-adjust: exact;

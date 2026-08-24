@@ -102,15 +102,18 @@ export default function UserAuthButton() {
                     )}
                     {shopUser.priceLevel && (
                         <div className="px-4 py-2 border-b border-gray-200 flex items-center justify-between">
-                            <span className="text-sm text-gray-700">Skrýt VOC</span>
+                            {/* Stejná sémantika jako /zona/katalog: zapnuto = VOC se zobrazují */}
+                            <span className="text-sm text-gray-700">Zobrazovat VOC</span>
                             <button
+                                role="switch"
+                                aria-checked={!hideB2BPrices}
                                 onClick={(e) => {
                                     e.stopPropagation(); // Prevent closing dropdown
                                     toggleHideB2BPrices();
                                 }}
-                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${hideB2BPrices ? 'bg-primary' : 'bg-gray-200'}`}
+                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${!hideB2BPrices ? 'bg-primary' : 'bg-gray-200'}`}
                             >
-                                <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${hideB2BPrices ? 'translate-x-5' : 'translate-x-1'}`} />
+                                <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${!hideB2BPrices ? 'translate-x-5' : 'translate-x-1'}`} />
                             </button>
                         </div>
                     )}
@@ -123,6 +126,26 @@ export default function UserAuthButton() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
                         Klientská zóna
+                    </Link>
+                    <Link
+                        href="/zona/cenik"
+                        onClick={() => setDropdownOpen(false)}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100"
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m-6 4h6m-6 4h4m-9 5V4a1 1 0 011-1h10.586a1 1 0 01.707.293l2.414 2.414a1 1 0 01.293.707V20a1 1 0 01-1 1H6a1 1 0 01-1-1z" />
+                        </svg>
+                        Ceník
+                    </Link>
+                    <Link
+                        href="/zona/objednavky"
+                        onClick={() => setDropdownOpen(false)}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 border-b border-gray-100"
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                        </svg>
+                        Moje objednávky
                     </Link>
                     <Link
                         href="/zona/faktury"

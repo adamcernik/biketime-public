@@ -16,6 +16,9 @@ interface FilterSidebarV2Props {
     selectedCapacity?: string;
     ebikeOnly: 'all' | 'ebike' | 'non';
     availability: 'all' | 'inStock' | 'onOrder';
+    zegOnly?: boolean;
+    /** Skladové filtry (Dostupnost) — jen pro přihlášené partnery. */
+    showStockFilters?: boolean;
 
     // Setters
     setCategory: (v: string) => void;
@@ -25,6 +28,7 @@ interface FilterSidebarV2Props {
     setCapacity?: (v: string) => void;
     setEbikeOnly: (v: 'all' | 'ebike' | 'non') => void;
     setAvailability: (v: 'all' | 'inStock' | 'onOrder') => void;
+    setZegOnly?: (v: boolean) => void;
 
     total: number;
 }
@@ -42,6 +46,8 @@ export function FilterSidebarV2({
     selectedCapacity = '',
     ebikeOnly,
     availability,
+    zegOnly = false,
+    showStockFilters = true,
     setCategory,
     setMose,
     setMohe,
@@ -49,6 +55,7 @@ export function FilterSidebarV2({
     setCapacity,
     setEbikeOnly,
     setAvailability,
+    setZegOnly,
 }: FilterSidebarV2Props) {
     const [showOtherWheelSizes, setShowOtherWheelSizes] = useState(false);
     const [showOtherCapacities, setShowOtherCapacities] = useState(false);
@@ -92,7 +99,8 @@ export function FilterSidebarV2({
                 </button>
             </div>
 
-            {/* Availability Toggles */}
+            {/* Availability Toggles — skladové informace jen pro přihlášené */}
+            {showStockFilters && (<>
             <div>
                 <h3 className="text-sm font-bold text-zinc-900 mb-3 uppercase tracking-wider">Dostupnost</h3>
                 <div className="space-y-3">
@@ -118,10 +126,24 @@ export function FilterSidebarV2({
                             <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${availability === 'onOrder' ? 'translate-x-4' : ''}`} />
                         </button>
                     </label>
+                    {setZegOnly && (
+                        <label className="flex items-center justify-between cursor-pointer group">
+                            <span className={`text-sm ${zegOnly ? 'text-zinc-900 font-medium' : 'text-zinc-600'}`}>Skladem u výrobce</span>
+                            <button
+                                role="switch"
+                                aria-checked={zegOnly}
+                                onClick={() => setZegOnly(!zegOnly)}
+                                className={`relative w-10 h-6 rounded-full transition-colors ${zegOnly ? 'bg-zinc-900' : 'bg-zinc-200 group-hover:bg-zinc-300'}`}
+                            >
+                                <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${zegOnly ? 'translate-x-4' : ''}`} />
+                            </button>
+                        </label>
+                    )}
                 </div>
             </div>
 
             <hr className="border-zinc-100" />
+            </>)}
 
             {/* Categories */}
             <div>

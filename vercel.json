@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/zeg-sync",
+      "schedule": "30 16 * * *"
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import SiteFooter from "@/components/SiteFooter";
 import RegistrationBanner from "@/components/RegistrationBanner";
 import B2BPromoToast from "@/components/B2BPromoToast";
 import AuthProvider from "@/components/AuthProvider";
+import CartProvider from "@/components/CartProvider";
 import CookieBanner from "@/components/CookieBanner";
 import CSPostHogProvider from '@/components/PostHogProvider'
 import PostHogPageView from "@/components/PostHogPageView"
@@ -65,6 +66,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
+          <CartProvider>
           <CSPostHogProvider>
             <Suspense fallback={null}>
               <PostHogPageView />
@@ -76,6 +78,7 @@ export default function RootLayout({
             <CookieBanner />
             <B2BPromoToast />
           </CSPostHogProvider>
+          </CartProvider>
         </AuthProvider>
       </body>
     </html>

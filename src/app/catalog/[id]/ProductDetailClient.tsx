@@ -9,6 +9,9 @@ import Link from 'next/link';
 import { sortSizes, standardizeSize, detectCategory } from '@/lib/size-mapping';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
 import { dealerPriceForMoc } from '@/lib/b2bPrice';
+import { zegKwLabel } from '@/lib/zegDisplay';
+import { useCart } from '@/components/CartProvider';
+import { variantAvailability, isVariantOrderable } from '@/lib/availability';
 import { useAuth } from '../../../components/AuthProvider';
 
 interface Variant {
@@ -44,13 +47,23 @@ interface Product {
     maxPrice: number;
     priceLevelsCzk?: Partial<Record<'A' | 'B' | 'C' | 'D', number>>;
     manualB2BPrice?: number;
+    preorderOnly?: boolean;
+    zeg?: {
+        best: number;
+        nextKw: number;
+        variants: Record<string, { s: number; kw: number }>;
+        updatedAt: string;
+    };
 }
 
 export default function ProductDetailClient({ id }: { id: string }) {
     const { shopUser, hideB2BPrices } = useAuth();
+    const { addItem } = useCart();
     // const router = useRouter(); // Unused variable removed
 
     const [product, setProduct] = useState<Product | null>(null);
+    const [cartQty, setCartQty] = useState(1);
+    const [addedToCart, setAddedToCart] = useState(false);
     const [loading, setLoading] = useState(true);
     const [selectedColor, setSelectedColor] = useState<string>('');
     const [selectedFrameShape, setSelectedFrameShape] = useState<string>('');
@@ -568,9 +581,30 @@ export default function ProductDetailClient({ id }: { id: string }) {
                                     const variant = inStockVariant || onOrderVariant || variants[0];
                                     const stock = variant ? (Number(variant.stock) || Number(variant.onHand) || Number(variant.qty) || Number(variant.b2bStockQuantity) || 0) : 0;
 
-                                    const inStock = stock > 0;
-                                    const onOrder = !inStock && !!onOrderVariant;
+                                    // Skladové informace vidí jen přihlášení partneři.
+                                    // Jednotné pravidlo dostupnosti (lib/availability) —
+                                    // stejné, jakým se řídí košík a příjem objednávek.
+                                    const availState = shopUser && variant ? variantAvailability(product, variant) : null;
+                                    const inStock = availState === 'ours';
                                     const isSelected = selectedSize === size;
+
+                                    const zegV = shopUser && variant?.id != null
+                                        ? product.zeg?.variants?.[String(variant.id)]
+                                        : undefined;
+                                    const dotCls =
+                                        availState === 'zeg-stock' ? 'bg-green-500'
+                                        : availState === 'zeg-low' ? 'bg-amber-500'
+                                        : availState === 'zeg-date' ? 'bg-sky-500'
+                                        : availState === 'on-order' ? 'bg-zinc-400'
+                                        : null;
+
+                                    const tooltip = !shopUser ? undefined :
+                                        availState === 'ours' ? `Skladem u nás (${stock} ks)`
+                                        : availState === 'zeg-stock' ? 'U výrobce skladem'
+                                        : availState === 'zeg-low' ? 'U výrobce omezeně'
+                                        : availState === 'zeg-date' ? `U výrobce ${zegKwLabel(zegV?.kw || 0) || ''}`
+                                        : availState === 'on-order' ? 'Na objednávku'
+                                        : 'Aktuálně nedostupné';
 
                                     if (!variant && selectedCapacity) return null; // Don't show size if not available in this capacity
 
@@ -578,29 +612,54 @@ export default function ProductDetailClient({ id }: { id: string }) {
                                         <div key={size} className="relative group">
                                             <button
                                                 onClick={() => setSelectedSize(size)}
+                                                title={tooltip}
                                                 className={`h-12 px-4 rounded-lg border text-sm font-medium transition-all flex items-center gap-2
                                                     ${isSelected
                                                         ? 'border-zinc-900 bg-zinc-900 text-white'
                                                         : inStock
-                                                            ? 'border-green-200 bg-green-50 text-green-800 hover:border-green-300'
-                                                            : onOrder
-                                                                ? 'border-zinc-300 bg-zinc-50 text-zinc-600 hover:border-zinc-400'
-                                                                : 'border-zinc-200 bg-white text-zinc-900 hover:border-zinc-300 hover:shadow-sm'
+                                                            ? 'border-green-300 bg-green-100 text-green-900 hover:border-green-400'
+                                                            : !shopUser
+                                                                ? 'border-zinc-200 bg-white text-zinc-900 hover:border-zinc-300 hover:shadow-sm'
+                                                                : dotCls
+                                                                    ? 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300'
+                                                                    : 'border-zinc-200 bg-zinc-50 text-zinc-400 hover:border-zinc-300'
                                                     }
                                                 `}
                                             >
-                                                <span>{size}{stock > 0 ? ` (${stock})` : ''}</span>
-                                                {inStock && !isSelected && (
-                                                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                                                )}
-                                                {onOrder && !isSelected && (
-                                                    <span className="w-2 h-2 rounded-full bg-zinc-400"></span>
+                                                <span>{size}{shopUser && stock > 0 ? ` (${stock})` : ''}</span>
+                                                {/* Tečka stavu — viditelná i na vybraném chipu */}
+                                                {shopUser && !inStock && dotCls && (
+                                                    <span className={`w-2 h-2 rounded-full ${dotCls}`}></span>
                                                 )}
                                             </button>
                                         </div>
                                     );
                                 })}
                             </div>
+
+                            {/* Legenda barev — jen pro přihlášené */}
+                            {shopUser && (
+                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-zinc-500 mb-4">
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <span className="w-3 h-3 rounded bg-green-100 border border-green-300 inline-block" /> skladem u nás
+                                    </span>
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> u výrobce skladem
+                                    </span>
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" /> u výrobce omezeně
+                                    </span>
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-sky-500 inline-block" /> u výrobce později
+                                    </span>
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <span className="w-2 h-2 rounded-full bg-zinc-400 inline-block" /> na objednávku
+                                    </span>
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <span className="w-3 h-3 rounded bg-zinc-50 border border-zinc-200 inline-block" /> nedostupné
+                                    </span>
+                                </div>
+                            )}
 
                             <div className="text-xs text-zinc-400 mt-2 space-y-1">
                                 <div>Vybraná barva: <span className="font-medium text-zinc-700">{selectedColor}</span></div>
@@ -617,16 +676,137 @@ export default function ProductDetailClient({ id }: { id: string }) {
 
                                     const nrLfToShow = selectedVariant?.nrLf || selectedVariant?.id;
 
-                                    if (nrLfToShow) {
+                                    // Dostupnost u výrobce (ZEG feed) pro vybranou variantu
+                                    const zegVariant = selectedVariant?.id != null
+                                        ? product.zeg?.variants?.[String(selectedVariant.id)]
+                                        : undefined;
+                                    const zegKw = zegVariant ? zegKwLabel(zegVariant.kw) : null;
+                                    const zegLine = zegVariant ? (
+                                        zegVariant.s === 2 ? <span className="font-medium text-emerald-600">skladem</span>
+                                        : zegVariant.s === 1 ? <span className="font-medium text-amber-600">omezené množství</span>
+                                        : zegKw ? <span className="font-medium text-sky-600">očekáváme {zegKw}</span>
+                                        : <span className="font-medium text-zinc-500">vyprodáno</span>
+                                    ) : null;
+
+                                    if (nrLfToShow || zegLine) {
                                         return (
-                                            <div className="pt-2 mt-2 border-t border-zinc-100">
-                                                ID produktu (NRLF): <span className="font-mono font-medium text-zinc-700">{nrLfToShow}</span>
+                                            <div className="pt-2 mt-2 border-t border-zinc-100 space-y-1">
+                                                {zegLine && <div>Dostupnost u výrobce: {zegLine}</div>}
+                                                {nrLfToShow && (
+                                                    <div>
+                                                        ID produktu (NRLF): <span className="font-mono font-medium text-zinc-700">{nrLfToShow}</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         );
                                     }
                                     return null;
                                 })()}
                             </div>
+
+                            {/* Předobjednávkové kolo (nový ročník) nejde do běžného košíku —
+                                objednává se přes předobjednávkovou sekci. */}
+                            {shopUser?.hasAccess && product.preorderOnly && (
+                                <div className="mt-6 pt-6 border-t border-zinc-100">
+                                    <Link
+                                        href="/predobjednavky"
+                                        className="w-full h-14 rounded-xl font-bold text-base tracking-wide inline-flex items-center justify-center gap-2.5 bg-amber-500 text-white hover:bg-amber-600 shadow-sm transition-all"
+                                    >
+                                        Předobjednat
+                                    </Link>
+                                    <p className="text-xs text-zinc-400 mt-2">Nový ročník — objednává se v sekci Předobjednávky, ne přes běžný košík.</p>
+                                </div>
+                            )}
+
+                            {/* Přidání do košíku — jen schválení partneři, ne předobjednávky */}
+                            {shopUser?.hasAccess && !product.preorderOnly && (() => {
+                                const selectedVariant = selectedSize
+                                    ? variantsInFrame.find(v =>
+                                        standardizeSize(v.size, category) === selectedSize &&
+                                        (!selectedCapacity || v.capacity === selectedCapacity))
+                                    : undefined;
+
+                                // Stejné pravidlo jako chipy velikostí a server (/api/orders):
+                                // nedostupnou variantu nelze vložit do košíku.
+                                const orderable = !!selectedVariant && isVariantOrderable(product, selectedVariant);
+
+                                const handleAdd = () => {
+                                    if (!selectedVariant || !product || !orderable) return;
+                                    // Zobrazovací VOC — stejná logika jako cenový blok výše;
+                                    // závaznou cenu počítá server při odeslání objednávky.
+                                    const priceLevel = shopUser?.priceLevel as 'A' | 'B' | 'C' | 'D' | undefined;
+                                    const moc = Number(selectedVariant.price) || null;
+                                    let dealerPrice: number | null = dealerPriceForMoc(product, priceLevel, moc);
+                                    const rootManualPrice = Number(product.manualB2BPrice) || Number((product as any).b2bPrice) || 0;
+                                    if ((selectedVariant as any).b2bPrice > 0) {
+                                        dealerPrice = Number((selectedVariant as any).b2bPrice);
+                                    } else if (rootManualPrice > 0) {
+                                        dealerPrice = rootManualPrice;
+                                    }
+
+                                    addItem({
+                                        productId: product.id,
+                                        variantId: String(selectedVariant.id),
+                                        brand: product.brand,
+                                        model: product.model,
+                                        year: product.year,
+                                        color: selectedColor || selectedVariant.color,
+                                        size: selectedSize,
+                                        frameShape: activeFrameShape || selectedVariant.frameShape,
+                                        capacity: selectedCapacity || selectedVariant.capacity,
+                                        image: selectedVariant.images?.[0] || product.images?.[0],
+                                        moc,
+                                        dealerPrice,
+                                    }, cartQty);
+                                    setAddedToCart(true);
+                                    setTimeout(() => setAddedToCart(false), 2500);
+                                };
+
+                                return (
+                                    <div className="mt-6 pt-6 border-t border-zinc-100">
+                                        <div className="flex items-center gap-3 flex-wrap">
+                                            <div className="flex items-center border border-zinc-200 rounded-xl overflow-hidden h-14">
+                                                <button
+                                                    onClick={() => setCartQty(q => Math.max(1, q - 1))}
+                                                    className="w-12 h-full text-zinc-500 hover:bg-zinc-50 text-xl font-medium"
+                                                    aria-label="Méně kusů"
+                                                >−</button>
+                                                <span className="w-10 text-center text-base font-semibold text-zinc-900">{cartQty}</span>
+                                                <button
+                                                    onClick={() => setCartQty(q => Math.min(99, q + 1))}
+                                                    className="w-12 h-full text-zinc-500 hover:bg-zinc-50 text-xl font-medium"
+                                                    aria-label="Více kusů"
+                                                >+</button>
+                                            </div>
+                                            <button
+                                                onClick={handleAdd}
+                                                disabled={!orderable}
+                                                className={`flex-1 min-w-[220px] h-14 rounded-xl font-bold text-base tracking-wide transition-all inline-flex items-center justify-center gap-2.5 shadow-sm ${!orderable
+                                                    ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed shadow-none'
+                                                    : addedToCart
+                                                        ? 'bg-green-600 text-white'
+                                                        : 'bg-primary text-white hover:bg-primary/90 hover:shadow-md'
+                                                    }`}
+                                            >
+                                                {!addedToCart && orderable && (
+                                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                                    </svg>
+                                                )}
+                                                {addedToCart ? '✓ Přidáno do košíku'
+                                                    : !selectedVariant ? 'Vyberte velikost'
+                                                    : !orderable ? 'Aktuálně nedostupné'
+                                                    : 'Přidat do košíku'}
+                                            </button>
+                                        </div>
+                                        {addedToCart && (
+                                            <Link href="/kosik" className="inline-block mt-3 text-sm text-primary font-medium hover:underline">
+                                                Přejít do košíku →
+                                            </Link>
+                                        )}
+                                    </div>
+                                );
+                            })()}
                         </div>
 
                         <div className="prose prose-zinc max-w-none">
