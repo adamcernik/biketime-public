@@ -2,23 +2,14 @@
 
 import { ReactNode } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import ZonaNav from '@/components/zona/ZonaNav';
 
 // Společný rám klientské zóny: přihlašovací brána + levé menu (desktop) /
 // záložky (mobil). Stránky pod /zona renderují jen svůj obsah.
-// Výjimka: /zona/bosch-abs je veřejný článek bez zóny.
-
-const PUBLIC_PATHS = ['/zona/bosch-abs'];
 
 export default function ZonaLayout({ children }: { children: ReactNode }) {
-    const pathname = usePathname() || '';
     const { firebaseUser, loading } = useAuth();
-
-    if (PUBLIC_PATHS.some(p => pathname.startsWith(p))) {
-        return <>{children}</>;
-    }
 
     if (loading) {
         return (

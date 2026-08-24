@@ -31,7 +31,7 @@ export default function SiteFooter() {
               <li><Link href="/catalog" className="hover:text-primary transition-colors">Katalog kol</Link></li>
               <li><Link href="/prislusenstvi" className="hover:text-primary transition-colors">Příslušenství</Link></li>
               <li><Link href="/prodejny" className="hover:text-primary transition-colors">Prodejny</Link></li>
-
+              <li><Link href="/ke-stazeni" className="hover:text-primary transition-colors">Ke stažení a návody</Link></li>
             </ul>
           </div>
 
