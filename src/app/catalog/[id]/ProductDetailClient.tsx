@@ -11,7 +11,7 @@ import { getOptimizedImageUrl } from '@/lib/imageUtils';
 import { dealerPriceForMoc } from '@/lib/b2bPrice';
 import { zegKwLabel } from '@/lib/zegDisplay';
 import { useCart } from '@/components/CartProvider';
-import { variantAvailability, isVariantOrderable } from '@/lib/availability';
+import { variantAvailability, isVariantOrderable, variantStockCount } from '@/lib/availability';
 import { useAuth } from '../../../components/AuthProvider';
 
 interface Variant {
@@ -28,6 +28,7 @@ interface Variant {
     onHand?: number;
     qty?: number;
     b2bStockQuantity?: number;
+    b2bStockLocation?: string;
     inTransit?: number;
     onTheWay?: number;
     b2bPrice?: number;
@@ -676,6 +677,12 @@ export default function ProductDetailClient({ id }: { id: string }) {
 
                                     const nrLfToShow = selectedVariant?.nrLf || selectedVariant?.id;
 
+                                    // Náš sklad má přednost před dostupností u výrobce — bez
+                                    // téhle řádky vypadalo kolo, které máme v Lovosicích, jako
+                                    // by bylo jen u výrobce (skladové info jen pro partnery).
+                                    const ourStock = shopUser && selectedVariant ? variantStockCount(selectedVariant) : 0;
+                                    const ourLocation = selectedVariant?.b2bStockLocation || null;
+
                                     // Dostupnost u výrobce (ZEG feed) pro vybranou variantu
                                     const zegVariant = selectedVariant?.id != null
                                         ? product.zeg?.variants?.[String(selectedVariant.id)]
@@ -688,9 +695,15 @@ export default function ProductDetailClient({ id }: { id: string }) {
                                         : <span className="font-medium text-zinc-500">vyprodáno</span>
                                     ) : null;
 
-                                    if (nrLfToShow || zegLine) {
+                                    if (nrLfToShow || zegLine || ourStock > 0) {
                                         return (
                                             <div className="pt-2 mt-2 border-t border-zinc-100 space-y-1">
+                                                {ourStock > 0 && (
+                                                    <div>
+                                                        Skladem u nás: <span className="font-medium text-emerald-600">{ourStock} ks</span>
+                                                        {ourLocation ? <span className="text-zinc-400"> · {ourLocation}</span> : null}
+                                                    </div>
+                                                )}
                                                 {zegLine && <div>Dostupnost u výrobce: {zegLine}</div>}
                                                 {nrLfToShow && (
                                                     <div>
