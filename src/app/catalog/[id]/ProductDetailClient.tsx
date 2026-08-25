@@ -722,7 +722,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
                             {shopUser?.hasAccess && product.preorderOnly && (
                                 <div className="mt-6 pt-6 border-t border-zinc-100">
                                     <Link
-                                        href="/predobjednavky"
+                                        href={`/predobjednavky?kolo=${encodeURIComponent(product.id)}`}
                                         className="w-full h-14 rounded-xl font-bold text-base tracking-wide inline-flex items-center justify-center gap-2.5 bg-amber-500 text-white hover:bg-amber-600 shadow-sm transition-all"
                                     >
                                         Předobjednat

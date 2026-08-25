@@ -9,7 +9,7 @@
  * one preorder; it is stored in preorder_orders and e-mailed both ways.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/components/AuthProvider';
@@ -56,13 +56,20 @@ function ProductBlock({
   product,
   quantities,
   setQty,
+  autoExpand = false,
 }: {
   product: any;
   quantities: Record<string, number>;
   setQty: (productId: string, variantId: string, qty: number) => void;
+  /** Rozbalit a odscrollovat na tento blok (proklik „Předobjednat" z detailu kola). */
+  autoExpand?: boolean;
 }) {
   const { hideB2BPrices } = useAuth();
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(autoExpand);
+  const blockRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (autoExpand) blockRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [autoExpand]);
   const rows = useMemo(() => buildConfigRows(product), [product]);
   const image = product.primaryImage || product.images?.[0];
   const inOrder = (product.variants || []).reduce(
@@ -71,7 +78,7 @@ function ProductBlock({
   );
 
   return (
-    <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
+    <div ref={blockRef} className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden scroll-mt-24">
       <button
         type="button"
         onClick={() => setExpanded((e) => !e)}
@@ -192,6 +199,12 @@ export default function PredobjednavkyPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [submittedOrderId, setSubmittedOrderId] = useState('');
+  // Proklik „Předobjednat" z detailu kola: /predobjednavky?kolo=<id> rozbalí
+  // příslušný blok a odscrolluje na něj. Čteme až po mountu (SSG stránka).
+  const [focusId, setFocusId] = useState<string | null>(null);
+  useEffect(() => {
+    setFocusId(new URLSearchParams(window.location.search).get('kolo'));
+  }, []);
 
   const canView = !!firebaseUser && !!shopUser?.hasAccess;
 
@@ -355,7 +368,7 @@ export default function PredobjednavkyPage() {
         ) : (
           <div className="space-y-3">
             {data.products.map((p) => (
-              <ProductBlock key={p.id} product={p} quantities={quantities} setQty={setQty} />
+              <ProductBlock key={p.id} product={p} quantities={quantities} setQty={setQty} autoExpand={p.id === focusId} />
             ))}
           </div>
         )}
