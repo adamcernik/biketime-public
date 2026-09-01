@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { getApprovedCustomer } from '@/lib/shopCustomer';
 import { rateLimit } from '@/lib/rateLimit';
@@ -160,10 +160,12 @@ export async function POST(request: NextRequest) {
             items,
             totalCzk,
         };
-        void Promise.allSettled([
+        // after(): odešle se garantovaně po odeslání odpovědi — pouhé
+        // void Promise na Vercelu často neproběhlo (funkce se zmrazila)
+        after(() => Promise.allSettled([
             sendOrderNotifyToAdmin(emailData),
             sendOrderAck(emailData),
-        ]);
+        ]));
 
         return NextResponse.json({ ok: true, orderId: orderRef.id, totalCzk, itemCount });
     } catch (error) {
