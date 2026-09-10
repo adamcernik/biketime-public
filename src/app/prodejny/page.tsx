@@ -179,7 +179,7 @@ export default function PublicShopsPage() {
       <div className="py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">Naše prodejny</h1>
+            <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">Prodejny</h1>
             <p className="mt-4 text-lg text-gray-500 mb-8">
               Navštivte jednu z našich prodejen a vyzkoušejte si kola na vlastní kůži.
             </p>
