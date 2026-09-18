@@ -446,13 +446,15 @@ export default function ProductDetailClient({ id }: { id: string }) {
 
                                 // Manuální (akční) cena platí jen pro variantu, na které je
                                 // nastavená — sourozenci (jiná baterie/velikost) mají svou
-                                // ceníkovou. Bez vybrané varianty ukaž akční cenu skladového
-                                // kusu (kvůli němu se nastavuje), jinak ceník z minPrice.
+                                // ceníkovou. Bez vybrané velikosti ukaž akční cenu skladového
+                                // kusu jen pokud odpovídá zvolené kapacitě, jinak ceník
+                                // z minPrice (ten už je filtrovaný podle kapacity).
                                 let b2bPrice: number | null;
                                 if (selectedVariant) {
                                     b2bPrice = variantDealerPrice(product, selectedVariant, priceLevel);
                                 } else {
                                     const promoted = variantsInFrame.find((v) => (Number((v as any).b2bPrice) || 0) > 0
+                                        && (!selectedCapacity || v.capacity === selectedCapacity)
                                         && ((Number(v.stock) || Number(v.onHand) || Number(v.qty) || Number(v.b2bStockQuantity) || 0) > 0));
                                     b2bPrice = promoted
                                         ? Number((promoted as any).b2bPrice)

@@ -430,7 +430,8 @@ export default function Katalog2DetailPage() {
                                 } else {
                                     const stockVariant = product.variants.find((v: any) => {
                                         const stock = Number(v.stock) || Number(v.onHand) || Number(v.qty) || Number(v.b2bStockQuantity) || 0;
-                                        return stock > 0 && (Number(v.b2bPrice) > 0);
+                                        return stock > 0 && (Number(v.b2bPrice) > 0)
+                                            && (!selectedCapacity || v.capacity === selectedCapacity);
                                     });
                                     if (stockVariant) {
                                         b2bPrice = Number(stockVariant.b2bPrice);
