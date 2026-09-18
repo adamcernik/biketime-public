@@ -8,7 +8,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { sortSizes, standardizeSize, detectCategory } from '@/lib/size-mapping';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
-import { dealerPriceForMoc } from '@/lib/b2bPrice';
+import { variantDealerPrice } from '@/lib/b2bPrice';
 import { zegKwLabel } from '@/lib/zegDisplay';
 import { useCart } from '@/components/CartProvider';
 import { variantAvailability, isVariantOrderable, variantStockCount } from '@/lib/availability';
@@ -444,19 +444,19 @@ export default function ProductDetailClient({ id }: { id: string }) {
                                     : undefined;
                                 const currentMoc = selectedVariant ? Number(selectedVariant.price) : minPrice;
 
-                                // Dealer price = product-level priceLevelsCzk scaled to the selected
-                                // variant's MOC (dealer prices are a fixed % of MOC).
-                                let b2bPrice: number | null = dealerPriceForMoc(product, priceLevel, currentMoc);
-
-                                // Explicit overrides win over the computed level.
-                                const rootManualPrice = Number(product.manualB2BPrice) || Number((product as any).b2bPrice) || 0;
-                                if (rootManualPrice > 0) {
-                                    b2bPrice = rootManualPrice;
-                                    if (selectedVariant && (selectedVariant as any).b2bPrice > 0) {
-                                        b2bPrice = Number((selectedVariant as any).b2bPrice);
-                                    }
-                                } else if (selectedVariant && (selectedVariant as any).b2bPrice > 0) {
-                                    b2bPrice = Number((selectedVariant as any).b2bPrice);
+                                // Manuální (akční) cena platí jen pro variantu, na které je
+                                // nastavená — sourozenci (jiná baterie/velikost) mají svou
+                                // ceníkovou. Bez vybrané varianty ukaž akční cenu skladového
+                                // kusu (kvůli němu se nastavuje), jinak ceník z minPrice.
+                                let b2bPrice: number | null;
+                                if (selectedVariant) {
+                                    b2bPrice = variantDealerPrice(product, selectedVariant, priceLevel);
+                                } else {
+                                    const promoted = variantsInFrame.find((v) => (Number((v as any).b2bPrice) || 0) > 0
+                                        && ((Number(v.stock) || Number(v.onHand) || Number(v.qty) || Number(v.b2bStockQuantity) || 0) > 0));
+                                    b2bPrice = promoted
+                                        ? Number((promoted as any).b2bPrice)
+                                        : variantDealerPrice(product, { price: currentMoc }, priceLevel);
                                 }
 
                                 if (b2bPrice && !hideB2BPrices) {
@@ -749,13 +749,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
                                     // závaznou cenu počítá server při odeslání objednávky.
                                     const priceLevel = shopUser?.priceLevel as 'A' | 'B' | 'C' | 'D' | undefined;
                                     const moc = Number(selectedVariant.price) || null;
-                                    let dealerPrice: number | null = dealerPriceForMoc(product, priceLevel, moc);
-                                    const rootManualPrice = Number(product.manualB2BPrice) || Number((product as any).b2bPrice) || 0;
-                                    if ((selectedVariant as any).b2bPrice > 0) {
-                                        dealerPrice = Number((selectedVariant as any).b2bPrice);
-                                    } else if (rootManualPrice > 0) {
-                                        dealerPrice = rootManualPrice;
-                                    }
+                                    const dealerPrice = variantDealerPrice(product, selectedVariant, priceLevel);
 
                                     addItem({
                                         productId: product.id,

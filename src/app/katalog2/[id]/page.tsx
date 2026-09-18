@@ -412,20 +412,14 @@ export default function Katalog2DetailPage() {
                                 const priceLevel = shopUser?.priceLevel as 'A' | 'B' | 'C' | 'D' | undefined;
                                 let b2bPrice = priceLevel && product.priceLevelsCzk ? product.priceLevelsCzk[priceLevel] : null;
 
+                                // Manuální cena platí jen pro svou variantu; produktové
+                                // manualB2BPrice je jen zrcadlo pro stará data bez
+                                // variantních cen (viz lib/b2bPrice.variantDealerPrice).
+                                const anyVariantManual = (product.variants || []).some((v: any) => (Number(v.b2bPrice) || 0) > 0);
                                 const rootManualPrice = Number(product.manualB2BPrice) || Number((product as any).b2bPrice) || 0;
+                                if (!anyVariantManual && rootManualPrice > 0) b2bPrice = rootManualPrice;
 
-                                if (rootManualPrice > 0) {
-                                    b2bPrice = rootManualPrice;
-                                    if (selectedSize) {
-                                        const selectedVariant = variantsInFrame.find(v =>
-                                            standardizeSize(v.size, category) === selectedSize &&
-                                            (!selectedCapacity || v.capacity === selectedCapacity)
-                                        );
-                                        if (selectedVariant && (selectedVariant as any).b2bPrice > 0) {
-                                            b2bPrice = Number((selectedVariant as any).b2bPrice);
-                                        }
-                                    }
-                                } else if (selectedSize) {
+                                if (selectedSize) {
                                     const selectedVariant = variantsInFrame.find(v =>
                                         standardizeSize(v.size, category) === selectedSize &&
                                         (!selectedCapacity || v.capacity === selectedCapacity)

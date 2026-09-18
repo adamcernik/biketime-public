@@ -16,11 +16,18 @@ const DEALER_A_RATIO = 0.6357;
 
 type Level = 'A' | 'B' | 'C' | 'D';
 
+interface PricingVariant {
+  price?: number | null;
+  b2bPrice?: number | null;
+}
+
 interface PricingProduct {
   priceLevelsCzk?: Partial<Record<Level, number | null>>;
   minPrice?: number;
   maxPrice?: number;
-  variants?: Array<{ price?: number | null }>;
+  manualB2BPrice?: number | null;
+  b2bPrice?: number | null;
+  variants?: PricingVariant[];
 }
 
 /** The MOC the stored dealer levels were derived from (the anchor variant). */
@@ -56,4 +63,24 @@ export function dealerPriceForMoc(
   const anchor = anchorMoc(product);
   if (!(anchor > 0)) return base;
   return Math.round((base * moc) / anchor);
+}
+
+/**
+ * Dealer price for ONE concrete variant. A manual (akční) price belongs only
+ * to the variant it was set on — never to its siblings (a 600 Wh sale price
+ * must not show on the 800 Wh bike). Product-level manualB2BPrice is just a
+ * mirror (max of variant prices) kept for legacy documents; it applies only
+ * when no variant in the product carries its own b2bPrice.
+ */
+export function variantDealerPrice(
+  product: PricingProduct,
+  variant: PricingVariant | undefined | null,
+  level: Level | undefined,
+): number | null {
+  const own = Number(variant?.b2bPrice) || 0;
+  if (own > 0) return own;
+  const anyVariantManual = (product.variants ?? []).some((v) => (Number(v.b2bPrice) || 0) > 0);
+  const rootManual = Number(product.manualB2BPrice) || Number(product.b2bPrice) || 0;
+  if (!anyVariantManual && rootManual > 0) return rootManual;
+  return dealerPriceForMoc(product, level, Number(variant?.price) || null);
 }

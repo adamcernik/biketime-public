@@ -2,7 +2,7 @@ import { NextRequest, NextResponse, after } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { getApprovedCustomer } from '@/lib/shopCustomer';
 import { rateLimit } from '@/lib/rateLimit';
-import { dealerPriceForMoc } from '@/lib/b2bPrice';
+import { variantDealerPrice } from '@/lib/b2bPrice';
 import { sendOrderAck, sendOrderNotifyToAdmin, OrderEmailItem } from '@/lib/orderEmail';
 import { isVariantOrderable } from '@/lib/availability';
 
@@ -99,17 +99,13 @@ export async function POST(request: NextRequest) {
             }
 
             // Závazná VOC — stejná logika jako na detailu, ale ze serverových dat:
-            // explicitní b2bPrice varianty > manuální cena produktu > cenová skupina.
-            const moc = Number(variant.price) || null;
-            let unitPrice: number | null = dealerPriceForMoc(
-                product as Parameters<typeof dealerPriceForMoc>[0],
+            // explicitní b2bPrice varianty > (legacy) manuální cena produktu >
+            // cenová skupina. Manuální cena platí jen pro svou variantu.
+            const unitPrice = variantDealerPrice(
+                product as Parameters<typeof variantDealerPrice>[0],
+                variant,
                 customer.priceLevel,
-                moc,
             );
-            const variantB2b = Number(variant.b2bPrice) || 0;
-            const rootManual = Number(product.manualB2BPrice) || Number(product.b2bPrice) || 0;
-            if (variantB2b > 0) unitPrice = variantB2b;
-            else if (rootManual > 0) unitPrice = rootManual;
 
             items.push({
                 productId: line.productId,
