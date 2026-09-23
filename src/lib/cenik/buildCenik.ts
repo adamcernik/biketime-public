@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import 'server-only';
 import { adminDb } from '@/lib/firebase-admin';
-import { dealerPriceForMoc } from '@/lib/b2bPrice';
+import { dealerPriceForMoc, effectiveDealerLevel } from '@/lib/b2bPrice';
 import { variantAvailability, VariantAvailabilityState } from '@/lib/availability';
 import { isEbikeProduct, mapRawToTag } from '@/lib/catalogMapping';
 import { sortSizes, standardizeSize, detectCategory } from '@/lib/size-mapping';
@@ -102,7 +102,7 @@ export async function buildCenik(level: 'A' | 'B' | 'C' | 'D' | undefined): Prom
             const priced = groupVariants.find((v) => Number(v.price) > 0);
             const moc = priced ? Number(priced.price) : null;
 
-            let voc: number | null = dealerPriceForMoc(p, effectiveLevel, moc);
+            let voc: number | null = dealerPriceForMoc(p, effectiveDealerLevel(p, effectiveLevel), moc);
             const variantB2b = priced ? Number(priced.b2bPrice) || 0 : 0;
             const rootManual = Number(p.manualB2BPrice) || Number(p.b2bPrice) || 0;
             if (variantB2b > 0) voc = variantB2b;

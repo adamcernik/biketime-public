@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { standardizeSize, detectCategory, sortSizes } from '@/lib/size-mapping';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
 import { guessHexFromName } from '@/lib/colorUtils';
-import { dealerPriceForMoc } from '@/lib/b2bPrice';
+import { dealerPriceForMoc, effectiveDealerLevel } from '@/lib/b2bPrice';
 import { zegKwLabel } from '@/lib/zegDisplay';
 
 import { useAuth } from './AuthProvider';
@@ -299,28 +299,29 @@ export default function ProductCardV2({ product, detailBasePath = '/catalog', co
                         if (!shopUser) return null;
 
                         const priceLevel = shopUser?.priceLevel as 'A' | 'B' | 'C' | 'D' | undefined;
-                        // Scale the dealer price to the displayed retail (minPrice) so VOC and
-                        // MOC stay consistent across capacities.
-                        let b2bPrice: number | null = dealerPriceForMoc(product, priceLevel, product.minPrice);
-
-                        // Check for manual B2B price on the product (root level)
-                        // Support both 'manualB2BPrice' (new sync) and 'b2bPrice' (legacy/manual entry)
+                        // Karta nemá vybranou variantu, proto zrcadlí "od" MOC: ruční (akční)
+                        // cena patří jen své variantě, takže se bere NEJNIŽŠÍ ruční cena přes
+                        // skladové varianty — nikdy produktové zrcadlo manualB2BPrice (max),
+                        // které po zlevnění drží starou vyšší cenu jiné varianty.
+                        const variants: any[] = Array.isArray(product.variants) ? product.variants : [];
+                        const stockOf = (v: any) => Number(v.stock) || Number(v.onHand) || Number(v.qty) || Number(v.b2bStockQuantity) || 0;
+                        const stockedManuals = variants
+                            .filter((v) => stockOf(v) > 0)
+                            .map((v) => Number(v.b2bPrice) || 0)
+                            .filter((n) => n > 0);
+                        const anyVariantManual = variants.some((v) => (Number(v.b2bPrice) || 0) > 0);
                         const rootManualPrice = Number(product.manualB2BPrice) || Number((product as any).b2bPrice) || 0;
 
-                        if (rootManualPrice > 0) {
+                        let b2bPrice: number | null;
+                        if (stockedManuals.length > 0) {
+                            b2bPrice = Math.min(...stockedManuals);
+                        } else if (!anyVariantManual && rootManualPrice > 0) {
+                            // legacy dokumenty bez variantních cen
                             b2bPrice = rootManualPrice;
                         } else {
-                            // Check stock variants for manual B2B price override
-                            if (product.variants && Array.isArray(product.variants)) {
-                                const stockVariant = product.variants.find((v: any) => {
-                                    const stock = Number(v.stock) || Number(v.onHand) || Number(v.qty) || Number(v.b2bStockQuantity) || 0;
-                                    return stock > 0 && (Number(v.b2bPrice) > 0);
-                                });
-
-                                if (stockVariant) {
-                                    b2bPrice = Number(stockVariant.b2bPrice);
-                                }
-                            }
+                            // Scale the dealer price to the displayed retail (minPrice) so VOC and
+                            // MOC stay consistent across capacities.
+                            b2bPrice = dealerPriceForMoc(product, effectiveDealerLevel(product, priceLevel), product.minPrice);
                         }
 
                         if (b2bPrice && !hideB2BPrices) {

@@ -16,7 +16,7 @@ import Image from 'next/image';
 import { useAuth } from '@/components/AuthProvider';
 import ProductCardV2 from '@/components/ProductCardV2';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
-import { dealerPriceForMoc } from '@/lib/b2bPrice';
+import { dealerPriceForMoc, effectiveDealerLevel } from '@/lib/b2bPrice';
 
 const fmtCzk = (n: number) =>
   new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 }).format(n);
@@ -30,9 +30,16 @@ function OfferRow({ product }: { product: any }) {
   let voc: number | null = null;
   if (shopUser && !hideB2BPrices) {
     const priceLevel = shopUser.priceLevel as 'A' | 'B' | 'C' | 'D' | undefined;
-    voc = dealerPriceForMoc(product, priceLevel, product.minPrice);
+    // Zrcadlí ProductCardV2: nejnižší ruční cena skladové varianty; produktové
+    // zrcadlo (max) jen u legacy dokumentů bez variantních cen; jinak ceník.
+    const variants: any[] = Array.isArray(product.variants) ? product.variants : [];
+    const stockOf = (v: any) => Number(v.stock) || Number(v.onHand) || Number(v.qty) || Number(v.b2bStockQuantity) || 0;
+    const stockedManuals = variants.filter((v) => stockOf(v) > 0).map((v) => Number(v.b2bPrice) || 0).filter((n) => n > 0);
+    const anyVariantManual = variants.some((v) => (Number(v.b2bPrice) || 0) > 0);
     const manual = Number(product.manualB2BPrice) || Number(product.b2bPrice) || 0;
-    if (manual > 0) voc = manual;
+    if (stockedManuals.length > 0) voc = Math.min(...stockedManuals);
+    else if (!anyVariantManual && manual > 0) voc = manual;
+    else voc = dealerPriceForMoc(product, effectiveDealerLevel(product, priceLevel), product.minPrice);
   }
 
   return (

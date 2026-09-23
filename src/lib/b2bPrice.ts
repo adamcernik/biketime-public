@@ -30,6 +30,32 @@ interface PricingProduct {
   variants?: PricingVariant[];
 }
 
+/**
+ * True for products priced by the online ceník 2027: publish zapisuje objemové
+ * kategorie A–C (A = bez předobjednávky, B = předobjednávka do 500 tis.,
+ * C = nad 500 tis.), NE dealerské hladiny. Legacy produkty nesou staré hladiny
+ * A–D (poznají se podle přítomného D).
+ */
+function isCenik2027Levels(product: PricingProduct): boolean {
+  const pl = product.priceLevelsCzk ?? {};
+  return (Number(pl.A) || 0) > 0 && !((Number(pl.D) || 0) > 0);
+}
+
+/**
+ * Hladina, kterou má UŽIVATEL na daném produktu dostat. Na produktech z ceníku
+ * 2027 nakupuje každý dealer za kategorii A — B/C jsou předobjednávkové objemové
+ * slevy a nesmí se zaměnit s uloženou dealerskou hladinou uživatele (všichni
+ * partneři mají historicky level C, což by jim dalo cenu pod nákupkou).
+ * Legacy produkty (A–D) hladinu uživatele respektují dál.
+ */
+export function effectiveDealerLevel(
+  product: PricingProduct,
+  userLevel: Level | undefined,
+): Level | undefined {
+  if (!userLevel) return undefined;
+  return isCenik2027Levels(product) ? 'A' : userLevel;
+}
+
 /** The MOC the stored dealer levels were derived from (the anchor variant). */
 function anchorMoc(product: PricingProduct): number {
   const prices = (product.variants ?? [])
@@ -82,5 +108,5 @@ export function variantDealerPrice(
   const anyVariantManual = (product.variants ?? []).some((v) => (Number(v.b2bPrice) || 0) > 0);
   const rootManual = Number(product.manualB2BPrice) || Number(product.b2bPrice) || 0;
   if (!anyVariantManual && rootManual > 0) return rootManual;
-  return dealerPriceForMoc(product, level, Number(variant?.price) || null);
+  return dealerPriceForMoc(product, effectiveDealerLevel(product, level), Number(variant?.price) || null);
 }

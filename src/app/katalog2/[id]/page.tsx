@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { sortSizes, standardizeSize, detectCategory } from '@/lib/size-mapping';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
 import { guessHexFromName } from '@/lib/colorUtils';
+import { effectiveDealerLevel } from '@/lib/b2bPrice';
 import { useAuth } from '../../../components/AuthProvider';
 
 interface Variant {
@@ -409,7 +410,7 @@ export default function Katalog2DetailPage() {
                             {(() => {
                                 if (!shopUser) return null;
 
-                                const priceLevel = shopUser?.priceLevel as 'A' | 'B' | 'C' | 'D' | undefined;
+                                const priceLevel = effectiveDealerLevel(product, shopUser?.priceLevel as 'A' | 'B' | 'C' | 'D' | undefined);
                                 let b2bPrice = priceLevel && product.priceLevelsCzk ? product.priceLevelsCzk[priceLevel] : null;
 
                                 // Manuální cena platí jen pro svou variantu; produktové

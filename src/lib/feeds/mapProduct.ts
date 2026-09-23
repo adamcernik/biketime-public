@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { dealerPriceForMoc } from '@/lib/b2bPrice';
+import { dealerPriceForMoc, effectiveDealerLevel } from '@/lib/b2bPrice';
 import { variantAvailability, variantStockCount, AVAILABILITY_LABELS, VariantAvailabilityState } from '@/lib/availability';
 import { isEbikeProduct, mapRawToTag } from '@/lib/catalogMapping';
 import { standardizeSize, detectCategory } from '@/lib/size-mapping';
@@ -117,7 +117,7 @@ export function mapProductToFeedItems(
         const capacity = String(v.capacity || '').trim();
         const moc = Number(v.price) > 0 ? Number(v.price) : null;
 
-        let voc: number | null = dealerPriceForMoc(p, level, moc);
+        let voc: number | null = dealerPriceForMoc(p, effectiveDealerLevel(p, level), moc);
         const variantB2b = Number(v.b2bPrice) || 0;
         if (variantB2b > 0) voc = variantB2b;
         else if (rootManual > 0) voc = rootManual;
