@@ -16,9 +16,10 @@ export default function KontaktPage() {
                 <path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 2v.01L12 13 4 6.01V6h16zM4 18V8l8 7 8-7v10H4z" />
               </svg>
             </div>
-            <div className="uppercase tracking-widest text-gray-500 font-semibold mb-2">Kontakt</div>
+            <div className="uppercase tracking-widest text-gray-500 font-semibold mb-2">Kontakt / korespondenční</div>
             <div className="space-y-2 text-gray-700">
-              <p>Křižíkova 53/52, 186 00 Praha 8</p>
+              <p>Nekvasilova 31, 186 00 Praha 8</p>
+              <p className="text-sm text-gray-500">metro: Invalidovna</p>
               <p>
                 <a href="mailto:info@biketime.cz" className="text-blue-600 hover:underline">info@biketime.cz</a>
               </p>
