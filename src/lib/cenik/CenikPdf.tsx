@@ -31,6 +31,7 @@ const AVAILABILITY_COLORS: Record<VariantAvailabilityState, string> = {
     'zeg-low': AMBER,
     'zeg-date': SKY,
     'on-order': ZINC600,
+    'sold-out': ZINC400,
     'none': ZINC400,
 };
 

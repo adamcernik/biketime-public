@@ -52,6 +52,7 @@ const AVAILABILITY_RANK: Record<VariantAvailabilityState, number> = {
     'zeg-low': 3,
     'zeg-date': 2,
     'on-order': 1,
+    'sold-out': 0,
     'none': 0,
 };
 

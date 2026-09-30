@@ -43,6 +43,7 @@ const AVAIL_BADGE: Record<VariantAvailabilityState, string> = {
     'zeg-low': 'bg-white text-amber-700 border-amber-200',
     'zeg-date': 'bg-white text-sky-700 border-sky-200',
     'on-order': 'bg-zinc-100 text-zinc-500 border-zinc-200',
+    'sold-out': 'bg-red-50 text-red-700 border-red-200',
     'none': 'bg-zinc-50 text-zinc-400 border-zinc-100',
 };
 

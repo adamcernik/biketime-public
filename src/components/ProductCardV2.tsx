@@ -73,7 +73,7 @@ export default function ProductCardV2({ product, detailBasePath = '/catalog', co
             entry.count += stock;
             if (stock > 0 || variant.b2bOrderStatus === 'skladem') entry.inStock = true;
             if (variant.b2bOrderStatus === 'na_ceste' && !entry.inStock) entry.inTransit = true;
-            if (variant.b2bOrderStatus === 'na_objednavku' && !entry.inStock && !entry.inTransit) entry.onOrder = true;
+            if (!variant.soldOut && variant.b2bOrderStatus === 'na_objednavku' && !entry.inStock && !entry.inTransit) entry.onOrder = true;
         });
     } else if (product.sizes) {
         product.sizes.forEach(size => {

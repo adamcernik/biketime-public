@@ -2,9 +2,10 @@
 // tlačítko košíku) i server při přijetí objednávky (/api/orders), aby UI nikdy
 // neslibovalo něco jiného, než co objednávka pustí.
 //
-// Precedence: náš sklad > ZEG feed (autoritativní pro aktuální sortiment
-// výrobce — vč. definitivního „vyprodáno") > admin status na_objednavku
-// (fallback pro zboží mimo feed, typicky starší ročníky).
+// Precedence: náš sklad > ruční „vyprodáno" (variant.soldOut — ZEG už
+// nedodá, z přehledu otevřených objednávek) > ZEG feed (autoritativní pro
+// aktuální sortiment výrobce — vč. definitivního „vyprodáno") > admin status
+// na_objednavku (fallback pro zboží mimo feed, typicky starší ročníky).
 
 export type VariantAvailabilityState =
     | 'ours'       // skladem u nás
@@ -12,6 +13,7 @@ export type VariantAvailabilityState =
     | 'zeg-low'    // u výrobce omezeně
     | 'zeg-date'   // u výrobce od budoucího týdne
     | 'on-order'   // na objednávku (admin status, mimo ZEG feed)
+    | 'sold-out'   // vyprodáno (ruční příznak variant.soldOut)
     | 'none';      // nedostupné
 
 interface VariantLike {
@@ -21,6 +23,7 @@ interface VariantLike {
     qty?: number | null;
     b2bStockQuantity?: number | null;
     b2bOrderStatus?: string | null;
+    soldOut?: boolean | null;
 }
 
 interface ProductLike {
@@ -35,6 +38,7 @@ export function variantStockCount(variant: VariantLike): number {
 
 export function variantAvailability(product: ProductLike, variant: VariantLike): VariantAvailabilityState {
     if (variantStockCount(variant) > 0) return 'ours';
+    if (variant.soldOut) return 'sold-out';
 
     const z = variant.id != null ? product.zeg?.variants?.[String(variant.id)] : undefined;
     if (z) {
@@ -50,7 +54,13 @@ export function variantAvailability(product: ProductLike, variant: VariantLike):
 
 /** Lze variantu objednat (vložit do košíku / přijmout v objednávce)? */
 export function isVariantOrderable(product: ProductLike, variant: VariantLike): boolean {
-    return variantAvailability(product, variant) !== 'none';
+    const state = variantAvailability(product, variant);
+    return state !== 'none' && state !== 'sold-out';
+}
+
+/** Admin status „na objednávku", pokud ho nepřebíjí ruční „vyprodáno". */
+export function isVariantOnOrder(variant: VariantLike): boolean {
+    return variant.b2bOrderStatus === 'na_objednavku' && !variant.soldOut;
 }
 
 /** České popisky stavů — sdílené UI ceníku a exporty. */
@@ -60,5 +70,6 @@ export const AVAILABILITY_LABELS: Record<VariantAvailabilityState, string> = {
     'zeg-low': 'u výrobce omezeně',
     'zeg-date': 'u výrobce později',
     'on-order': 'na objednávku',
+    'sold-out': 'vyprodáno',
     'none': 'nedostupné',
 };

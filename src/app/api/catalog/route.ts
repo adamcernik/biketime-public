@@ -5,6 +5,7 @@ import { sortSizes, detectCategory, standardizeSize } from '@/lib/size-mapping';
 import { stripSensitiveFields, stripB2BPrices, clampInt } from '@/lib/apiSanitize';
 import { isAuthenticatedRequest } from '@/lib/userAuth';
 import { isEbikeProduct, mapRawToTag } from '@/lib/catalogMapping';
+import { isVariantOnOrder } from '@/lib/availability';
 
 export const dynamic = 'force-dynamic';
 
@@ -135,7 +136,7 @@ export async function GET(req: NextRequest) {
                     hasStock = true;
                     if (size) stockSizesSet.add(size);
                 }
-                if (v.b2bOrderStatus === 'na_objednavku') {
+                if (isVariantOnOrder(v)) {
                     isOnOrder = true;
                     if (size) onOrderSizesSet.add(size);
                 }

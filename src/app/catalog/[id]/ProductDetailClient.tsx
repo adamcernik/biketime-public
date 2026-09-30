@@ -33,6 +33,7 @@ interface Variant {
     onTheWay?: number;
     b2bPrice?: number;
     b2bOrderStatus?: string;
+    soldOut?: boolean;
 }
 
 interface Product {
@@ -579,7 +580,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
                                         return s > 0;
                                     });
 
-                                    const onOrderVariant = variants.find(v => v.b2bOrderStatus === 'na_objednavku');
+                                    const onOrderVariant = variants.find(v => v.b2bOrderStatus === 'na_objednavku' && !v.soldOut);
 
                                     const variant = inStockVariant || onOrderVariant || variants[0];
                                     const stock = variant ? (Number(variant.stock) || Number(variant.onHand) || Number(variant.qty) || Number(variant.b2bStockQuantity) || 0) : 0;
@@ -589,6 +590,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
                                     // stejné, jakým se řídí košík a příjem objednávek.
                                     const availState = shopUser && variant ? variantAvailability(product, variant) : null;
                                     const inStock = availState === 'ours';
+                                    const soldOut = availState === 'sold-out';
                                     const isSelected = selectedSize === size;
 
                                     const zegV = shopUser && variant?.id != null
@@ -607,6 +609,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
                                         : availState === 'zeg-low' ? 'U výrobce omezeně'
                                         : availState === 'zeg-date' ? `U výrobce ${zegKwLabel(zegV?.kw || 0) || ''}`
                                         : availState === 'on-order' ? 'Na objednávku'
+                                        : soldOut ? 'Vyprodáno'
                                         : 'Aktuálně nedostupné';
 
                                     if (!variant && selectedCapacity) return null; // Don't show size if not available in this capacity
@@ -621,6 +624,8 @@ export default function ProductDetailClient({ id }: { id: string }) {
                                                         ? 'border-zinc-900 bg-zinc-900 text-white'
                                                         : inStock
                                                             ? 'border-green-300 bg-green-100 text-green-900 hover:border-green-400'
+                                                            : soldOut
+                                                                ? 'border-red-200 bg-red-50 text-red-400 hover:border-red-300'
                                                             : !shopUser
                                                                 ? 'border-zinc-200 bg-white text-zinc-900 hover:border-zinc-300 hover:shadow-sm'
                                                                 : dotCls
@@ -629,7 +634,10 @@ export default function ProductDetailClient({ id }: { id: string }) {
                                                     }
                                                 `}
                                             >
-                                                <span>{size}{shopUser && stock > 0 ? ` (${stock})` : ''}</span>
+                                                <span className={soldOut && !isSelected ? 'line-through' : undefined}>{size}{shopUser && stock > 0 ? ` (${stock})` : ''}</span>
+                                                {soldOut && (
+                                                    <span className="text-[10px] font-bold uppercase tracking-wide">vyprodáno</span>
+                                                )}
                                                 {/* Tečka stavu — viditelná i na vybraném chipu */}
                                                 {shopUser && !inStock && dotCls && (
                                                     <span className={`w-2 h-2 rounded-full ${dotCls}`}></span>
@@ -657,6 +665,9 @@ export default function ProductDetailClient({ id }: { id: string }) {
                                     </span>
                                     <span className="inline-flex items-center gap-1.5">
                                         <span className="w-2 h-2 rounded-full bg-zinc-400 inline-block" /> na objednávku
+                                    </span>
+                                    <span className="inline-flex items-center gap-1.5">
+                                        <span className="w-3 h-3 rounded bg-red-50 border border-red-200 inline-block" /> vyprodáno
                                     </span>
                                     <span className="inline-flex items-center gap-1.5">
                                         <span className="w-3 h-3 rounded bg-zinc-50 border border-zinc-200 inline-block" /> nedostupné
@@ -690,7 +701,10 @@ export default function ProductDetailClient({ id }: { id: string }) {
                                         ? product.zeg?.variants?.[String(selectedVariant.id)]
                                         : undefined;
                                     const zegKw = zegVariant ? zegKwLabel(zegVariant.kw) : null;
-                                    const zegLine = zegVariant ? (
+                                    const manualSoldOut = !!shopUser && !!selectedVariant?.soldOut && ourStock === 0;
+                                    const zegLine = manualSoldOut ? (
+                                        <span className="font-bold uppercase text-red-600">vyprodáno</span>
+                                    ) : zegVariant ? (
                                         zegVariant.s === 2 ? <span className="font-medium text-emerald-600">skladem</span>
                                         : zegVariant.s === 1 ? <span className="font-medium text-amber-600">omezené množství</span>
                                         : zegKw ? <span className="font-medium text-sky-600">očekáváme {zegKw}</span>

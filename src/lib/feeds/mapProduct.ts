@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { dealerPriceForMoc, effectiveDealerLevel } from '@/lib/b2bPrice';
-import { variantAvailability, variantStockCount, AVAILABILITY_LABELS, VariantAvailabilityState } from '@/lib/availability';
+import { variantAvailability, variantStockCount, isVariantOnOrder, AVAILABILITY_LABELS, VariantAvailabilityState } from '@/lib/availability';
 import { isEbikeProduct, mapRawToTag } from '@/lib/catalogMapping';
 import { standardizeSize, detectCategory } from '@/lib/size-mapping';
 
@@ -64,7 +64,7 @@ export function isProductFeedVisible(p: Record<string, any>): boolean {
     const variants: any[] = Array.isArray(p.variants) ? p.variants : [];
     const hasStock = variants.some((v) => variantStockCount(v) > 0)
         || Number(p.stock) > 0 || Number(p.b2bStockQuantity) > 0;
-    const isOnOrder = variants.some((v) => v?.b2bOrderStatus === 'na_objednavku')
+    const isOnOrder = variants.some((v) => v && isVariantOnOrder(v))
         || p.b2bOrderStatus === 'na_objednavku';
     return hasStock || isOnOrder;
 }
