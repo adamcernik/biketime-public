@@ -111,6 +111,19 @@ export default function PinionGuidePage() {
               uživatelské příručky Pinion a provozních návodů systémového partnera FIT.
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-4">
+              {/* Přímé stažení souboru — window.print() na mobilech a ve
+                  webview často nefunguje, soubor jde stáhnout všude.
+                  Po změně návodu přegeneruj: node scripts/generate-pinion-pdf.mjs */}
+              <a
+                href="/downloads/pinion-mgu-navod-biketime.pdf"
+                download
+                className="no-print inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+                </svg>
+                Stáhnout PDF
+              </a>
               <PrintButton />
               <p className="text-sm text-zinc-500">Aktualizováno: {UPDATED}</p>
             </div>
