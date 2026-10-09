@@ -1,4 +1,5 @@
 import { FeedItem, FeedPriceLevel } from './mapProduct';
+import { paramLabelCz } from './paramLabels';
 
 // Serializace feedu do XML / CSV / JSON. Vstupem jsou už hotové FeedItem
 // (allowlist v mapProduct.ts) — tady se nic nefiltruje, jen formátuje.
@@ -42,7 +43,8 @@ export function feedToXml(items: FeedItem[], meta: FeedMeta): string {
         `    <images>${i.images.map((img) => el('image', img)).join('')}</images>`,
         `    ${el('price_moc_czk_vat', i.mocCzkVat)}${el('price_voc_czk', i.vocCzk)}`,
         `    ${el('availability', i.availability)}${el('availability_text', i.availabilityText)}`,
-        `    <params>${Object.entries(i.params).map(([k, v]) => `<param>${el('name', k)}${el('value', v)}</param>`).join('')}</params>`,
+        `    ${el('description', i.description)}`,
+        `    <params>${Object.entries(i.params).map(([k, v]) => `<param>${el('name', k)}${el('label_cz', paramLabelCz(k))}${el('value', v)}</param>`).join('')}</params>`,
         '  </item>',
     ].join('\n')).join('\n');
 
@@ -55,10 +57,11 @@ export function feedToXml(items: FeedItem[], meta: FeedMeta): string {
     ].join('\n');
 }
 
+// Nové sloupce VŽDY jen na konec — partneři mohou číst CSV podle pozice.
 const CSV_COLUMNS = [
     'item_id', 'product_id', 'ean', 'brand', 'model', 'name', 'year', 'category', 'ebike',
     'color', 'size', 'battery_wh', 'price_moc_czk_vat', 'price_voc_czk',
-    'availability', 'availability_text', 'url', 'image', 'images',
+    'availability', 'availability_text', 'url', 'image', 'images', 'description',
 ] as const;
 
 function csvCell(value: string | number | null | undefined): string {
@@ -74,18 +77,26 @@ export function feedToCsv(items: FeedItem[]): string {
         lines.push([
             i.itemId, i.productId, i.ean, i.brand, i.model, i.name, i.year || '', i.category,
             i.isEbike ? 1 : 0, i.color, i.size, i.capacity, i.mocCzkVat, i.vocCzk,
-            i.availability, i.availabilityText, i.url, i.images[0], i.images.join('|'),
+            i.availability, i.availabilityText, i.url, i.images[0], i.images.join('|'), i.description,
         ].map(csvCell).join(';'));
     }
     return '﻿' + lines.join('\r\n') + '\r\n';
 }
 
 export function feedToJson(items: FeedItem[], meta: FeedMeta): string {
+    // paramLabels: český popisek pro každý klíč, který se v items vyskytuje —
+    // jednou na úrovni feedu, ať se neopakuje v každé položce.
+    const usedKeys = new Set<string>();
+    for (const i of items) for (const k of Object.keys(i.params)) usedKeys.add(k);
+    const paramLabels: Record<string, string> = {};
+    for (const k of [...usedKeys].sort()) paramLabels[k] = paramLabelCz(k);
+
     return JSON.stringify({
         generated: meta.generatedAt,
         priceLevel: meta.level,
         currency: 'CZK',
         itemCount: items.length,
+        paramLabels,
         items,
     });
 }
@@ -126,6 +137,7 @@ export function feedToHeureka(items: FeedItem[]): string {
             `    ${el('CATEGORYTEXT', categoryText)}`,
             `    ${el('URL', i.url)}`,
             `    ${el('IMGURL', i.images[0])}${i.images.slice(1).map((img) => el('IMGURL_ALTERNATIVE', img)).join('')}`,
+            `    ${el('DESCRIPTION', i.description)}`,
             `    ${el('PRICE_VAT', i.mocCzkVat)}${el('DELIVERY_DATE', delivery)}`,
             `    ${params}`,
             '  </SHOPITEM>',

@@ -124,7 +124,10 @@ export default function FeedyPage() {
                 <p className="text-sm text-zinc-500 mt-1 max-w-2xl">
                     Napojte katalog BULLS přímo na svůj e-shop. Vložte adresu feedu do svého systému —
                     ten si data (produkty, obrázky, dostupnost, MOC i vaši VOC) stáhne sám a může je
-                    pravidelně synchronizovat.
+                    pravidelně synchronizovat. Popis všech polí, formátů a parametrů najdete v{' '}
+                    <a href="/zona/feedy/dokumentace" className="text-primary hover:underline font-medium">
+                        integrační dokumentaci
+                    </a>.
                 </p>
             </div>
 

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { dealerPriceForMoc, effectiveDealerLevel } from '@/lib/b2bPrice';
+import { variantDealerPrice } from '@/lib/b2bPrice';
+import { buildFeedDescription } from './paramLabels';
 import { variantAvailability, variantStockCount, isVariantOnOrder, AVAILABILITY_LABELS, VariantAvailabilityState } from '@/lib/availability';
 import { isEbikeProduct, mapRawToTag } from '@/lib/catalogMapping';
 import { standardizeSize, detectCategory } from '@/lib/size-mapping';
@@ -41,6 +42,8 @@ export interface FeedItem {
     availability: VariantAvailabilityState;
     /** Stav dostupnosti (český popisek) */
     availabilityText: string;
+    /** Souhrnný český popis složený z hlavních parametrů */
+    description: string;
     /** Technické parametry (název → hodnota) */
     params: Record<string, string>;
 }
@@ -86,8 +89,8 @@ function pickParams(specs: unknown): Record<string, string> {
 
 /**
  * Převede jeden produkt na položky feedu (per varianta) pro danou hladinu.
- * VOC priorita shodná s ceníkem a objednávkami:
- * variant.b2bPrice > manualB2BPrice/b2bPrice produktu > dealerPriceForMoc.
+ * VOC shodná s detailem i objednávkami (lib/b2bPrice.variantDealerPrice):
+ * ruční cena platí jen pro svou variantu, jinak ceníková hladina.
  */
 export function mapProductToFeedItems(
     productId: string,
@@ -105,7 +108,6 @@ export function mapProductToFeedItems(
     const sizeCategory = detectCategory({ categoryPrgr: p.category, modell: p.model });
     const params = pickParams(p.specs);
     const url = `${SITE_URL}/catalog/${productId}`;
-    const rootManual = Number(p.manualB2BPrice) || Number(p.b2bPrice) || 0;
     const productImages: string[] = Array.isArray(p.images) ? p.images.filter((i: any) => typeof i === 'string') : [];
 
     const items: FeedItem[] = [];
@@ -117,10 +119,7 @@ export function mapProductToFeedItems(
         const capacity = String(v.capacity || '').trim();
         const moc = Number(v.price) > 0 ? Number(v.price) : null;
 
-        let voc: number | null = dealerPriceForMoc(p, effectiveDealerLevel(p, level), moc);
-        const variantB2b = Number(v.b2bPrice) || 0;
-        if (variantB2b > 0) voc = variantB2b;
-        else if (rootManual > 0) voc = rootManual;
+        let voc: number | null = variantDealerPrice(p, v, level);
         if (voc != null) voc = Math.round(voc);
 
         const variantImages: string[] = Array.isArray(v.images) ? v.images.filter((i: any) => typeof i === 'string') : [];
@@ -148,6 +147,7 @@ export function mapProductToFeedItems(
             vocCzk: voc,
             availability,
             availabilityText: AVAILABILITY_LABELS[availability],
+            description: buildFeedDescription({ brand, model, year, category, isEbike: isE, capacity, params }),
             params,
         });
     }

@@ -66,6 +66,32 @@ describe('mapProductToFeedItems', () => {
         }
     });
 
+    it('má souhrnný popis a české popisky parametrů', () => {
+        expect(items[0].description).toContain('BULLS Copperhead EVO 1');
+        expect(items[0].description).toContain('(2026)');
+        const meta = { level: 'A' as const, generatedAt: '2026-09-17T00:00:00.000Z' };
+        const xml = feedToXml(items, meta);
+        expect(xml).toContain('<label_cz>Motor</label_cz>');
+        expect(xml).toContain('<description>');
+        const json = JSON.parse(feedToJson(items, meta));
+        expect(json.paramLabels).toEqual({ battery: 'Baterie', motor: 'Motor' });
+        const csv = feedToCsv(items);
+        expect(csv.split('\r\n')[0].endsWith(';description')).toBe(true);
+    });
+
+    it('ruční cena varianty neovlivní sourozence (per-variantní VOC)', () => {
+        const promo = mapProductToFeedItems('prod-promo', {
+            ...product,
+            manualB2BPrice: 45000,
+            variants: [
+                { id: 'P-1', size: '44 cm', price: 62915, b2bPrice: 45000, stock: 1 },
+                { id: 'P-2', size: '48 cm', price: 62915 },
+            ],
+        }, 'A');
+        expect(promo[0].vocCzk).toBe(45000);
+        expect(promo[1].vocCzk).toBe(40000); // hladina A, ne akční cena souseda
+    });
+
     it('samotné položky neobsahují citlivé klíče (allowlist)', () => {
         const raw = JSON.stringify(items);
         expect(raw).not.toContain('ekPl');
