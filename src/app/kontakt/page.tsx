@@ -14,25 +14,22 @@ export default function KontaktPage() {
         <div className="bg-white rounded-lg shadow-sm p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <div className="h-10 w-10 shrink-0 text-[#9BBC09]">
+              <div className="h-10 w-10 shrink-0 text-primary">
                 <svg viewBox="0 0 24 24" fill="currentColor" className="h-full w-full" aria-hidden="true">
                   <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z" />
                 </svg>
               </div>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">Showroom a servis</h2>
-                <p className="text-sm text-gray-500">poskytuje Adam Bikes</p>
-              </div>
+              <h2 className="text-2xl font-bold text-gray-900">Showroom a servis</h2>
             </div>
 
             <div className="space-y-2 text-gray-700">
               <p className="text-lg font-medium">Nekvasilova 31, 186 00 Praha 8</p>
               <p className="text-sm text-gray-500">metro: Invalidovna</p>
               <p className="pt-2">
-                <a href="mailto:info@biketime.cz" className="text-blue-600 hover:underline">info@biketime.cz</a>
+                <a href="mailto:info@biketime.cz" className="font-medium text-primary hover:underline">info@biketime.cz</a>
               </p>
               <p>
-                tel: <a href="tel:+420604263221" className="text-blue-600 hover:underline">+420 604 263 221</a>
+                tel: <a href="tel:+420604263221" className="font-medium text-primary hover:underline">+420 604 263 221</a>
               </p>
               <p className="pt-2 text-xs uppercase tracking-widest text-gray-400">
                 Kontaktní a korespondenční adresa
@@ -42,7 +39,7 @@ export default function KontaktPage() {
                   href="https://www.google.com/maps/dir/?api=1&destination=50.097614,14.467022"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm font-medium text-[#7a9407] hover:underline"
+                  className="text-sm font-medium text-primary hover:underline"
                 >
                   Navigovat →
                 </a>
