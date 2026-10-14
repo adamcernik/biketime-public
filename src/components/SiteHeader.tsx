@@ -19,22 +19,12 @@ const navItems: { href: string; label: string; highlight?: boolean }[] = [
   { href: '/kontakt', label: 'Kontakt' },
 ];
 
-// Dealer-only entry — currently hidden from the menu on purpose (the page
-// stays reachable directly at /predobjednavky). To show it again to approved
-// dealers, set SHOW_PREORDER_NAV = true. Rendering is hydration-safe:
-// shopUser is null during SSR and the initial client render.
-const SHOW_PREORDER_NAV = true;
-const preorderItem = { href: '/predobjednavky', label: 'Předobjednávky 2027', highlight: true };
-
 export default function SiteHeader() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
   const { shopUser } = useAuth();
 
-  const visibleNavItems = SHOW_PREORDER_NAV && shopUser?.hasAccess
-    ? [...navItems.slice(0, 1), preorderItem, ...navItems.slice(1)]
-    : navItems;
 
   useEffect(() => {
     setMounted(true);
@@ -93,7 +83,7 @@ export default function SiteHeader() {
 
         {/* Desktop Menu */}
         <nav className="hidden md:flex items-center gap-8">
-          {visibleNavItems.map((item) => (
+          {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -135,7 +125,7 @@ export default function SiteHeader() {
             className={`fixed inset-0 bg-white z-40 flex flex-col justify-center items-center gap-8 transition-all duration-300 md:hidden ${open ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'
               }`}
           >
-            {visibleNavItems.map((item) => (
+            {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
