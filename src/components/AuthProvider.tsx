@@ -93,7 +93,16 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    return () => unsub();
+    // Pojistka: Safari občas zasekne IndexedDB a Firebase Auth pak nikdy
+    // neohlásí stav → hlavička by donekonečna ukazovala načítací kolečko.
+    // Po limitu se chováme jako nepřihlášení; pokud se session přece jen
+    // obnoví, onAuthStateChanged výše stav doplní.
+    const fallback = setTimeout(() => setLoading(false), 6000);
+
+    return () => {
+      unsub();
+      clearTimeout(fallback);
+    };
   }, []);
 
   useEffect(() => {

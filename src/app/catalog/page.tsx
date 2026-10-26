@@ -15,7 +15,7 @@ function CatalogNewContent() {
     const searchParams = useSearchParams();
     // Skladové informace (naše i ZEG) jsou jen pro přihlášené partnery —
     // anonymní návštěvník vidí čistý katalog bez stavů skladu a filtrů dostupnosti.
-    const { shopUser } = useAuth();
+    const { shopUser, firebaseUser } = useAuth();
 
     const [products, setProducts] = useState<any[]>([]);
     const [filters, setFilters] = useState<any>({});
@@ -116,6 +116,17 @@ function CatalogNewContent() {
     // can overwrite the correct filtered results.
     const reqIdRef = useRef(0);
 
+    // Uid, jehož token nesl poslední požadavek (null = anonymní). Když se
+    // Firebase session obnoví až po prvním načtení (Safari občas zasekne
+    // IndexedDB a apiGet po limitu pošle požadavek bez tokenu), načteme katalog
+    // ještě jednou, aby přihlášený partner dostal dealerské ceny a sklad.
+    const lastReqUidRef = useRef<string | null>(null);
+    const [authRetry, setAuthRetry] = useState(0);
+    useEffect(() => {
+        const uid = firebaseUser?.uid;
+        if (uid && lastReqUidRef.current !== uid) setAuthRetry((n) => n + 1);
+    }, [firebaseUser?.uid]);
+
     // Fetch Data
     useEffect(() => {
         const reqId = ++reqIdRef.current;
@@ -138,7 +149,9 @@ function CatalogNewContent() {
                 if (availability !== 'all') params.set('availability', availability);
                 if (zegOnly) params.set('zeg', 'true');
 
-                const res = await apiGet(`/api/catalog?${params.toString()}`, { cache: 'no-store' });
+                const res = await apiGet(`/api/catalog?${params.toString()}`, { cache: 'no-store' }, {
+                    onAuth: (uid) => { lastReqUidRef.current = uid; },
+                });
                 const data = await res.json();
 
                 // Ignore responses that have been superseded by a newer request
@@ -177,7 +190,7 @@ function CatalogNewContent() {
             }
         };
         load();
-    }, [selectedCategory, selectedMose, selectedMohe, selectedYear, selectedSize, selectedWheelSize, selectedCapacity, availability, zegOnly, ebikeOnly, debouncedSearch, page]);
+    }, [selectedCategory, selectedMose, selectedMohe, selectedYear, selectedSize, selectedWheelSize, selectedCapacity, availability, zegOnly, ebikeOnly, debouncedSearch, page, authRetry]);
 
     return (
         <main className="min-h-screen bg-zinc-50 pb-20">

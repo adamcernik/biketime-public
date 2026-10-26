@@ -59,8 +59,18 @@ interface Product {
 }
 
 export default function ProductDetailClient({ id }: { id: string }) {
-    const { shopUser, hideB2BPrices } = useAuth();
+    const { shopUser, firebaseUser, hideB2BPrices } = useAuth();
     const { addItem } = useCart();
+
+    // Uid, jehož token nesl poslední načtení detailu (null = anonymní). Když se
+    // session obnoví až potom (Safari + zaseknuté IndexedDB), načteme detail
+    // znovu s tokenem, aby partner dostal dealerské ceny a skladové stavy.
+    const lastReqUidRef = useRef<string | null>(null);
+    const [authRetry, setAuthRetry] = useState(0);
+    useEffect(() => {
+        const uid = firebaseUser?.uid;
+        if (uid && lastReqUidRef.current !== uid) setAuthRetry((n) => n + 1);
+    }, [firebaseUser?.uid]);
     // const router = useRouter(); // Unused variable removed
 
     const [product, setProduct] = useState<Product | null>(null);
@@ -101,7 +111,9 @@ export default function ProductDetailClient({ id }: { id: string }) {
         const load = async () => {
             setLoading(true);
             try {
-                const res = await apiGet(`/api/catalog/${id}`, { cache: 'no-store' });
+                const res = await apiGet(`/api/catalog/${id}`, { cache: 'no-store' }, {
+                    onAuth: (uid) => { lastReqUidRef.current = uid; },
+                });
                 if (!res.ok) throw new Error('Failed to fetch');
                 const data = await res.json();
                 setProduct(data);
@@ -158,7 +170,7 @@ export default function ProductDetailClient({ id }: { id: string }) {
             }
         };
         if (id) load();
-    }, [id]);
+    }, [id, authRetry]);
 
     // Handle Modal
     useEffect(() => {
