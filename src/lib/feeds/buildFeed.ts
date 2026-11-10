@@ -33,6 +33,7 @@ async function buildFeedItems(level: FeedPriceLevel): Promise<CacheEntry> {
     for (const doc of snapshot.docs) {
         const p = doc.data();
         if (p.archived === true) continue;
+        if (p.catalogHidden === true) continue;
         if (p.preorderOnly === true && !visiblePreorderIds.has(doc.id)) continue;
         if (!isProductFeedVisible(p)) continue;
         items.push(...mapProductToFeedItems(doc.id, p, level));

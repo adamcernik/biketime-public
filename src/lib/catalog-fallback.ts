@@ -47,9 +47,10 @@ function toCard(r: Row): SimpleBikeCardProps {
 async function loadAll(): Promise<Row[]> {
     const snap = await adminDb
         .collection('products_v2')
-        .select('brand', 'model', 'year', 'category', 'images', 'minPrice')
+        .select('brand', 'model', 'year', 'category', 'images', 'minPrice', 'catalogHidden')
         .get();
-    return snap.docs.map((d) => {
+    // Products hidden from the catalog must not be recommended either.
+    return snap.docs.filter((d) => d.get('catalogHidden') !== true).map((d) => {
         const data = d.data() as Record<string, unknown>;
         const year = typeof data.year === 'number' ? data.year : parseInt(String(data.year ?? ''), 10) || 0;
         const images = Array.isArray(data.images) ? (data.images as string[]) : [];

@@ -65,7 +65,8 @@ export async function GET(req: NextRequest) {
         // catalog only while the preorder section is open and lists them —
         // same gating as their detail pages. Before the ceník/launch they
         // stay invisible. Archived products (dropped from the current ceník,
-        // no stock) are hidden always.
+        // no stock) and products hidden from the catalog in admin
+        // (catalogHidden) are hidden always.
         const preorderSettings = await adminDb.collection('settings').doc('preorders').get();
         const preordersOpen = preorderSettings.exists && preorderSettings.get('enabled') === true;
         const preorderIdsRaw: unknown = preorderSettings.exists ? preorderSettings.get('productIds') : [];
@@ -73,7 +74,8 @@ export async function GET(req: NextRequest) {
 
         let allProducts = snapshot.docs.filter(d =>
             (d.get('preorderOnly') !== true || visiblePreorderIds.has(d.id)) &&
-            d.get('archived') !== true
+            d.get('archived') !== true &&
+            d.get('catalogHidden') !== true
         ).map(d => {
             const data = d.data();
             const product = { id: d.id, ...data } as any;

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { adminDb } from '@/lib/firebase-admin';
 import { findReplacementsForMissing } from '@/lib/catalog-fallback';
-import { isProductPubliclyVisible } from '@/lib/preorderVisibility';
+import { isCatalogHidden, isProductPubliclyVisible } from '@/lib/preorderVisibility';
 import ProductDetailClient from './ProductDetailClient';
 import ProductUnavailable from '@/components/ProductUnavailable';
 
@@ -34,10 +34,17 @@ export default async function CatalogDetailPage({ params }: { params: Promise<{ 
     const snap = await adminDb.collection('products_v2').doc(id).get();
 
     if (snap.exists) {
+        const data = snap.data();
+        if (await isProductPubliclyVisible(id, data)) return <ProductDetailClient id={id} />;
+        // Hidden from the catalog in admin — treat a shared link like a bike that
+        // left the catalog (soft 404 with replacements), not a hard 404.
+        if (isCatalogHidden(data)) {
+            const info = await findReplacementsForMissing(id);
+            return <ProductUnavailable {...info} />;
+        }
         // Preorder-only bikes (no prices yet) are hidden from the public web
         // until the preorder section opens and includes them.
-        if (!(await isProductPubliclyVisible(id, snap.data()))) notFound();
-        return <ProductDetailClient id={id} />;
+        notFound();
     }
 
     // Gone from the catalog — keep the shared link useful instead of a hard 404.

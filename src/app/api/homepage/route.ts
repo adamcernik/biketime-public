@@ -19,6 +19,8 @@ export async function GET() {
 
       if (productSnap.exists) {
         const product = productSnap.data() as any;
+        // Hidden from the catalog in admin — never feature it on the homepage.
+        if (product.catalogHidden === true) continue;
 
         // Transform products_v2 data to match SimpleBikeCard interface
         bikes.push({

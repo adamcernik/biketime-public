@@ -25,7 +25,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let productRoutes: MetadataRoute.Sitemap = [];
   try {
     const snapshot = await adminDb.collection('products_v2').get();
-    productRoutes = snapshot.docs.map((d) => ({
+    productRoutes = snapshot.docs.filter((d) => d.get('catalogHidden') !== true).map((d) => ({
       url: `${BASE_URL}/catalog/${d.id}`,
       changeFrequency: 'weekly' as const,
       priority: 0.7,
