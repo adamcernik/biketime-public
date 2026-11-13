@@ -47,7 +47,11 @@ export interface OrderEmailData {
     note?: string;
     items: OrderEmailItem[];
     totalCzk: number;
+    /** 'top-akce' = objednávka z akční nabídky (jiný předmět a text potvrzení). */
+    source?: string;
 }
+
+const isTopAkce = (d: OrderEmailData) => d.source === 'top-akce';
 
 function itemsTable(items: OrderEmailItem[], totalCzk: number): string {
     const rows = items
@@ -80,9 +84,9 @@ export async function sendOrderNotifyToAdmin(d: OrderEmailData): Promise<boolean
         await resend.emails.send({
             from: FROM,
             to: NOTIFY_TO,
-            subject: `Nová objednávka: ${d.companyName || d.email} (${total} ks, ${czk(d.totalCzk)})`,
+            subject: `${isTopAkce(d) ? 'Nová objednávka TOP AKCE' : 'Nová objednávka'}: ${d.companyName || d.email} (${total} ks, ${czk(d.totalCzk)})`,
             html: `
-        <p>Partner odeslal objednávku:</p>
+        <p>Partner odeslal objednávku${isTopAkce(d) ? ' <strong>z akční nabídky TOP AKCE</strong> (čeká na potvrzení)' : ''}:</p>
         <table style="border-collapse:collapse;font-size:14px;margin-bottom:16px">
           <tr><td style="padding:2px 12px 2px 0;color:#888">Firma</td><td><strong>${esc(d.companyName) || '—'}</strong></td></tr>
           <tr><td style="padding:2px 12px 2px 0;color:#888">Kontakt</td><td><strong>${esc(d.contactName) || '—'}</strong></td></tr>
@@ -117,11 +121,15 @@ export async function sendOrderAck(d: OrderEmailData): Promise<boolean> {
         await resend.emails.send({
             from: FROM,
             to: d.email,
-            subject: 'Přijali jsme vaši objednávku — Biketime',
+            subject: isTopAkce(d) ? 'Přijali jsme vaši objednávku z TOP AKCE — Biketime' : 'Přijali jsme vaši objednávku — Biketime',
             html: `
         <p>${greeting}</p>
-        <p>děkujeme za objednávku — přijali jsme ji a&nbsp;ozveme se
-        s&nbsp;potvrzením dostupnosti a&nbsp;termínu dodání.</p>
+        ${isTopAkce(d)
+            ? `<p>děkujeme za objednávku z&nbsp;akční nabídky TOP AKCE. Objednávka je zatím
+        <strong>nezávazná</strong> — kola jsou ve skladu výrobce, dostupnost ověříme
+        a&nbsp;objednávku vám následně potvrdíme včetně termínu dodání.</p>`
+            : `<p>děkujeme za objednávku — přijali jsme ji a&nbsp;ozveme se
+        s&nbsp;potvrzením dostupnosti a&nbsp;termínu dodání.</p>`}
         ${itemsTable(d.items, d.totalCzk)}
         ${d.note ? `<p style="margin-top:12px"><span style="color:#888">Vaše poznámka:</span> ${esc(d.note)}</p>` : ''}
         <p style="margin-top:16px">S pozdravem,<br/>tým Biketime</p>

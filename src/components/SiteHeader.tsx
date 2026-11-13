@@ -10,7 +10,7 @@ import UserAuthButton from './UserAuthButton';
 import CartButton from './CartButton';
 import { useAuth } from './AuthProvider';
 
-const navItems: { href: string; label: string; highlight?: boolean }[] = [
+const navItems: { href: string; label: string; highlight?: boolean; badge?: boolean }[] = [
   { href: '/catalog', label: 'Katalog kol' },
   { href: '/prislusenstvi', label: 'Příslušenství' },
   { href: '/prodejny', label: 'Prodejny' },
@@ -24,6 +24,10 @@ export default function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
   const { shopUser } = useAuth();
+  // TOP AKCE — akční nabídka jen pro schválené obchodníky; v menu až po přihlášení.
+  const items = shopUser?.hasAccess
+    ? [...navItems, { href: '/top-akce', label: 'TOP AKCE', highlight: true, badge: true }]
+    : navItems;
 
 
   useEffect(() => {
@@ -83,11 +87,13 @@ export default function SiteHeader() {
 
         {/* Desktop Menu */}
         <nav className="hidden md:flex items-center gap-8">
-          {navItems.map((item) => (
+          {items.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className={`text-sm font-medium transition-colors uppercase tracking-wide ${item.highlight ? 'text-primary hover:text-primary/80' : 'text-zinc-600 hover:text-primary'}`}
+              className={`text-sm font-medium transition-colors uppercase tracking-wide ${item.badge
+                ? 'bg-yellow-400 text-zinc-900 font-bold px-3 py-1.5 rounded-md hover:bg-yellow-300'
+                : item.highlight ? 'text-primary hover:text-primary/80' : 'text-zinc-600 hover:text-primary'}`}
             >
               {item.label}
             </Link>
@@ -125,11 +131,13 @@ export default function SiteHeader() {
             className={`fixed inset-0 bg-white z-40 flex flex-col justify-center items-center gap-8 transition-all duration-300 md:hidden ${open ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'
               }`}
           >
-            {navItems.map((item) => (
+            {items.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`text-2xl font-semibold transition-colors ${item.highlight ? 'text-primary hover:text-primary/80' : 'text-zinc-800 hover:text-primary'}`}
+                className={`text-2xl font-semibold transition-colors ${item.badge
+                  ? 'bg-yellow-400 text-zinc-900 font-bold px-5 py-2 rounded-lg'
+                  : item.highlight ? 'text-primary hover:text-primary/80' : 'text-zinc-800 hover:text-primary'}`}
                 onClick={() => setOpen(false)}
               >
                 {item.label}
