@@ -116,8 +116,9 @@ export async function POST(request: NextRequest) {
                 year: Number(product.year) || 0,
                 color: String(variant.color || ''),
                 size: String(variant.size || ''),
-                frameShape: variant.frameShape ? String(variant.frameShape) : undefined,
-                capacity: variant.capacity ? String(variant.capacity) : undefined,
+                // Firestore odmítá `undefined` — volitelná pole přidat jen s hodnotou
+                ...(variant.frameShape ? { frameShape: String(variant.frameShape) } : {}),
+                ...(variant.capacity ? { capacity: String(variant.capacity) } : {}),
                 unitPriceCzk: unitPrice != null ? Math.round(unitPrice) : null,
             });
         }
