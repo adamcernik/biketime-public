@@ -80,7 +80,8 @@ export async function POST(request: NextRequest) {
                 year: doc.year ?? 0,
                 color: doc.color ?? '',
                 size: sizeLabel(doc) ?? '',
-                capacity: doc.capacity ?? undefined,
+                // Firestore odmítá `undefined` — kapacitu přidat jen když existuje
+                ...(doc.capacity ? { capacity: doc.capacity } : {}),
                 unitPriceCzk: pub.vocCzk,
                 mocCzk: pub.mocCzk,
             });
