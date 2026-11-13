@@ -73,7 +73,13 @@ function groupItems(items: Item[]): Group[] {
         if (g) {
             g.items.push(it);
             g.available += it.available;
+            // Některé velikosti znají víc (fotku, barvu, kapacitu) než první řádek skupiny.
             if (!g.image && it.image) g.image = it.image;
+            if (!g.color && it.color) g.color = it.color;
+            if (!g.frameType && it.frameType) g.frameType = it.frameType;
+            if (!g.capacity && it.capacity) g.capacity = it.capacity;
+            if (!g.category && it.category) g.category = it.category;
+            if (!g.year && it.year) g.year = it.year;
             continue;
         }
         map.set(it.groupKey, {
