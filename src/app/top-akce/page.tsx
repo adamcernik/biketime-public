@@ -30,6 +30,7 @@ interface Item {
     image: string | null;
     color: string | null;
     size: string | null;
+    frameType: string | null;
     capacity: string | null;
     category: string | null;
     qtyDe: number;
@@ -50,6 +51,7 @@ interface Group {
     isEbike: boolean;
     image: string | null;
     color: string | null;
+    frameType: string | null;
     capacity: string | null;
     category: string | null;
     vocCzk: number;
@@ -82,6 +84,7 @@ function groupItems(items: Item[]): Group[] {
             isEbike: it.isEbike,
             image: it.image,
             color: it.color,
+            frameType: it.frameType,
             capacity: it.capacity,
             category: it.category,
             vocCzk: it.vocCzk,
@@ -146,9 +149,9 @@ function OfferCard({ group, qty, onQty }: {
                 <div>
                     <div className="text-[11px] uppercase tracking-wide text-zinc-400">{group.brand}{group.category ? ` · ${group.category}` : ''}</div>
                     <h2 className="font-bold text-zinc-900 leading-tight">{group.model}</h2>
-                    {(group.color || group.capacity) && (
+                    {(group.color || group.frameType || group.capacity) && (
                         <div className="text-xs text-zinc-500 mt-0.5">
-                            {[group.color, group.capacity ? (group.capacity.toLowerCase().includes('wh') ? group.capacity : `${group.capacity} Wh`) : ''].filter(Boolean).join(' · ')}
+                            {[group.color, group.frameType, group.capacity ? (group.capacity.toLowerCase().includes('wh') ? group.capacity : `${group.capacity} Wh`) : ''].filter(Boolean).join(' · ')}
                         </div>
                     )}
                 </div>
@@ -276,7 +279,7 @@ function OrderPanel({ lines, total, count, onClose, onQty, onDone }: {
                             <div className="flex-1 min-w-0">
                                 <div className="font-semibold text-zinc-900 text-sm truncate">{item.brand} {item.model}{item.year ? ` (${item.year})` : ''}</div>
                                 <div className="text-xs text-zinc-500">
-                                    {[item.color, item.size ? `vel. ${item.size}` : ''].filter(Boolean).join(' · ')}
+                                    {[item.color, item.frameType, item.size ? `vel. ${item.size}` : ''].filter(Boolean).join(' · ')}
                                     <span className="font-mono text-zinc-300 ml-2">{item.artNr}</span>
                                 </div>
                             </div>

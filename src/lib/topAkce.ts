@@ -42,6 +42,7 @@ export interface TopAkceItemDoc {
     image: string | null;
     color: string | null;
     size: string | null;
+    frameType?: string | null;
     capacity: string | null;
     category: string | null;
 }
@@ -58,6 +59,8 @@ export interface TopAkcePublicItem {
     color: string | null;
     /** Velikost z katalogu (S/M/L…) nebo výška rámu z artiklu („48 cm"). */
     size: string | null;
+    /** Typ rámu (Gent / Trapez / Wave…), pokud ho známe. */
+    frameType: string | null;
     capacity: string | null;
     category: string | null;
     qtyDe: number;
@@ -127,6 +130,7 @@ export function toPublicItem(doc: TopAkceItemDoc, ordered: number, rate: number)
         image: doc.image ?? null,
         color: doc.color ?? null,
         size: sizeLabel(doc),
+        frameType: doc.frameType ?? null,
         capacity: doc.capacity ?? null,
         category: doc.category ?? null,
         qtyDe: Number(doc.qtyDe) || 0,

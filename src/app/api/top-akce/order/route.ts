@@ -81,6 +81,7 @@ export async function POST(request: NextRequest) {
                 color: doc.color ?? '',
                 size: sizeLabel(doc) ?? '',
                 // Firestore odmítá `undefined` — kapacitu přidat jen když existuje
+                ...(doc.frameType ? { frameShape: doc.frameType } : {}),
                 ...(doc.capacity ? { capacity: doc.capacity } : {}),
                 unitPriceCzk: pub.vocCzk,
                 mocCzk: pub.mocCzk,
