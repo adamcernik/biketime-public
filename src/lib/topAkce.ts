@@ -93,17 +93,28 @@ export async function loadActiveItems(): Promise<TopAkceItemDoc[]> {
         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 }
 
-/** Součet objednaných kusů podle artiklu z nezrušených TOP AKCE objednávek. */
+/**
+ * Součet kusů vázaných TOP AKCE objednávkami podle artiklu: zrušené nic,
+ * potvrzené/expedované kusy potvrzené adminem (`confirmedQty`, když
+ * potvrzení proběhlo), nové objednané kusy. Stejná logika je v administraci
+ * (`biketime/src/lib/orderQty.ts`) — měnit spolu.
+ */
 export async function loadOrderedCounts(): Promise<Map<string, number>> {
     const snap = await adminDb.collection('orders').where('source', '==', TOP_AKCE_SOURCE).get();
     const counts = new Map<string, number>();
     snap.forEach(doc => {
-        const o = doc.data() as { status?: string; items?: { variantId?: string; quantity?: number }[] };
+        const o = doc.data() as {
+            status?: string;
+            confirmedAt?: string | null;
+            items?: { variantId?: string; quantity?: number; confirmedQty?: number | null }[];
+        };
         if (o.status === 'cancelled') return;
+        const confirmed = (o.status === 'confirmed' || o.status === 'shipped') && !!o.confirmedAt;
         for (const it of o.items || []) {
             const key = String(it.variantId || '');
             if (!key) continue;
-            counts.set(key, (counts.get(key) || 0) + (Number(it.quantity) || 0));
+            const qty = confirmed && it.confirmedQty != null ? Math.max(0, Number(it.confirmedQty) || 0) : (Number(it.quantity) || 0);
+            counts.set(key, (counts.get(key) || 0) + qty);
         }
     });
     return counts;

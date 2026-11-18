@@ -9,12 +9,17 @@ interface OrderItem {
     brand: string; model: string; year: number; color: string; size: string;
     frameShape?: string; capacity?: string; variantId: string; quantity: number;
     unitPriceCzk?: number | null;
+    /** Kusy potvrzené Biketime (0 = nedodáme); jen u potvrzených objednávek. */
+    confirmedQty?: number | null;
 }
 
 interface Order {
     id: string; status: string; createdAt: string; itemCount: number;
     totalCzk?: number; season?: string; note?: string; items: OrderItem[];
+    confirmedAt?: string | null; confirmedItemCount?: number; confirmedTotalCzk?: number; confirmNote?: string;
 }
+
+const isConfirmed = (o: Order) => !!o.confirmedAt && (o.status === 'confirmed' || o.status === 'shipped' || o.status === 'cancelled');
 
 const ORDER_STATUS: Record<string, { label: string; cls: string }> = {
     new: { label: 'Nová', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
@@ -98,11 +103,31 @@ function OrderList({ orders, kind, fetching }: { orders: Order[]; kind: 'order' 
                                                         {item.unitPriceCzk != null ? `${czk(item.unitPriceCzk)}/ks` : '—'}
                                                     </td>
                                                 )}
-                                                <td className="py-2 text-right font-semibold whitespace-nowrap">{item.quantity}×</td>
+                                                {kind === 'order' && isConfirmed(order) ? (() => {
+                                                    const confirmed = Math.max(0, Number(item.confirmedQty ?? item.quantity) || 0);
+                                                    const short = confirmed < item.quantity;
+                                                    return (
+                                                        <td className="py-2 text-right whitespace-nowrap">
+                                                            <span className="text-zinc-400 line-through mr-2">{short ? `${item.quantity}×` : ''}</span>
+                                                            {confirmed === 0
+                                                                ? <span className="text-red-600 font-semibold">nedodáme</span>
+                                                                : <span className={`font-semibold ${short ? 'text-red-600' : 'text-zinc-900'}`}>{confirmed}×</span>}
+                                                        </td>
+                                                    );
+                                                })() : (
+                                                    <td className="py-2 text-right font-semibold whitespace-nowrap">{item.quantity}×</td>
+                                                )}
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
+                                {kind === 'order' && isConfirmed(order) && (
+                                    <p className="text-xs text-zinc-600 mt-3">
+                                        Potvrzeno {new Date(order.confirmedAt!).toLocaleDateString('cs-CZ')}: <strong>{order.confirmedItemCount ?? order.items.reduce((s, i) => s + Math.max(0, Number(i.confirmedQty ?? i.quantity) || 0), 0)} ks</strong>
+                                        {order.confirmedTotalCzk != null && <> · celkem <strong>{czk(order.confirmedTotalCzk)}</strong> bez DPH</>}
+                                        {order.confirmNote && <><br /><span className="text-zinc-400">Zpráva od Biketime:</span> {order.confirmNote}</>}
+                                    </p>
+                                )}
                                 {order.note && <p className="text-xs text-zinc-500 mt-3"><span className="text-zinc-400">Poznámka:</span> {order.note}</p>}
                             </div>
                         )}

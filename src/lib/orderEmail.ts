@@ -143,3 +143,114 @@ export async function sendOrderAck(d: OrderEmailData): Promise<boolean> {
         return false;
     }
 }
+
+/* ───────────────── potvrzení objednávky s reálnými kusy ───────────────── */
+
+export interface ConfirmedOrderLine extends OrderEmailItem {
+    /** Kusy potvrzené adminem; 0 = nedodáme. */
+    confirmedQty?: number | null;
+}
+
+/** Objednávka tak, jak leží v `orders/{id}` po potvrzení v administraci. */
+export interface ConfirmedOrderDoc {
+    id: string;
+    email: string;
+    status?: string;
+    source?: string;
+    customer?: { companyName?: string; contactName?: string };
+    items: ConfirmedOrderLine[];
+    totalCzk?: number;
+    confirmedAt?: string | null;
+    confirmedItemCount?: number;
+    confirmedTotalCzk?: number;
+    /** Zpráva partnerovi od Biketime (termín dodání apod.). */
+    confirmNote?: string;
+}
+
+function confirmationTable(items: ConfirmedOrderLine[], confirmedTotalCzk: number): string {
+    const rows = items
+        .map((i) => {
+            const ordered = Number(i.quantity) || 0;
+            const confirmed = Math.max(0, Number(i.confirmedQty ?? ordered) || 0);
+            const short = confirmed < ordered;
+            const rowStyle = confirmed === 0 ? 'color:#999' : '';
+            const confirmedCell = confirmed === 0
+                ? '<span style="color:#c0392b;font-weight:bold">nedodáme</span>'
+                : `<strong style="${short ? 'color:#c0392b' : ''}">${confirmed}×</strong>`;
+            return `<tr style="${rowStyle}">
+        <td style="padding:4px 12px 4px 0"><strong>${esc(i.brand)} ${esc(i.model)}</strong>${i.year ? ` (${esc(i.year)})` : ''}</td>
+        <td style="padding:4px 12px 4px 0">${[i.color, i.frameShape, i.capacity].filter(Boolean).map(esc).join(' · ')}</td>
+        <td style="padding:4px 12px 4px 0">${esc(i.size)}</td>
+        <td style="padding:4px 12px 4px 0;color:#888">${esc(i.variantId)}</td>
+        <td style="padding:4px 12px 4px 0;text-align:right">${i.unitPriceCzk != null ? czk(i.unitPriceCzk) : '—'}</td>
+        <td style="padding:4px 12px 4px 0;text-align:right;color:#888">${ordered}×</td>
+        <td style="padding:4px 0;text-align:right">${confirmedCell}</td>
+      </tr>`;
+        })
+        .join('');
+    return `<table style="border-collapse:collapse;font-size:14px">
+    <tr style="color:#888;text-align:left"><th style="padding-right:12px">Model</th><th style="padding-right:12px">Provedení</th><th style="padding-right:12px">Velikost</th><th style="padding-right:12px">NrLf</th><th style="padding-right:12px;text-align:right">VOC/ks</th><th style="padding-right:12px;text-align:right">Objednáno</th><th style="text-align:right">Potvrzeno</th></tr>
+    ${rows}
+    <tr><td colspan="5"></td><td style="padding-top:8px;text-align:right;color:#888">Celkem bez DPH</td><td style="padding-top:8px;text-align:right"><strong>${czk(confirmedTotalCzk)}</strong></td></tr>
+  </table>`;
+}
+
+/**
+ * Potvrzení objednávky partnerovi s reálnými kusy, které dodáme. Kopie jde
+ * na interní adresu (NOTIFY_TO). Vrací chybu jako text — volající ji uloží
+ * k objednávce a admin může e-mail poslat znovu.
+ */
+export async function sendOrderConfirmation(o: ConfirmedOrderDoc): Promise<{ ok: true } | { ok: false; error: string }> {
+    if (!resend) return { ok: false, error: 'RESEND_API_KEY není nastaven' };
+    if (!o.email) return { ok: false, error: 'Objednávka nemá e-mail' };
+
+    const items = Array.isArray(o.items) ? o.items : [];
+    const orderedQty = items.reduce((s, i) => s + (Number(i.quantity) || 0), 0);
+    const confirmedQty = o.confirmedItemCount ?? items.reduce((s, i) => s + Math.max(0, Number(i.confirmedQty ?? i.quantity) || 0), 0);
+    const confirmedTotal = o.confirmedTotalCzk
+        ?? items.reduce((s, i) => s + (i.unitPriceCzk ?? 0) * Math.max(0, Number(i.confirmedQty ?? i.quantity) || 0), 0);
+    const nothing = confirmedQty === 0;
+    const differs = confirmedQty !== orderedQty;
+    const topAkce = o.source === 'top-akce';
+    const greeting = o.customer?.contactName ? `Dobrý den ${esc(o.customer.contactName)},` : 'Dobrý den,';
+
+    const intro = nothing
+        ? `<p>bohužel vám musíme oznámit, že objednávku <strong>${esc(o.id)}</strong>${topAkce ? ' z&nbsp;akční nabídky TOP AKCE' : ''}
+       nemůžeme vyřídit — objednaná kola se u&nbsp;výrobce mezitím prodala. Omlouváme se.</p>`
+        : differs
+            ? `<p>potvrzujeme vaši objednávku <strong>${esc(o.id)}</strong>${topAkce ? ' z&nbsp;akční nabídky TOP AKCE' : ''}.
+       U&nbsp;některých položek jsme bohužel nemohli potvrdit plný počet — kola se u&nbsp;výrobce mezitím prodala.
+       Dodáme kusy ve sloupci <strong>Potvrzeno</strong>; položky označené „nedodáme“ z&nbsp;objednávky vypadávají.</p>`
+            : `<p>potvrzujeme vaši objednávku <strong>${esc(o.id)}</strong>${topAkce ? ' z&nbsp;akční nabídky TOP AKCE' : ''}
+       v&nbsp;plném rozsahu.</p>`;
+
+    const subject = nothing
+        ? `Objednávku ${o.id} bohužel nemůžeme vyřídit — Biketime`
+        : differs
+            ? `Potvrzení objednávky ${o.id} (upravené počty) — Biketime`
+            : `Potvrzení objednávky ${o.id} — Biketime`;
+
+    try {
+        await resend.emails.send({
+            from: FROM,
+            to: o.email,
+            bcc: NOTIFY_TO,
+            replyTo: NOTIFY_TO,
+            subject,
+            html: `
+        <p>${greeting}</p>
+        ${intro}
+        ${confirmationTable(items, confirmedTotal)}
+        ${!nothing ? `<p style="margin-top:12px;color:#555;font-size:13px">Fakturovat budeme jen potvrzené kusy (ceny VOC bez DPH).</p>` : ''}
+        ${o.confirmNote ? `<p style="margin-top:12px"><span style="color:#888">Zpráva od Biketime:</span><br/>${esc(o.confirmNote).replace(/\n/g, '<br/>')}</p>` : ''}
+        <p style="margin-top:16px">S pozdravem,<br/>tým Biketime</p>
+        <hr/>
+        <p style="color:#888;font-size:12px">Číslo objednávky: ${esc(o.id)}. Odpovědí na tento e-mail se dostanete na ${esc(NOTIFY_TO)}.</p>
+      `,
+        });
+        return { ok: true };
+    } catch (e) {
+        console.error('[orderEmail] confirmation failed:', e);
+        return { ok: false, error: e instanceof Error ? e.message : 'Odeslání selhalo' };
+    }
+}
