@@ -4,6 +4,7 @@ import { getApprovedCustomer } from '@/lib/shopCustomer';
 import { rateLimit } from '@/lib/rateLimit';
 import { sendOrderAck, sendOrderNotifyToAdmin, OrderEmailItem } from '@/lib/orderEmail';
 import { loadActiveItems, loadOrderedCounts, loadTopAkceSettings, sizeLabel, toPublicItem, TOP_AKCE_SOURCE } from '@/lib/topAkce';
+import { TOP_AKCE_PAUSED, TOP_AKCE_PAUSE_TITLE } from '@/lib/topAkcePause';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,6 +28,9 @@ export async function POST(request: NextRequest) {
         const customer = await getApprovedCustomer(request);
         if (!customer) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+        if (TOP_AKCE_PAUSED) {
+            return NextResponse.json({ error: `${TOP_AKCE_PAUSE_TITLE} — objednávky momentálně nepřijímáme.` }, { status: 400 });
         }
         if (!(await rateLimit(`top-akce-order:${customer.uid}`, 10, 3600))) {
             return NextResponse.json({ error: 'Příliš mnoho objednávek, zkuste to později.' }, { status: 429 });

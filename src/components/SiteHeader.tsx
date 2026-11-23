@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import logoImage from '@/assets/biketime-logo.png';
+import { TOP_AKCE_PAUSED } from '@/lib/topAkcePause';
 import UserAuthButton from './UserAuthButton';
 import CartButton from './CartButton';
 import { useAuth } from './AuthProvider';
@@ -25,7 +26,8 @@ export default function SiteHeader() {
   const [mounted, setMounted] = useState(false);
   const { shopUser } = useAuth();
   // TOP AKCE — akční nabídka jen pro schválené obchodníky; v menu až po přihlášení.
-  const items = shopUser?.hasAccess
+  // Při pauze (TOP_AKCE_PAUSED) se v menu neukazuje nikomu.
+  const items = shopUser?.hasAccess && !TOP_AKCE_PAUSED
     ? [...navItems, { href: '/top-akce', label: 'TOP AKCE', highlight: true, badge: true }]
     : navItems;
 

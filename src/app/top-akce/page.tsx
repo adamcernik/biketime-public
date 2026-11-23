@@ -19,6 +19,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { apiGet } from '@/lib/clientApi';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
 import { track } from '@/lib/analytics';
+import { TOP_AKCE_PAUSED, TOP_AKCE_PAUSE_MESSAGE, TOP_AKCE_PAUSE_TITLE } from '@/lib/topAkcePause';
 
 interface Item {
     artNr: string;
@@ -375,7 +376,7 @@ export default function TopAkcePage() {
 
     useEffect(() => {
         if (authLoading) return;
-        if (!canSee) { setLoading(false); return; }
+        if (!canSee || TOP_AKCE_PAUSED) { setLoading(false); return; }
         load();
     }, [authLoading, canSee]);
 
@@ -408,6 +409,22 @@ export default function TopAkcePage() {
             return copy;
         });
     };
+
+    // Ruční pauza nabídky — stránka je nedostupná všem, i schváleným partnerům.
+    if (TOP_AKCE_PAUSED) {
+        return (
+            <main className="min-h-screen bg-zinc-50 flex items-center justify-center px-4">
+                <div className="bg-white rounded-3xl border border-zinc-100 shadow-sm p-10 text-center max-w-md">
+                    <span className="inline-block text-xs font-bold px-2.5 py-1 rounded-md bg-yellow-400 text-zinc-900 mb-4">TOP AKCE</span>
+                    <h1 className="text-xl font-bold text-zinc-900 mb-2">{TOP_AKCE_PAUSE_TITLE}</h1>
+                    <p className="text-sm text-zinc-500 mb-6">{TOP_AKCE_PAUSE_MESSAGE}</p>
+                    <Link href="/zona/objednavky" className="inline-block px-6 py-3 bg-zinc-900 text-white font-bold rounded-xl">
+                        Moje objednávky
+                    </Link>
+                </div>
+            </main>
+        );
+    }
 
     if (authLoading || (canSee && loading)) {
         return (

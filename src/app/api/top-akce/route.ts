@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getApprovedCustomer } from '@/lib/shopCustomer';
 import { loadTopAkceOffer } from '@/lib/topAkce';
+import { TOP_AKCE_PAUSED } from '@/lib/topAkcePause';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +16,9 @@ export async function GET(request: NextRequest) {
         const customer = await getApprovedCustomer(request);
         if (!customer) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+        if (TOP_AKCE_PAUSED) {
+            return NextResponse.json({ published: false, paused: true, intro: '', eurCzk: null, items: [] }, { headers: { 'Cache-Control': 'private, no-store' } });
         }
         const { settings, items } = await loadTopAkceOffer();
         return NextResponse.json(
