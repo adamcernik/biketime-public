@@ -51,6 +51,17 @@ describe('mapProductToFeedItems', () => {
         expect(items[1].images).toEqual(['https://assets.zeg.de/p/root.jpg']);
     });
 
+    it('kapacita s jednotkou nezdvojí „Wh" v názvu', () => {
+        const withUnit = mapProductToFeedItems('prod-wh', {
+            ...product,
+            variants: [{ id: 'W-1', size: 'M', capacity: '600 Wh', price: 50000 }],
+        }, 'A');
+        expect(withUnit[0].capacity).toBe('600');
+        expect(withUnit[0].name).toContain('600 Wh vel. M');
+        expect(withUnit[0].name).not.toContain('Wh Wh');
+        expect(items[0].name).toContain('750 Wh');
+    });
+
     it('VOC odpovídá hladině (A = MOC × ~0.6357 škálovaná přes anchor)', () => {
         // priceLevelsCzk.A = 40000, anchor MOC = 62915 → VOC pro MOC 62915 = 40000
         expect(items[0].vocCzk).toBe(40000);

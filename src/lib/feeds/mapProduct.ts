@@ -116,7 +116,8 @@ export function mapProductToFeedItems(
 
         const size = standardizeSize(String(v.size || ''), sizeCategory) || String(v.size || '');
         const color = String(v.color || '').trim();
-        const capacity = String(v.capacity || '').trim();
+        // Kapacita občas přijde i s jednotkou („600 Wh") — do názvu ji doplňujeme sami.
+        const capacity = String(v.capacity || '').trim().replace(/\s*wh$/i, '');
         const moc = Number(v.price) > 0 ? Number(v.price) : null;
 
         let voc: number | null = variantDealerPrice(p, v, level);

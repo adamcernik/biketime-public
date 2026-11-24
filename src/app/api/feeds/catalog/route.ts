@@ -2,7 +2,8 @@ import { NextRequest, NextResponse, after } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { rateLimit } from '@/lib/rateLimit';
 import { getFeedItems } from '@/lib/feeds/buildFeed';
-import { applyFeedFilters, DEFAULT_FEED_FILTERS, FeedFilters, FeedPriceLevel } from '@/lib/feeds/mapProduct';
+import { applyFeedFilters } from '@/lib/feeds/mapProduct';
+import { partnerFeedConfig } from '@/lib/feeds/partnerConfig';
 import { FEED_CONTENT_TYPES, FeedFormat, serializeFeed } from '@/lib/feeds/serialize';
 
 export const dynamic = 'force-dynamic';
@@ -42,27 +43,17 @@ export async function GET(req: NextRequest) {
         }
 
         const userDoc = snap.docs[0];
-        const u = userDoc.data() as Record<string, unknown>;
-        const feedCfg = (u.feed || {}) as Record<string, unknown>;
-        if (u.hasAccess !== true || feedCfg.enabled === false) {
+        // Stejné odvození hladiny a filtrů používá admin náhled (partnerConfig.ts).
+        const { level, filters, access, lastFetchAt: lastFetchIso } = partnerFeedConfig(userDoc.data() as Record<string, unknown>);
+        if (access !== 'active') {
             return NextResponse.json({ error: 'Feed disabled' }, { status: 403 });
         }
-
-        const level = (typeof u.priceLevel === 'string' && ['A', 'B', 'C', 'D'].includes(u.priceLevel)
-            ? u.priceLevel
-            : 'A') as FeedPriceLevel;
-
-        const saved = (feedCfg.settings || {}) as Partial<FeedFilters>;
-        const filters: FeedFilters = {
-            ebike: saved.ebike === 'ebike' || saved.ebike === 'bike' ? saved.ebike : DEFAULT_FEED_FILTERS.ebike,
-            onlyAvailable: saved.onlyAvailable === true,
-        };
 
         const items = applyFeedFilters(await getFeedItems(level), filters);
         const body = serializeFeed(format, items, { level, generatedAt: new Date().toISOString() });
 
         // Throttlovaný záznam posledního stažení — po odeslání odpovědi.
-        const lastFetchAt = typeof feedCfg.lastFetchAt === 'string' ? Date.parse(feedCfg.lastFetchAt) : 0;
+        const lastFetchAt = lastFetchIso ? Date.parse(lastFetchIso) : 0;
         if (!lastFetchAt || Date.now() - lastFetchAt > LAST_FETCH_WRITE_MS) {
             after(() => userDoc.ref
                 .set({ feed: { lastFetchAt: new Date().toISOString(), lastFetchFormat: format } }, { merge: true })

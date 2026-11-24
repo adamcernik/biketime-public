@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { adminDb } from '@/lib/firebase-admin';
 import { getApprovedCustomer } from '@/lib/shopCustomer';
 import { DEFAULT_FEED_FILTERS, FeedFilters } from '@/lib/feeds/mapProduct';
+import { parseFeedFilters } from '@/lib/feeds/partnerConfig';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,14 +13,6 @@ export const dynamic = 'force-dynamic';
 
 function newToken(): string {
     return randomBytes(24).toString('base64url'); // 32 znaků
-}
-
-function parseFilters(raw: unknown): FeedFilters {
-    const s = (raw || {}) as Partial<FeedFilters>;
-    return {
-        ebike: s.ebike === 'ebike' || s.ebike === 'bike' ? s.ebike : DEFAULT_FEED_FILTERS.ebike,
-        onlyAvailable: s.onlyAvailable === true,
-    };
 }
 
 interface FeedState {
@@ -32,7 +25,7 @@ interface FeedState {
 function toState(feed: Record<string, unknown>): FeedState {
     return {
         token: String(feed.token || ''),
-        settings: parseFilters(feed.settings),
+        settings: parseFeedFilters(feed.settings),
         lastFetchAt: typeof feed.lastFetchAt === 'string' ? feed.lastFetchAt : null,
         lastFetchFormat: typeof feed.lastFetchFormat === 'string' ? feed.lastFetchFormat : null,
     };
@@ -66,7 +59,7 @@ export async function PUT(request: NextRequest) {
     } catch {
         return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
     }
-    const settings = parseFilters((body as { settings?: unknown }).settings);
+    const settings = parseFeedFilters((body as { settings?: unknown }).settings);
 
     await adminDb.collection('users').doc(customer.uid)
         .set({ feed: { settings } }, { merge: true });
